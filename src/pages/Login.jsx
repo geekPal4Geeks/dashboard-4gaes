@@ -134,9 +134,11 @@ export default function Login() {
                             </Button>
                         </Stack>
                         <Link
-                            href="#"
+                            href={`${import.meta.env.VITE_4GEEKS_API_URL}/auth/password/reset`}
                             underline="hover"
                             sx={{ mt: 2, fontSize: 14, alignSelf: 'flex-start', color: '#1976d2' }}
+                            target="_blank"
+                            rel="noopener"
                         >
                             Forgot password?
                         </Link>
