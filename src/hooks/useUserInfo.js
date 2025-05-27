@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import useGlobalReducer from './useGlobalReducer';
 import { useFetchAndSetUser } from './useFetchAndSetUser';
 
-const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager'];
-
 export function useUserInfo() {
   const { store } = useGlobalReducer();
   const fetchAndSetUser = useFetchAndSetUser();

@@ -27,11 +27,12 @@ npm install
 
 3. Create a `.env` file in the root directory and add your environment variables:
 ```env
-VITE_4GEEKS_API_URL=https://breathecode.herokuapp.com/v1
+VITE_API_URL=your_api_url_here
 ```
 
 4. Start the development server:
 ```bash
+npm run start
 npm run dev
 ```
 

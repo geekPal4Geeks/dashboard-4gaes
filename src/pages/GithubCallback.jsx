@@ -9,8 +9,6 @@ function getNextMidnightUTC() {
   return nextMidnight.toISOString();
 }
 
-const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager'];
-
 export default function GithubCallback() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,10 +20,13 @@ export default function GithubCallback() {
     const token = params.get('token');
     if (token) {
       localStorage.setItem('token', token);
-      // Set expiration to next 00:00 UTC
       localStorage.setItem('expires_at', getNextMidnightUTC());
-      // Usar el hook para obtener y setear el usuario
-      fetchAndSetUser(token, true); // true para redirigir si es spy o error
+      // Manejar la promesa correctamente
+      (async () => {
+        const ok = await fetchAndSetUser(token, true);
+        if (ok) navigate('/home');
+        // Si no, el hook ya hace logout y redirige
+      })();
     } else {
       localStorage.clear();
       dispatch({ type: 'logout' });
