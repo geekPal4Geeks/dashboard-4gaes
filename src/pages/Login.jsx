@@ -3,6 +3,8 @@ import { Box, Button, TextField, Typography, Paper, Link, Stack, Alert, Circular
 import GitHubIcon from '@mui/icons-material/GitHub';
 import { useNavigate } from 'react-router-dom';
 import { loginService, githubLogin } from '../services/authService';
+import useGlobalReducer from '../hooks/useGlobalReducer';
+import { useFetchAndSetUser } from '../hooks/useFetchAndSetUser';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -11,6 +13,8 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [githubLoading, setGithubLoading] = useState(false);
     const navigate = useNavigate();
+    const { dispatch } = useGlobalReducer();
+    const fetchAndSetUser = useFetchAndSetUser();
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -20,7 +24,11 @@ export default function Login() {
             const data = await loginService({ email, password });
             localStorage.setItem('token', data.token);
             localStorage.setItem('expires_at', data.expires_at);
-            navigate('/home');
+
+            // Usar el hook para obtener y setear el usuario
+            const ok = await fetchAndSetUser(data.token);
+            if (ok) navigate('/home');
+            // Si no, el hook ya hace logout y redirige
         } catch (err) {
             setError(err.message);
         }
