@@ -1,19 +1,43 @@
-import { Container, Typography, Box, Grid, Divider } from '@mui/material';
-import SchoolIcon from '@mui/icons-material/School';
-import ComputerIcon from '@mui/icons-material/Computer';
-import useGlobalReducer from '../hooks/useGlobalReducer';
-import GuideCard from '../components/GuideCard';
-import CourseCard from '../components/CourseCard';
-
-const courses = [
-  { id: 1, name: 'Caracas Pre-Work', icon: <SchoolIcon sx={{ fontSize: 40, color: '#3f51b5' }} /> },
-  { id: 2, name: 'Madrid PT Prueba', icon: <ComputerIcon sx={{ fontSize: 40, color: '#03a9f4' }} /> },
-  { id: 3, name: 'Madrid Prework', icon: <SchoolIcon sx={{ fontSize: 40, color: '#3f51b5' }} /> },
-  { id: 4, name: 'Introduction to Data Science', icon: <ComputerIcon sx={{ fontSize: 40, color: '#03a9f4' }} /> },
-];
+import { useState, useEffect } from 'react'
+import {
+  Container,
+  Typography,
+  Box,
+  Grid,
+  Divider,
+  CircularProgress,
+  Alert,
+} from '@mui/material'
+import useGlobalReducer from '../hooks/useGlobalReducer'
+import GuideCard from '../components/GuideCard'
+import CourseCard from '../components/CourseCard'
+import { getActiveCohorts } from '../services/cohortService'
 
 export default function Curses() {
-  const { store } = useGlobalReducer();
+  const { store } = useGlobalReducer()
+  const [cohorts, setCohorts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const fetchCohorts = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) throw new Error('No hay token de autenticación')
+
+        const activeCohorts = await getActiveCohorts(token)
+        setCohorts(activeCohorts)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCohorts()
+  }, [])
+
+  // console.log(cohorts)
 
   return (
     <Container maxWidth="lg">
@@ -25,17 +49,28 @@ export default function Curses() {
         <Typography variant="h5" fontWeight={500} sx={{ mb: 2 }}>
           Your active programs
         </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <GuideCard />
-          </Grid>
-          {courses.map((course) => (
-            <Grid item xs={12} md={6} key={course.id}>
-              <CourseCard name={course.name} icon={course.icon} />
+
+        {loading ? (
+          <Box display="flex" justifyContent="center" my={4}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        ) : (
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <GuideCard />
             </Grid>
-          ))}
-        </Grid>
+            {cohorts.map((cohort) => (
+              <Grid item xs={12} sm={6} md={4} key={cohort.cohort?.id}>
+                <CourseCard cohort={cohort} />
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </Box>
     </Container>
-  );
-} 
+  )
+}

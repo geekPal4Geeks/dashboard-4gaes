@@ -1,32 +1,150 @@
-import { Card, CardContent, CardActions, Typography, Button, Box } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+  Box,
+  Chip,
+  Tooltip,
+  Divider,
+} from '@mui/material'
+import { useNavigate } from 'react-router-dom'
+import WarningIcon from '@mui/icons-material/Warning'
+// import BookmarkIcon from '@mui/icons-material/Bookmark' // Eliminar importación
+import {
+  formatDate,
+  getCourseCardStageColor,
+  getCourseCardStageLabel,
+  getCourseCardRoleLabel,
+  getCourseCardBorderColor,
+} from '../utils/cohortHelpers'
 
-export default function CourseCard({ name, icon }) {
+export default function CourseCard({ cohort }) {
+  const navigate = useNavigate()
+
   return (
     <Card
       sx={{
         width: 350,
-        height: 300,
+        height: 'auto',
+        minHeight: 300,
         border: '1px solid #e0e0e0',
         bgcolor: '#fff',
         boxShadow: 1,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
+        position: 'relative',
+        overflow: 'visible',
+        borderLeft: `8px solid ${getCourseCardBorderColor(
+          cohort.cohort.stage
+        )}`,
       }}
     >
-      <CardContent sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-        <Box sx={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {icon}
+      <CardContent
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {cohort.notionInfo?.properties?.['Projects in review']?.number >
+              20 && (
+              <Chip
+                label={`${cohort.notionInfo.properties['Projects in review'].number} proyectos pendientes`}
+                color="warning"
+                variant="outlined"
+                icon={<WarningIcon />}
+                size="small"
+              />
+            )}
+            <Chip
+              label={getCourseCardStageLabel(cohort.cohort.stage)}
+              color={getCourseCardStageColor(cohort.cohort.stage)}
+              size="small"
+            />
+            <Chip
+              label={getCourseCardRoleLabel(cohort.role)}
+              color="primary"
+              size="small"
+              variant="outlined"
+            />
+          </Box>
         </Box>
-        <Typography variant="h6" fontWeight={600}>
-          {name}
+        <Typography variant="h5" color="text.primary">
+          <strong>
+            {(cohort.cohort?.name || 'Sin nombre')
+              .replaceAll('-', ' ')
+              .replace(/^./, (str) => str.toUpperCase())}
+          </strong>
         </Typography>
+        <Divider />
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Typography variant="body2">
+            <strong>Inicio Prework:</strong>{' '}
+            {formatDate(
+              cohort.notionInfo.properties?.['Start date (prework)']?.date
+                ?.start
+            )}
+          </Typography>
+          <Typography variant="body2">
+            <strong>Inicio Contenido:</strong>{' '}
+            {formatDate(
+              cohort.notionInfo.properties?.['Start Date (content)']?.date
+                ?.start
+            )}
+          </Typography>
+          <Typography variant="body2">
+            <strong>Finaliza:</strong>{' '}
+            {formatDate(
+              cohort.notionInfo.properties?.['End Date (course)']?.date?.start
+            )}
+          </Typography>
+          <Typography variant="body2">
+            <strong>Estudiantes:</strong>{' '}
+            {cohort.notionInfo.properties?.['Active (#)']?.rollup?.number || 0}
+          </Typography>
+        </Box>
+
+        <Box sx={{ mt: 1, display: 'flex', alignItems: 'baseline', gap: 1 }}>
+          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+            Proyectos pendientes de revisión:
+          </Typography>
+          <Typography
+            variant="h6"
+            color={
+              cohort.notionInfo?.properties?.['Projects in review']?.number > 20
+                ? 'warning.main'
+                : 'text.primary'
+            }
+            sx={{ display: 'flex', alignItems: 'center' }}
+          >
+            {cohort.notionInfo?.properties?.['Projects in review']?.number || 0}
+            {cohort.notionInfo?.properties?.['Projects in review']?.number >
+              20 && <WarningIcon sx={{ ml: 0.5 }} color="warning" />}
+          </Typography>
+        </Box>
       </CardContent>
       <CardActions>
-        <Button variant="outlined" color="primary" fullWidth>
-          Loading...
+        <Button
+          variant="contained"
+          color="info"
+          fullWidth
+          onClick={() => navigate(`/cohort/${cohort.cohort.id}`)}
+        >
+          Ver detalles
         </Button>
       </CardActions>
     </Card>
-  );
-} 
+  )
+}
