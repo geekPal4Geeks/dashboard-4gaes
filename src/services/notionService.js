@@ -2,9 +2,11 @@ import axios from 'axios'
 
 // Lista de cohortes que sabemos que no existen en Notion
 
+const API_URL = import.meta.env.VITE_BACKEND_URL
+
 export async function getCohortNotionInfo(cohortId) {
   try {
-    const response = await axios.post('http://localhost:5000/api/cohort-info', {
+    const response = await axios.post(`${API_URL}/cohort-info`, {
       cohortId: cohortId,
     })
     return response.data
@@ -27,7 +29,7 @@ export async function getCohortNotionInfo(cohortId) {
 export const getStudentInfo = async (studentId) => {
   try {
     const response = await axios.post(
-      'http://localhost:5000/api/student-info',
+      `${API_URL}/student-info`,
       {
         studentId: studentId,
       }

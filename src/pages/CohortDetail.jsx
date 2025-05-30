@@ -36,6 +36,7 @@ import {
   getNumberColor,
   getDaysInPreworkColor,
 } from '../utils/cohortHelpers'
+import StudentDetailModal from '../components/StudentDetailModal'
 
 export default function CohortDetail() {
   const { cohortId } = useParams()
@@ -48,6 +49,8 @@ export default function CohortDetail() {
   const [savingAbsences, setSavingAbsences] = useState({})
   const [pendingUpdates, setPendingUpdates] = useState({})
   const [updateQueue, setUpdateQueue] = useState({})
+  const [selectedStudent, setSelectedStudent] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const isPrework = cohort?.properties?.Status?.select?.name === 'Prework'
 
@@ -347,6 +350,16 @@ export default function CohortDetail() {
     )
   }
 
+  const handleStudentClick = (student) => {
+    setSelectedStudent(student)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedStudent(null)
+  }
+
   if (loading) {
     return (
       <Box
@@ -559,11 +572,22 @@ export default function CohortDetail() {
                     },
                     '&:hover': {
                       backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                      cursor: 'pointer',
                     },
                   }}
+                  onClick={() => handleStudentClick(student)}
                 >
                   <TableCell>
-                    {student.basicInfo?.full_name || 'Sin nombre'}
+                    <Typography
+                      sx={{
+                        color: 'primary.main',
+                        '&:hover': {
+                          textDecoration: 'underline',
+                        },
+                      }}
+                    >
+                      {student.basicInfo?.full_name || 'Sin nombre'}
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     {student.basicInfo?.slack_id || 'Sin Slack ID'}
@@ -645,6 +669,13 @@ export default function CohortDetail() {
           </Table>
         </TableContainer>
       </Paper>
+
+      <StudentDetailModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        student={selectedStudent}
+        isPrework={isPrework}
+      />
     </Container>
   )
 }
