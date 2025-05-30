@@ -17,6 +17,7 @@ const Curses = lazy(() => import('./pages/Curses'))
 const Mentorships = lazy(() => import('./pages/Mentorships'))
 const CoursesManagement = lazy(() => import('./pages/CoursesManagement'))
 const CohortDetail = lazy(() => import('./pages/CohortDetail'))
+const StudentSkillReview = lazy(() => import('./pages/StudentSkillReview'))
 
 // Loading component
 const LoadingFallback = () => (
@@ -52,6 +53,10 @@ export const router = createBrowserRouter(
         <Route
           path="/cohort/:cohortId"
           element={<LazyRoute Component={CohortDetail} />}
+        />
+        <Route
+          path="/cohort/:cohortId/skill-review"
+          element={<LazyRoute Component={StudentSkillReview} />}
         />
         <Route
           path="/mentorships"

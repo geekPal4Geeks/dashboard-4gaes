@@ -5,9 +5,11 @@ const EXCLUDED_COHORTS = [
   902, 939, 101, 1224, 512, 1065, 942, 768, 767, 520, 519,
 ]
 
+const API_URL = import.meta.env.VITE_4GEEKS_API_URL
+
 export async function getActiveCohorts(token) {
   const resp = await fetch(
-    'https://breathecode.herokuapp.com/v1/admissions/user/me',
+    `${API_URL}/admissions/user/me`,
     {
       headers: {
         Authorization: `Token ${token}`,

@@ -24,7 +24,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import { getCohortNotionInfo, getStudentInfo } from '../services/notionService'
 import WarningIcon from '@mui/icons-material/Warning'
-import axios from 'axios'
 import {
   notionToMuiColor,
   getStageColor,
@@ -37,6 +36,8 @@ import {
   getDaysInPreworkColor,
 } from '../utils/cohortHelpers'
 import StudentDetailModal from '../components/StudentDetailModal'
+import { updateStudentProperty } from '../services/studentService'
+import { parseStudentData } from '../utils/studentHelpers'
 
 export default function CohortDetail() {
   const { cohortId } = useParams()
@@ -79,11 +80,7 @@ export default function CohortDetail() {
         setSavingAbsences((prev) => ({ ...prev, [studentId]: true }))
         const value = updateQueue[studentId]
 
-        await axios.put('http://localhost:5000/api/update-student-property', {
-          studentId,
-          propertyName: 'Absences',
-          propertyValue: value,
-        })
+        await updateStudentProperty(studentId, 'Absences', value)
 
         setStudents((prev) =>
           prev.map((student) =>
@@ -201,32 +198,6 @@ export default function CohortDetail() {
       })
     }
   }, [processUpdateQueue, updateQueue])
-
-  const parseStudentData = (zapierData) => {
-    if (!zapierData) return []
-
-    // Dividir por cada estudiante (separados por coma)
-    const studentsData = zapierData.split(',').filter(Boolean)
-
-    return studentsData.map((studentStr) => {
-      // Dividir cada propiedad del estudiante (separadas por |)
-      const properties = studentStr.split('|').reduce((acc, prop) => {
-        const [key, value] = prop.split(':')
-        acc[key] = value
-        return acc
-      }, {})
-
-      return {
-        notion_id: properties.notion_id,
-        full_name: properties.full_name,
-        email: properties.email,
-        slack_id: properties.slack_id,
-        absences: parseInt(properties.absences) || 0,
-        pending_projects: parseInt(properties.pending_projects) || 0,
-        is_in_academic_recovery: properties.is_in_academic_recovery === 'true',
-      }
-    })
-  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -360,6 +331,10 @@ export default function CohortDetail() {
     setSelectedStudent(null)
   }
 
+  const handleSkillReviewClick = () => {
+    navigate(`/cohort/${cohortId}/skill-review`)
+  }
+
   if (loading) {
     return (
       <Box
@@ -439,6 +414,14 @@ export default function CohortDetail() {
           {cohort.properties?.['Projects in review']?.number > 20 && (
             <Chip
               label={`${cohort.properties['Projects in review'].number} proyectos pendientes`}
+              color="warning"
+              variant="outlined"
+              icon={<WarningIcon />}
+            />
+          )}
+          {cohort.properties?.Status?.select?.name === 'Final Project' && (
+            <Chip
+              label="Recordar completar la revisión de habilidades antes de finalizar"
               color="warning"
               variant="outlined"
               icon={<WarningIcon />}
@@ -540,9 +523,22 @@ export default function CohortDetail() {
 
         <Divider sx={{ my: 3 }} />
 
-        <Typography variant="h5" gutterBottom>
-          Estudiantes
-        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+          }}
+        >
+          <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
+            Estudiantes
+          </Typography>
+          <Button variant="outlined" onClick={handleSkillReviewClick}>
+            Revisión de Habilidades
+          </Button>
+        </Box>
+
         <TableContainer>
           <Table>
             <TableHead>

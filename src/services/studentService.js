@@ -16,3 +16,24 @@ export const updateStudentComment = async (studentId, comment, userName) => {
     throw error
   }
 }
+
+export const updateStudentProperty = async (
+  studentId,
+  propertyName,
+  propertyValue
+) => {
+  try {
+    const response = await axios.put(`${API_URL}/update-student-property`, {
+      studentId,
+      propertyName,
+      propertyValue,
+    })
+    return response.data
+  } catch (error) {
+    console.error(
+      `Error al actualizar la propiedad ${propertyName} del estudiante ${studentId}:`,
+      error
+    )
+    throw error
+  }
+}
