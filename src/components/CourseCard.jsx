@@ -23,6 +23,60 @@ import {
 export default function CourseCard({ cohort }) {
   const navigate = useNavigate()
 
+  if (!cohort || !cohort.cohort) {
+    console.error("CourseCard recibió un prop 'cohort' inválido:", cohort)
+    return null
+  }
+
+  // Verificar si falta la información de Notion
+  if (!cohort.notionInfo) {
+    return (
+      <Card
+        sx={{
+          width: 350,
+          height: 'auto',
+          minHeight: 300,
+          border: '1px solid #e0e0e0',
+          bgcolor: '#fff',
+          boxShadow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'visible',
+          borderLeft: `8px solid ${getCourseCardBorderColor(
+            cohort.cohort.stage?.toUpperCase()
+          )}`,
+        }}
+      >
+        <CardContent
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: 2,
+          }}
+        >
+          <WarningIcon color="warning" sx={{ fontSize: 60 }} />
+          <Typography variant="h6" color="text.secondary">
+            Información de Notion no disponible
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Por favor, contacte al equipo académico para más detalles sobre esta
+            cohorte.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Nombre de la cohorte: {cohort.cohort?.name || 'Sin nombre'}
+          </Typography>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Renderizar la tarjeta completa si la información de Notion está disponible
   return (
     <Card
       sx={{
@@ -38,7 +92,7 @@ export default function CourseCard({ cohort }) {
         position: 'relative',
         overflow: 'visible',
         borderLeft: `8px solid ${getCourseCardBorderColor(
-          cohort.cohort.stage
+          cohort.cohort.stage?.toUpperCase()
         )}`,
       }}
     >
@@ -61,7 +115,7 @@ export default function CourseCard({ cohort }) {
             {cohort.notionInfo?.properties?.['Projects in review']?.number >
               20 && (
               <Chip
-                label={`${cohort.notionInfo.properties['Projects in review'].number} proyectos pendientes`}
+                label={`${cohort.notionInfo?.properties['Projects in review'].number} proyectos pendientes`}
                 color="warning"
                 variant="outlined"
                 icon={<WarningIcon />}

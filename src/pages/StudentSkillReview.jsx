@@ -337,188 +337,131 @@ export default function StudentSkillReview() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {students.map((student) => {
-                const studentId = student.id
-                const currentResponsabilidad =
-                  pendingUpdatesQueue[studentId]?.[
-                    generatePropertyKey('Responsabilidad (Skill review)')
-                  ] ??
-                  student[generatePropertyKey('Responsabilidad (Skill review)')]
-                const currentOrganizacion =
-                  pendingUpdatesQueue[studentId]?.[
-                    generatePropertyKey('Organización (Skill review)')
-                  ] ??
-                  student[generatePropertyKey('Organización (Skill review)')]
-                const currentCapacidadAtencion =
-                  pendingUpdatesQueue[studentId]?.[
-                    generatePropertyKey('Capacidad de atención (Skill review)')
-                  ] ??
-                  student[
-                    generatePropertyKey('Capacidad de atención (Skill review)')
-                  ]
-                const currentDominioConceptos =
-                  pendingUpdatesQueue[studentId]?.[
-                    generatePropertyKey('Dominio de conceptos (Skill review)')
-                  ] ??
-                  student[
-                    generatePropertyKey('Dominio de conceptos (Skill review)')
-                  ]
-                const currentHabilidadTecnica =
-                  pendingUpdatesQueue[studentId]?.[
-                    generatePropertyKey('Habilidad técnica (Skill review)')
-                  ] ??
-                  student[
-                    generatePropertyKey('Habilidad técnica (Skill review)')
-                  ]
-                const currentCapacidadResolutiva =
-                  pendingUpdatesQueue[studentId]?.[
-                    generatePropertyKey('Capacidad resolutiva (Skill review)')
-                  ] ??
-                  student[
-                    generatePropertyKey('Capacidad resolutiva (Skill review)')
-                  ]
-                const currentTrabajoEquipo =
-                  pendingUpdatesQueue[studentId]?.[
-                    generatePropertyKey('Trabajo en equipo (Skill review)')
-                  ] ??
-                  student[
-                    generatePropertyKey('Trabajo en equipo (Skill review)')
-                  ]
-                const currentSpecialties =
-                  pendingUpdatesQueue[studentId]?.technicalSpecialties ??
-                  student.technicalSpecialties
-                const currentRecomendadoTA =
-                  pendingUpdatesQueue[studentId]?.recomendadoTA ??
-                  student.recomendadoTA
+              {students.map((student, index) => (
+                <TableRow
+                  key={student.id}
+                  sx={{
+                    '&:nth-of-type(odd)': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    },
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                    },
+                  }}
+                >
+                  <TableCell>{student.name}</TableCell>
+                  {skillReviewProperties.map((propName) => {
+                    const propertyKey = generatePropertyKey(propName)
+                    const currentValue =
+                      pendingUpdatesQueue[student.id]?.[propertyKey] ??
+                      student[propertyKey]
 
-                const currentValues = {
-                  [generatePropertyKey('Responsabilidad (Skill review)')]:
-                    currentResponsabilidad,
-                  [generatePropertyKey('Organización (Skill review)')]:
-                    currentOrganizacion,
-                  [generatePropertyKey('Capacidad de atención (Skill review)')]:
-                    currentCapacidadAtencion,
-                  [generatePropertyKey('Dominio de conceptos (Skill review)')]:
-                    currentDominioConceptos,
-                  [generatePropertyKey('Habilidad técnica (Skill review)')]:
-                    currentHabilidadTecnica,
-                  [generatePropertyKey('Capacidad resolutiva (Skill review)')]:
-                    currentCapacidadResolutiva,
-                  [generatePropertyKey('Trabajo en equipo (Skill review)')]:
-                    currentTrabajoEquipo,
-                }
-
-                return (
-                  <TableRow key={student.id}>
-                    <TableCell sx={{ minWidth: 200 }}>{student.name}</TableCell>
-                    {skillReviewProperties.map((propName) => {
-                      const propertyKey = generatePropertyKey(propName)
-                      const currentValue = currentValues[propertyKey]
-
-                      return (
-                        <TableCell key={propertyKey} align="center">
-                          {propName.includes('(Skill review)') && (
-                            <TextField
-                              type="number"
-                              value={
-                                localSkillValues[student.id]?.[propertyKey] ??
-                                currentValue
-                              }
-                              onChange={(e) =>
-                                handleRatingChange(
-                                  student.id,
-                                  propertyKey,
-                                  e.target.value
-                                )
-                              }
-                              onBlur={(e) =>
-                                handleSkillBlur(
-                                  student.id,
-                                  propertyKey,
-                                  e.target.value
-                                )
-                              }
-                              inputProps={{
-                                min: 0,
-                                max: 5,
-                                inputMode: 'numeric',
-                                style: {
-                                  '-moz-appearance': 'textfield',
-                                  '&::-webkit-outer-spin-button': {
-                                    '-webkit-appearance': 'none',
-                                    margin: 0,
-                                  },
-                                  '&::-webkit-inner-spin-button': {
-                                    '-webkit-appearance': 'none',
-                                    margin: 0,
-                                  },
+                    return (
+                      <TableCell key={propertyKey} align="center">
+                        {propName.includes('(Skill review)') && (
+                          <TextField
+                            type="number"
+                            value={
+                              localSkillValues[student.id]?.[propertyKey] ??
+                              currentValue
+                            }
+                            onChange={(e) =>
+                              handleRatingChange(
+                                student.id,
+                                propertyKey,
+                                e.target.value
+                              )
+                            }
+                            onBlur={(e) =>
+                              handleSkillBlur(
+                                student.id,
+                                propertyKey,
+                                e.target.value
+                              )
+                            }
+                            inputProps={{
+                              min: 0,
+                              max: 5,
+                              inputMode: 'numeric',
+                              style: {
+                                '-moz-appearance': 'textfield',
+                                '&::-webkit-outer-spin-button': {
+                                  '-webkit-appearance': 'none',
+                                  margin: 0,
                                 },
-                              }}
-                              sx={{
-                                width: 60,
-                                '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button':
-                                  {
-                                    '-webkit-appearance': 'none',
-                                    margin: 0,
-                                  },
-                                '& input[type=number]': {
-                                  '-moz-appearance': 'textfield',
+                                '&::-webkit-inner-spin-button': {
+                                  '-webkit-appearance': 'none',
+                                  margin: 0,
                                 },
-                              }}
-                              disabled={!!savingStatus[student.id]}
-                            />
-                          )}
-                        </TableCell>
-                      )
-                    })}
-                    <TableCell align="center">
-                      <Select
-                        multiple
-                        value={currentSpecialties}
-                        onChange={(e) =>
-                          handleSpecialtiesChange(student.id, e.target.value)
-                        }
-                        input={
-                          <OutlinedInput
-                            size="small"
-                            placeholder="Seleccionar"
+                              },
+                            }}
+                            sx={{
+                              width: 60,
+                              '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button':
+                                {
+                                  '-webkit-appearance': 'none',
+                                  margin: 0,
+                                },
+                              '& input[type=number]': {
+                                '-moz-appearance': 'textfield',
+                              },
+                            }}
+                            disabled={!!savingStatus[student.id]}
                           />
-                        }
-                        MenuProps={MenuProps}
-                        sx={{ minWidth: 150, maxWidth: 250 }}
-                        disabled={!!savingStatus[student.id]}
-                      >
-                        {technicalSpecialtiesOptions.map((name) => (
-                          <MenuItem key={name} value={name}>
-                            {name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Checkbox
-                        checked={currentRecomendadoTA}
-                        onChange={(e) =>
-                          handleCheckboxChange(
-                            student.id,
-                            'recomendadoTA',
-                            e.target.checked
-                          )
-                        }
-                        disabled={!!savingStatus[student.id]}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Rating
-                        name="read-only"
-                        value={student.studentRank}
-                        readOnly
-                        max={5}
-                      />
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                        )}
+                      </TableCell>
+                    )
+                  })}
+                  <TableCell align="center">
+                    <Select
+                      multiple
+                      value={
+                        pendingUpdatesQueue[student.id]?.technicalSpecialties ??
+                        student.technicalSpecialties
+                      }
+                      onChange={(e) =>
+                        handleSpecialtiesChange(student.id, e.target.value)
+                      }
+                      input={
+                        <OutlinedInput size="small" placeholder="Seleccionar" />
+                      }
+                      MenuProps={MenuProps}
+                      sx={{ minWidth: 150, maxWidth: 250 }}
+                      disabled={!!savingStatus[student.id]}
+                    >
+                      {technicalSpecialtiesOptions.map((name) => (
+                        <MenuItem key={name} value={name}>
+                          {name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Checkbox
+                      checked={
+                        pendingUpdatesQueue[student.id]?.recomendadoTA ??
+                        student.recomendadoTA
+                      }
+                      onChange={(e) =>
+                        handleCheckboxChange(
+                          student.id,
+                          'recomendadoTA',
+                          e.target.checked
+                        )
+                      }
+                      disabled={!!savingStatus[student.id]}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Rating
+                      name="read-only"
+                      value={student.studentRank}
+                      readOnly
+                      max={5}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </TableContainer>

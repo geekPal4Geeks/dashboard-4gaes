@@ -34,6 +34,7 @@ import {
   formatDate,
   getNumberColor,
   getDaysInPreworkColor,
+  getTeamSlackId,
 } from '../utils/cohortHelpers'
 import StudentDetailModal from '../components/StudentDetailModal'
 import { updateStudentProperty } from '../services/studentService'
@@ -151,7 +152,6 @@ export default function CohortDetail() {
   )
 
   const handleAbsencesChange = (studentId, value) => {
-    // Actualizar tanto editingAbsences como el estado local inmediatamente
     setEditingAbsences((prev) => ({
       ...prev,
       [studentId]: value,
@@ -365,6 +365,14 @@ export default function CohortDetail() {
       </Container>
     )
   }
+
+  // Definir programManagerName y pmSlackId aquí, después de la verificación de cohort
+  const programManagerName =
+    cohort.properties?.['Program Manager']?.select?.name
+  const pmSlackId = programManagerName
+    ? getTeamSlackId(programManagerName)
+    : null
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Button
@@ -463,8 +471,25 @@ export default function CohortDetail() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography variant="body2">
                 <strong>Program Manager:</strong>{' '}
-                {cohort.properties?.['Program Manager']?.select?.name ||
-                  'No asignado'}
+                {programManagerName ? (
+                  <Tooltip title="Ir a Slack">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        window.open(
+                          `slack://user?team=T0BFXMWMV&id=${pmSlackId}`,
+                          '_blank'
+                        )
+                      }}
+                      sx={{ ml: 1 }}
+                    >
+                      {programManagerName}
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  'No asignado'
+                )}
               </Typography>
               <Typography variant="body2">
                 <strong>Teacher:</strong>{' '}
@@ -473,33 +498,8 @@ export default function CohortDetail() {
               </Typography>
               <Typography variant="body2">
                 <strong>Teaching Assistant:</strong>{' '}
-                {cohort.properties?.['T.A.']?.relation?.length > 0 ? (
-                  <Tooltip
-                    title={
-                      <Box sx={{ p: 1 }}>
-                        {cohort.properties?.['T.A.']?.relation?.map(
-                          (ta, index) => (
-                            <Typography key={ta.id} variant="body2">
-                              {index + 1}. {ta.name}
-                            </Typography>
-                          )
-                        )}
-                      </Box>
-                    }
-                    arrow
-                  >
-                    <Box component="span" sx={{ cursor: 'help' }}>
-                      {cohort.properties?.['T.A.']?.relation
-                        ?.slice(0, 2)
-                        .map((ta) => ta.name)
-                        .join(', ')}
-                      {cohort.properties?.['T.A.']?.relation?.length > 2 &&
-                        '...'}
-                    </Box>
-                  </Tooltip>
-                ) : (
-                  'No asignado'
-                )}
+                {cohort.properties?.['T.A.']?.relation?.[0]?.name ||
+                  'No asignado'}
               </Typography>
             </Box>
           </Grid>
@@ -544,16 +544,18 @@ export default function CohortDetail() {
             <TableHead>
               <TableRow>
                 <TableCell>Nombre</TableCell>
-                <TableCell>Slack ID</TableCell>
-                {!isPrework && <TableCell>Proyectos Pendientes</TableCell>}
+                <TableCell align="center">Slack</TableCell>
+                {!isPrework && (
+                  <TableCell align="center">Proyectos Pendientes</TableCell>
+                )}
                 {isPrework && (
                   <>
-                    <TableCell>Prework Status</TableCell>
-                    <TableCell>Days in PW Status</TableCell>
+                    <TableCell align="center">Prework Status</TableCell>
+                    <TableCell align="center">Days in PW Status</TableCell>
                   </>
                 )}
-                <TableCell>Inasistencias</TableCell>
-                <TableCell>Estado</TableCell>
+                <TableCell align="center">Inasistencias</TableCell>
+                <TableCell align="center">Estado</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -585,17 +587,35 @@ export default function CohortDetail() {
                       {student.basicInfo?.full_name || 'Sin nombre'}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    {student.basicInfo?.slack_id || 'Sin Slack ID'}
+                  <TableCell align="center">
+                    {student.basicInfo?.slack_id ? (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation() // Evita que se active el onClick de la fila
+                          window.open(
+                            `slack://user?team=${'T0BFXMWMV'}&id=${
+                              student.basicInfo.slack_id
+                            }`,
+                            '_blank'
+                          )
+                        }}
+                      >
+                        Slack
+                      </Button>
+                    ) : (
+                      'Sin Slack ID'
+                    )}
                   </TableCell>
                   {!isPrework && (
-                    <TableCell>
+                    <TableCell align="center">
                       {renderNumber(student.basicInfo?.pending_projects || 0)}
                     </TableCell>
                   )}
                   {isPrework && (
                     <>
-                      <TableCell>
+                      <TableCell align="center">
                         <Chip
                           label={
                             student.properties?.['Prework Status']?.select
@@ -607,7 +627,7 @@ export default function CohortDetail() {
                           size="small"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         {renderDaysInPrework(
                           student.properties?.['Days in prework status']
                             ?.formula?.number || 0
@@ -615,7 +635,7 @@ export default function CohortDetail() {
                       </TableCell>
                     </>
                   )}
-                  <TableCell>
+                  <TableCell align="center">
                     {isPrework ? (
                       <Box
                         sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
@@ -645,7 +665,7 @@ export default function CohortDetail() {
                       renderNumber(student.basicInfo?.absences || 0)
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <Chip
                       label={
                         student.properties?.['Educational Status']?.select?.name
