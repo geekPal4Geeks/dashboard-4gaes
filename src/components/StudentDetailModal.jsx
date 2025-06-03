@@ -15,6 +15,7 @@ import {
 import { useState } from 'react'
 import { updateStudentComment } from '../services/studentService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
+import { getTeamSlackId } from '../utils/cohortHelpers'
 
 export default function StudentDetailModal({
   open,
@@ -28,6 +29,13 @@ export default function StudentDetailModal({
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Obtener el nombre y Slack ID del Asesor de Prework fuera del JSX
+  const preworkAdvisorName =
+    student?.properties?.['Prework Advisor']?.select?.name
+  const advisorSlackId = preworkAdvisorName
+    ? getTeamSlackId(preworkAdvisorName)
+    : null
 
   const handleSaveComment = async () => {
     try {
@@ -55,8 +63,28 @@ export default function StudentDetailModal({
                 Prework Advisor
               </Typography>
               <Typography variant="body1">
-                {student?.properties?.['Prework Advisor']?.select?.name ||
-                  'No asignado'}
+                {preworkAdvisorName ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <span>{preworkAdvisorName}</span>
+                    {advisorSlackId && (
+                      <Link
+                        href={`slack://user?team=${'T0BFXMWMV'}&id=${advisorSlackId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          verticalAlign: 'middle',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <Button variant="outlined">Slack</Button>
+                      </Link>
+                    )}
+                  </Box>
+                ) : (
+                  'No asignado'
+                )}
               </Typography>
               <Divider />
             </>

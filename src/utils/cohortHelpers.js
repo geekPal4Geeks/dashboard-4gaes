@@ -191,3 +191,18 @@ export const getCourseCardBorderColor = (stage) => {
       return '#e0e0e0'
   }
 }
+
+
+export const getTeamSlackId = (programManager)=> {
+  const teamSlackIds = {
+    'Ehiber': 'UU409472Q',
+    'Carmen': 'U06KK46LYH5',
+    'Francesc': 'U06FN52SR36',
+    'Luis': 'U08BGKH117A',
+    'Adrian': 'U07EX1PE6TC',
+  }
+  
+  
+  return teamSlackIds[programManager]
+}
+

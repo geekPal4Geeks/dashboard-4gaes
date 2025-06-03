@@ -24,7 +24,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
 import { getCohortNotionInfo, getStudentInfo } from '../services/notionService'
 import WarningIcon from '@mui/icons-material/Warning'
-import axios from 'axios'
 import {
   notionToMuiColor,
   getStageColor,
@@ -35,8 +34,11 @@ import {
   formatDate,
   getNumberColor,
   getDaysInPreworkColor,
+  getTeamSlackId,
 } from '../utils/cohortHelpers'
 import StudentDetailModal from '../components/StudentDetailModal'
+import { updateStudentProperty } from '../services/studentService'
+import { parseStudentData } from '../utils/studentHelpers'
 
 export default function CohortDetail() {
   const { cohortId } = useParams()
@@ -79,11 +81,7 @@ export default function CohortDetail() {
         setSavingAbsences((prev) => ({ ...prev, [studentId]: true }))
         const value = updateQueue[studentId]
 
-        await axios.put('http://localhost:5000/api/update-student-property', {
-          studentId,
-          propertyName: 'Absences',
-          propertyValue: value,
-        })
+        await updateStudentProperty(studentId, 'Absences', value)
 
         setStudents((prev) =>
           prev.map((student) =>
@@ -154,7 +152,6 @@ export default function CohortDetail() {
   )
 
   const handleAbsencesChange = (studentId, value) => {
-    // Actualizar tanto editingAbsences como el estado local inmediatamente
     setEditingAbsences((prev) => ({
       ...prev,
       [studentId]: value,
@@ -201,32 +198,6 @@ export default function CohortDetail() {
       })
     }
   }, [processUpdateQueue, updateQueue])
-
-  const parseStudentData = (zapierData) => {
-    if (!zapierData) return []
-
-    // Dividir por cada estudiante (separados por coma)
-    const studentsData = zapierData.split(',').filter(Boolean)
-
-    return studentsData.map((studentStr) => {
-      // Dividir cada propiedad del estudiante (separadas por |)
-      const properties = studentStr.split('|').reduce((acc, prop) => {
-        const [key, value] = prop.split(':')
-        acc[key] = value
-        return acc
-      }, {})
-
-      return {
-        notion_id: properties.notion_id,
-        full_name: properties.full_name,
-        email: properties.email,
-        slack_id: properties.slack_id,
-        absences: parseInt(properties.absences) || 0,
-        pending_projects: parseInt(properties.pending_projects) || 0,
-        is_in_academic_recovery: properties.is_in_academic_recovery === 'true',
-      }
-    })
-  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -360,6 +331,10 @@ export default function CohortDetail() {
     setSelectedStudent(null)
   }
 
+  const handleSkillReviewClick = () => {
+    navigate(`/cohort/${cohortId}/skill-review`)
+  }
+
   if (loading) {
     return (
       <Box
@@ -390,6 +365,14 @@ export default function CohortDetail() {
       </Container>
     )
   }
+
+  // Definir programManagerName y pmSlackId aquí, después de la verificación de cohort
+  const programManagerName =
+    cohort.properties?.['Program Manager']?.select?.name
+  const pmSlackId = programManagerName
+    ? getTeamSlackId(programManagerName)
+    : null
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Button
@@ -444,6 +427,14 @@ export default function CohortDetail() {
               icon={<WarningIcon />}
             />
           )}
+          {cohort.properties?.Status?.select?.name === 'Final Project' && (
+            <Chip
+              label="Recordar completar la revisión de habilidades antes de finalizar"
+              color="warning"
+              variant="outlined"
+              icon={<WarningIcon />}
+            />
+          )}
         </Box>
 
         <Grid container spacing={8} sx={{ mb: 4 }}>
@@ -480,8 +471,25 @@ export default function CohortDetail() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography variant="body2">
                 <strong>Program Manager:</strong>{' '}
-                {cohort.properties?.['Program Manager']?.select?.name ||
-                  'No asignado'}
+                {programManagerName ? (
+                  <Tooltip title="Ir a Slack">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        window.open(
+                          `slack://user?team=T0BFXMWMV&id=${pmSlackId}`,
+                          '_blank'
+                        )
+                      }}
+                      sx={{ ml: 1 }}
+                    >
+                      {programManagerName}
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  'No asignado'
+                )}
               </Typography>
               <Typography variant="body2">
                 <strong>Teacher:</strong>{' '}
@@ -490,33 +498,8 @@ export default function CohortDetail() {
               </Typography>
               <Typography variant="body2">
                 <strong>Teaching Assistant:</strong>{' '}
-                {cohort.properties?.['T.A.']?.relation?.length > 0 ? (
-                  <Tooltip
-                    title={
-                      <Box sx={{ p: 1 }}>
-                        {cohort.properties?.['T.A.']?.relation?.map(
-                          (ta, index) => (
-                            <Typography key={ta.id} variant="body2">
-                              {index + 1}. {ta.name}
-                            </Typography>
-                          )
-                        )}
-                      </Box>
-                    }
-                    arrow
-                  >
-                    <Box component="span" sx={{ cursor: 'help' }}>
-                      {cohort.properties?.['T.A.']?.relation
-                        ?.slice(0, 2)
-                        .map((ta) => ta.name)
-                        .join(', ')}
-                      {cohort.properties?.['T.A.']?.relation?.length > 2 &&
-                        '...'}
-                    </Box>
-                  </Tooltip>
-                ) : (
-                  'No asignado'
-                )}
+                {cohort.properties?.['T.A.']?.relation?.[0]?.name ||
+                  'No asignado'}
               </Typography>
             </Box>
           </Grid>
@@ -540,24 +523,39 @@ export default function CohortDetail() {
 
         <Divider sx={{ my: 3 }} />
 
-        <Typography variant="h5" gutterBottom>
-          Estudiantes
-        </Typography>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+          }}
+        >
+          <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
+            Estudiantes
+          </Typography>
+          <Button variant="outlined" onClick={handleSkillReviewClick}>
+            Revisión de Habilidades
+          </Button>
+        </Box>
+
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Nombre</TableCell>
-                <TableCell>Slack ID</TableCell>
-                {!isPrework && <TableCell>Proyectos Pendientes</TableCell>}
+                <TableCell align="center">Slack</TableCell>
+                {!isPrework && (
+                  <TableCell align="center">Proyectos Pendientes</TableCell>
+                )}
                 {isPrework && (
                   <>
-                    <TableCell>Prework Status</TableCell>
-                    <TableCell>Days in PW Status</TableCell>
+                    <TableCell align="center">Prework Status</TableCell>
+                    <TableCell align="center">Days in PW Status</TableCell>
                   </>
                 )}
-                <TableCell>Inasistencias</TableCell>
-                <TableCell>Estado</TableCell>
+                <TableCell align="center">Inasistencias</TableCell>
+                <TableCell align="center">Estado</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -589,17 +587,35 @@ export default function CohortDetail() {
                       {student.basicInfo?.full_name || 'Sin nombre'}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    {student.basicInfo?.slack_id || 'Sin Slack ID'}
+                  <TableCell align="center">
+                    {student.basicInfo?.slack_id ? (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation() // Evita que se active el onClick de la fila
+                          window.open(
+                            `slack://user?team=${'T0BFXMWMV'}&id=${
+                              student.basicInfo.slack_id
+                            }`,
+                            '_blank'
+                          )
+                        }}
+                      >
+                        Slack
+                      </Button>
+                    ) : (
+                      'Sin Slack ID'
+                    )}
                   </TableCell>
                   {!isPrework && (
-                    <TableCell>
+                    <TableCell align="center">
                       {renderNumber(student.basicInfo?.pending_projects || 0)}
                     </TableCell>
                   )}
                   {isPrework && (
                     <>
-                      <TableCell>
+                      <TableCell align="center">
                         <Chip
                           label={
                             student.properties?.['Prework Status']?.select
@@ -611,7 +627,7 @@ export default function CohortDetail() {
                           size="small"
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell align="center">
                         {renderDaysInPrework(
                           student.properties?.['Days in prework status']
                             ?.formula?.number || 0
@@ -619,7 +635,7 @@ export default function CohortDetail() {
                       </TableCell>
                     </>
                   )}
-                  <TableCell>
+                  <TableCell align="center">
                     {isPrework ? (
                       <Box
                         sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
@@ -649,7 +665,7 @@ export default function CohortDetail() {
                       renderNumber(student.basicInfo?.absences || 0)
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="center">
                     <Chip
                       label={
                         student.properties?.['Educational Status']?.select?.name
