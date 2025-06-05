@@ -17,7 +17,6 @@ const Layout = () => {
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                minHeight: '100vh',
             }}
         >
             <ScrollToTop>
@@ -38,7 +37,7 @@ const Layout = () => {
                         <Outlet />
                     </Container>
                 )}
-                <Footer />
+                {!isDocumentation && <Footer />}
             </ScrollToTop>
         </Box>
     )
