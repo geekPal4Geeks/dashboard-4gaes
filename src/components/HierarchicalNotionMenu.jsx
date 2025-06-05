@@ -48,6 +48,7 @@ const getCategoryColor = (category) => {
 
 const getCategoryDisplayName = (category) => {
   if (category === 'Proyectos') return 'Guías del Curso';
+  if (category === 'How to') return 'Cómo hacer';
   return category;
 };
 
@@ -141,7 +142,7 @@ export default function HierarchicalNotionMenu({ menuItems, onSelectPage, select
           >
             <ArrowBack sx={{ mr: 1, fontSize: 20 }} />
             <Typography variant="subtitle1" fontWeight="bold">
-              Back
+              Regresar
             </Typography>
           </ListItemButton>
         </Box>

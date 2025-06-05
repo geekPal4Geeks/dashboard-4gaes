@@ -32,7 +32,7 @@ export default function GuideCard() {
           <Typography variant="h4" color="white">📚</Typography>
         </Box>
         <Typography variant="h6" fontWeight={600}>
-          Guides & Resources
+          Guías y Recursos
         </Typography>
       </CardContent>
       <CardActions>
