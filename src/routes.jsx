@@ -1,9 +1,9 @@
-import { lazy, Suspense, Navigate, useLocation, useNavigate } from 'react'
+import { lazy, Suspense } from 'react'
 import {
     createBrowserRouter,
     createRoutesFromElements,
-    Route
-} from "react-router-dom"
+    Route,
+} from 'react-router-dom'
 import { CircularProgress, Box } from '@mui/material'
 import ProtectedRoute from './components/ProtectedRoute'
 import React from 'react'
@@ -14,10 +14,12 @@ const Home = lazy(() => import('./pages/Home'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Login = lazy(() => import('./pages/Login'))
 const GithubCallback = lazy(() => import('./pages/GithubCallback'))
-const Curses = lazy(() => import('./pages/Curses'))
+const Courses = lazy(() => import('./pages/Courses'))
 const Mentorships = lazy(() => import('./pages/Mentorships'))
 const CoursesManagement = lazy(() => import('./pages/CoursesManagement'))
 const Documentation = lazy(() => import('./pages/Documentation'))
+const CohortDetail = lazy(() => import('./pages/CohortDetail'))
+const StudentSkillReview = lazy(() => import('./pages/StudentSkillReview'))
 
 // Loading component
 const LoadingFallback = () => (
@@ -39,13 +41,13 @@ const LazyRoute = ({ Component }) => (
 )
 
 function PageIdRedirect() {
-  const match = window.location.pathname.match(/^\/([a-f0-9]{32})$/i);
-  const pageId = match ? match[1] : null;
-  if (pageId) {
-    window.location.href = `/documentation/${pageId}`;
-    return <LazyRoute Component={Documentation} />;
-  }
-  return <LazyRoute Component={NotFound} />;
+    const match = window.location.pathname.match(/^\/([a-f0-9]{32})$/i);
+    const pageId = match ? match[1] : null;
+    if (pageId) {
+        window.location.href = `/documentation/${pageId}`;
+        return <LazyRoute Component={Documentation} />;
+    }
+    return <LazyRoute Component={NotFound} />;
 }
 
 export const router = createBrowserRouter(
@@ -57,12 +59,20 @@ export const router = createBrowserRouter(
             {/* Resto de la app con layout */}
             <Route element={<LazyRoute Component={Layout} />}>
                 <Route path="/home" element={<LazyRoute Component={Home} />} />
-                <Route path="/curses" element={<LazyRoute Component={Curses} />} />
+                <Route path="/courses" element={<LazyRoute Component={Courses} />} />
+                <Route
+                    path="/cohort/:cohortId"
+                    element={<LazyRoute Component={CohortDetail} />}
+                />
+                <Route
+                    path="/cohort/:cohortId/skill-review"
+                    element={<LazyRoute Component={StudentSkillReview} />}
+                />
                 <Route path="/mentorships" element={<LazyRoute Component={Mentorships} />} />
                 <Route path="/courses-management" element={
-                  <ProtectedRoute allowedRoles={['academy_coordinator', 'country_manager']}>
-                    <LazyRoute Component={CoursesManagement} />
-                  </ProtectedRoute>
+                    <ProtectedRoute allowedRoles={['academy_coordinator', 'country_manager']}>
+                        <LazyRoute Component={CoursesManagement} />
+                    </ProtectedRoute>
                 } />
                 <Route path="/documentation/:pageId?" element={<LazyRoute Component={Documentation} />} />
                 {/* Redirección para pageId en la raíz */}

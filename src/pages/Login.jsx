@@ -27,7 +27,7 @@ export default function Login() {
 
             // Usar el hook para obtener y setear el usuario
             const ok = await fetchAndSetUser(data.token);
-            if (ok) navigate('/home');
+            if (ok) navigate('/courses');
             // Si no, el hook ya hace logout y redirige
         } catch (err) {
             setError(err.message);

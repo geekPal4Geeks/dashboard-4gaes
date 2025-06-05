@@ -1,52 +1,93 @@
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import useGlobalReducer from '../hooks/useGlobalReducer';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Box from '@mui/material/Box';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom'
+import useGlobalReducer from '../hooks/useGlobalReducer'
+import AppBar from '@mui/material/AppBar'
+import Toolbar from '@mui/material/Toolbar'
+import Typography from '@mui/material/Typography'
+import Button from '@mui/material/Button'
+import Box from '@mui/material/Box'
+import logo from '../assets/Logo.png'
+
 
 export const Navbar = () => {
-	const navigate = useNavigate();
-	const { store, dispatch } = useGlobalReducer();
-	const role = store.userRole;
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { store, dispatch } = useGlobalReducer()
+  const role = store.userRole
 
-	const canSeeManagement = role === 'academy_coordinator' || role === 'country_manager';
+  const canSeeManagement =
+    role === 'academy_coordinator' || role === 'country_manager'
 
-	const handleLogout = () => {
-		localStorage.clear();
-		dispatch({ type: 'logout' });
-		navigate('/');
-	};
+  const handleLogout = () => {
+    localStorage.clear()
+    dispatch({ type: 'logout' })
+    navigate('/')
+  }
 
-	return (
-		<AppBar position="static" color="default" elevation={1}>
-			<Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-				<Typography
-					variant="h6"
-					component={RouterLink}
-					to="/"
-					sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
-				>
-					4Geeks Spain Dashboard
-				</Typography>
-				<Box>
-					<Button color="inherit" component={RouterLink} to="/curses">
-						Curses
-					</Button>
-					<Button color="inherit" component={RouterLink} to="/mentorships">
-						Mentorships
-					</Button>
-					{canSeeManagement && (
-						<Button color="inherit" component={RouterLink} to="/courses-management">
-							Courses Management
-						</Button>
-					)}
-					<Button color="error" variant="outlined" onClick={handleLogout} sx={{ ml: 2 }}>
-						Logout
-					</Button>
-				</Box>
-			</Toolbar>
-		</AppBar>
-	);
-};
+  const isActive = (path) => {
+    return location.pathname === path
+  }
+
+  const buttonStyles = (path) => ({
+    color: isActive(path) ? 'primary.main' : 'inherit',
+    fontWeight: isActive(path) ? 'bold' : 'normal',
+    transition: 'all 0.2s ease',
+  })
+
+  return (
+    <AppBar position="static" color="default" elevation={1}>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <img
+            src={logo}
+            alt="4Geeks Logo"
+            style={{ height: '50px', width: 'auto' }}
+          />
+          <Typography
+            variant="h5"
+            component={RouterLink}
+            to="/courses"
+            sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
+          >
+            4Geeks Spain Dashboard
+          </Typography>
+        </Box>
+        <Box>
+          <Button
+            color="inherit"
+            component={RouterLink}
+            to="/courses"
+            sx={buttonStyles('/courses')}
+          >
+            Courses
+          </Button>
+          <Button
+            color="inherit"
+            component={RouterLink}
+            to="/mentorships"
+            sx={buttonStyles('/mentorships')}
+          >
+            Mentorships
+          </Button>
+          {canSeeManagement && (
+            <Button
+              color="inherit"
+              component={RouterLink}
+              to="/courses-management"
+              sx={buttonStyles('/courses-management')}
+            >
+              Courses Management
+            </Button>
+          )}
+          <Button
+            color="error"
+            variant="outlined"
+            onClick={handleLogout}
+            sx={{ ml: 2 }}
+          >
+            Logout
+          </Button>
+        </Box>
+      </Toolbar>
+    </AppBar>
+  )
+}
