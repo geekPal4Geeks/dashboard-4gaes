@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Container,
   Typography,
@@ -19,6 +19,7 @@ import {
   cancelStudentMentorship, // Importar la nueva función (aunque esté comentada por ahora)
 } from '../services/studentService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
+import { useNavigate } from 'react-router-dom'
 
 // Motivos de reprogramación
 const cancellationReasons = [
@@ -47,6 +48,15 @@ export default function Mentorships() {
   const [originalMentorshipDate, setOriginalMentorshipDate] = useState('')
   const [supliedWithOtherStudent, setSupliedWithOtherStudent] = useState(false)
   const [cancellationNotes, setCancellationNotes] = useState('')
+  const navigate = useNavigate()
+
+  // Redirección si no hay token
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      navigate('/', { replace: true })
+    }
+  }, [navigate])
 
   const handleSearch = async () => {
     if (!email) {

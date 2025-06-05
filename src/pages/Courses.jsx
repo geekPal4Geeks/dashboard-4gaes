@@ -12,19 +12,23 @@ import useGlobalReducer from '../hooks/useGlobalReducer'
 import GuideCard from '../components/GuideCard'
 import CourseCard from '../components/CourseCard'
 import { getActiveCohorts } from '../services/cohortService'
+import { useNavigate } from 'react-router-dom'
 
 export default function Courses() {
   const { store } = useGlobalReducer()
   const [cohorts, setCohorts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchCohorts = async () => {
       try {
         const token = localStorage.getItem('token')
-        if (!token) throw new Error('No hay token de autenticación')
-
+        if (!token) {
+          navigate('/', { replace: true })
+          return
+        }
         const activeCohorts = await getActiveCohorts(token)
         setCohorts(activeCohorts)
       } catch (err) {
@@ -35,7 +39,7 @@ export default function Courses() {
     }
 
     fetchCohorts()
-  }, [])
+  }, [navigate])
 
   // console.log(cohorts)
 
