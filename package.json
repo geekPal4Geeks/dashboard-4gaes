@@ -34,5 +34,10 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "vite": "^6.3.2"
+  },
+  "overrides": {
+    "rollup": {
+      "@rollup/rollup-linux-x64-gnu": "npm:@rollup/rollup-linux-x64-musl@4.9.5"
+    }
   }
 }
