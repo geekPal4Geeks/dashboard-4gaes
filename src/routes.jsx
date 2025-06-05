@@ -1,11 +1,12 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, Navigate, useLocation, useNavigate } from 'react'
 import {
     createBrowserRouter,
     createRoutesFromElements,
-    Route,
+    Route
 } from "react-router-dom"
 import { CircularProgress, Box } from '@mui/material'
 import ProtectedRoute from './components/ProtectedRoute'
+import React from 'react'
 
 // Pages
 const Layout = lazy(() => import('./pages/Layout'))
@@ -16,6 +17,7 @@ const GithubCallback = lazy(() => import('./pages/GithubCallback'))
 const Curses = lazy(() => import('./pages/Curses'))
 const Mentorships = lazy(() => import('./pages/Mentorships'))
 const CoursesManagement = lazy(() => import('./pages/CoursesManagement'))
+const Documentation = lazy(() => import('./pages/Documentation'))
 
 // Loading component
 const LoadingFallback = () => (
@@ -36,6 +38,16 @@ const LazyRoute = ({ Component }) => (
     </Suspense>
 )
 
+function PageIdRedirect() {
+  const match = window.location.pathname.match(/^\/([a-f0-9]{32})$/i);
+  const pageId = match ? match[1] : null;
+  if (pageId) {
+    window.location.href = `/documentation/${pageId}`;
+    return <LazyRoute Component={Documentation} />;
+  }
+  return <LazyRoute Component={NotFound} />;
+}
+
 export const router = createBrowserRouter(
     createRoutesFromElements(
         <>
@@ -52,6 +64,9 @@ export const router = createBrowserRouter(
                     <LazyRoute Component={CoursesManagement} />
                   </ProtectedRoute>
                 } />
+                <Route path="/documentation/:pageId?" element={<LazyRoute Component={Documentation} />} />
+                {/* Redirección para pageId en la raíz */}
+                <Route path="/:pageId" element={<PageIdRedirect />} />
                 <Route path="*" element={<LazyRoute Component={NotFound} />} />
             </Route>
         </>

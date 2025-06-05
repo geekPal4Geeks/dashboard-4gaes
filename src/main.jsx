@@ -7,6 +7,7 @@ import { router } from "./routes"
 import { StoreProvider } from './hooks/useGlobalReducer'
 import { theme } from './theme' // We should create this
 import './index.css'
+import 'react-notion-x/src/styles.css'
 
 const App = () => {
   return (

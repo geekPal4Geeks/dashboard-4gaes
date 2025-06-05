@@ -1,6 +1,9 @@
 import { Card, CardContent, CardActions, Typography, Button, Box } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 export default function GuideCard() {
+  const navigate = useNavigate();
+
   return (
     <Card
       sx={{
@@ -33,8 +36,8 @@ export default function GuideCard() {
         </Typography>
       </CardContent>
       <CardActions>
-        <Button variant="contained" color="primary" fullWidth>
-          Go to Guides
+        <Button variant="contained" color="primary" fullWidth onClick={() => navigate('/documentation')}>
+          Go to Documentation
         </Button>
       </CardActions>
     </Card>

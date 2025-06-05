@@ -26,7 +26,14 @@ export function useFetchAndSetUser() {
         return false;
       }
 
-      dispatch({ type: 'set_user_info', payload: { userName, userRole: role } });
+      dispatch({ 
+        type: 'set_user_info', 
+        payload: { 
+          userName, 
+          userRole: role,
+          token: token
+        } 
+      });
       return true;
     } catch (err) {
       localStorage.clear();
