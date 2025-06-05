@@ -1,9 +1,25 @@
 import axios from 'axios'
 
-// Lista de cohortes que sabemos que no existen en Notion
-
 const API_URL = import.meta.env.VITE_BACKEND_URL
 
+export async function getNotionPage(pageId, token) {
+  const resp = await fetch(`${API_URL}/notion-page`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Token ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ pageId })
+  });
+
+  if (!resp.ok) {
+    const errorData = await resp.json();
+    throw new Error(errorData.detail || 'Failed to fetch Notion page');
+  }
+
+  return await resp.json();
+} 
+// Lista de cohortes que sabemos que no existen en Notion
 export async function getCohortNotionInfo(cohortId) {
   try {
     const response = await axios.post(`${API_URL}/cohort-info`, {

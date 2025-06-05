@@ -97,7 +97,7 @@ export default function Login() {
                     >
                         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                         <TextField
-                            label="Email"
+                            label="Correo electrónico"
                             variant="outlined"
                             margin="normal"
                             fullWidth
@@ -108,7 +108,7 @@ export default function Login() {
                             required
                         />
                         <TextField
-                            label="Password"
+                            label="Contraseña"
                             type="password"
                             variant="outlined"
                             margin="normal"
@@ -127,9 +127,9 @@ export default function Login() {
                                 type="submit"
                                 disabled={loading || githubLoading}
                             >
-                                {loading ? 'Signing in...' : 'Sign in'}
+                                {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                             </Button>
-                            <Typography sx={{ mx: 1, color: 'text.secondary' }}>or</Typography>
+                            <Typography sx={{ mx: 1, color: 'text.secondary' }}>o</Typography>
                             <Button
                                 variant="outlined"
                                 startIcon={githubLoading ? <CircularProgress size={18} /> : <GitHubIcon />}
@@ -138,7 +138,7 @@ export default function Login() {
                                 onClick={handleGithubLogin}
                                 disabled={githubLoading || loading}
                             >
-                                {githubLoading ? 'Redirecting...' : 'With Github'}
+                                {githubLoading ? 'Redirigiendo...' : 'Con Github'}
                             </Button>
                         </Stack>
                         <Link
@@ -148,7 +148,7 @@ export default function Login() {
                             target="_blank"
                             rel="noopener"
                         >
-                            Forgot password?
+                            ¿Olvidaste tu contraseña?
                         </Link>
                     </Box>
                 </Paper>
@@ -165,7 +165,7 @@ export default function Login() {
                     letterSpacing: 0.2,
                 }}
             >
-                Made with <Box component="span" sx={{ color: '#e25555', fontWeight: 700 }}>♥</Box> by{' '}
+                Made with <Box component="span" sx={{ color: '#e25555', fontWeight: 700 }}>♥</Box> por{' '}
                 <Link
                     href="https://4geeksacademy.com/es/inicio"
                     target="_blank"

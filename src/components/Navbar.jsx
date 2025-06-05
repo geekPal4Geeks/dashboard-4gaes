@@ -58,7 +58,7 @@ export const Navbar = () => {
             to="/courses"
             sx={buttonStyles('/courses')}
           >
-            Courses
+            Cursos
           </Button>
           <Button
             color="inherit"
@@ -66,7 +66,7 @@ export const Navbar = () => {
             to="/mentorships"
             sx={buttonStyles('/mentorships')}
           >
-            Mentorships
+            Mentorías
           </Button>
           {canSeeManagement && (
             <Button
@@ -75,7 +75,7 @@ export const Navbar = () => {
               to="/courses-management"
               sx={buttonStyles('/courses-management')}
             >
-              Courses Management
+              Gestión de cursos
             </Button>
           )}
           <Button
@@ -84,7 +84,7 @@ export const Navbar = () => {
             onClick={handleLogout}
             sx={{ ml: 2 }}
           >
-            Logout
+            Cerrar sesión
           </Button>
         </Box>
       </Toolbar>

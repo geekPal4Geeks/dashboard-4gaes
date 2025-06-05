@@ -13,13 +13,13 @@ function Home() {
                 }}
             >
                 <Typography variant="h2" component="h1" gutterBottom>
-                    Welcome to Dashboard 4Geeks
+                    Bienvenido al Dashboard 4Geeks
                 </Typography>
                 <Typography variant="h4" component="h2" gutterBottom>
-                    Hello {useGlobalReducer().store.userName || 'Guest'}!
+                    ¡Hola {useGlobalReducer().store.userName || 'Invitado'}!
                 </Typography>
                 <Typography variant="h5" component="h2" gutterBottom>
-                    Your modern React dashboard application
+                    Tu aplicación moderna de dashboard en React
                 </Typography>
             </Box>
         </Container>

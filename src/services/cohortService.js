@@ -30,7 +30,8 @@ export async function getActiveCohorts(token) {
   const activeCohorts = data.cohorts?.filter(
     (cohort) =>
       activeStages.includes(cohort.cohort.stage) &&
-      allowedRoles.includes(cohort.role)
+      allowedRoles.includes(cohort.role) 
+      && cohort.cohort?.academy?.id === 6
   )
 
   // Luego filtramos las cohortes excluidas
