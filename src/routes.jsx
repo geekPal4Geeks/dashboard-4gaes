@@ -7,6 +7,7 @@ import {
 import { CircularProgress, Box } from '@mui/material'
 import ProtectedRoute from './components/ProtectedRoute'
 import React from 'react'
+import RequireAuth from './components/RequireAuth'
 
 // Pages
 const Layout = lazy(() => import('./pages/Layout'))
@@ -58,26 +59,54 @@ export const router = createBrowserRouter(
             <Route path="/session/signin" element={<LazyRoute Component={GithubCallback} />} />
             {/* Resto de la app con layout */}
             <Route element={<LazyRoute Component={Layout} />}>
-                <Route path="/home" element={<LazyRoute Component={Home} />} />
-                <Route path="/courses" element={<LazyRoute Component={Courses} />} />
-                <Route
-                    path="/cohort/:cohortId"
-                    element={<LazyRoute Component={CohortDetail} />}
-                />
-                <Route
-                    path="/cohort/:cohortId/skill-review"
-                    element={<LazyRoute Component={StudentSkillReview} />}
-                />
-                <Route path="/mentorships" element={<LazyRoute Component={Mentorships} />} />
-                <Route path="/courses-management" element={
-                    <ProtectedRoute allowedRoles={['academy_coordinator', 'country_manager']}>
-                        <LazyRoute Component={CoursesManagement} />
-                    </ProtectedRoute>
+                <Route path="/home" element={
+                  <RequireAuth>
+                    <LazyRoute Component={Home} />
+                  </RequireAuth>
                 } />
-                <Route path="/documentation/:pageId?" element={<LazyRoute Component={Documentation} />} />
+                <Route path="/courses" element={
+                  <RequireAuth>
+                    <LazyRoute Component={Courses} />
+                  </RequireAuth>
+                } />
+                <Route path="/cohort/:cohortId" element={
+                  <RequireAuth>
+                    <LazyRoute Component={CohortDetail} />
+                  </RequireAuth>
+                } />
+                <Route path="/cohort/:cohortId/skill-review" element={
+                  <RequireAuth>
+                    <LazyRoute Component={StudentSkillReview} />
+                  </RequireAuth>
+                } />
+                <Route path="/mentorships" element={
+                  <RequireAuth>
+                    <LazyRoute Component={Mentorships} />
+                  </RequireAuth>
+                } />
+                <Route path="/courses-management" element={
+                  <RequireAuth>
+                    <ProtectedRoute allowedRoles={['academy_coordinator', 'country_manager']}>
+                      <LazyRoute Component={CoursesManagement} />
+                    </ProtectedRoute>
+                  </RequireAuth>
+                } />
+                <Route path="/documentation/:pageId?" element={
+                  <RequireAuth>
+                    <LazyRoute Component={Documentation} />
+                  </RequireAuth>
+                } />
                 {/* Redirección para pageId en la raíz */}
-                <Route path="/:pageId" element={<PageIdRedirect />} />
-                <Route path="*" element={<LazyRoute Component={NotFound} />} />
+                <Route path="/:pageId" element={
+                    <RequireAuth>
+                        <PageIdRedirect />
+                    </RequireAuth>
+                } />
+                <Route path="*" element={
+                    <RequireAuth>
+                        <LazyRoute Component={NotFound} />
+                    </RequireAuth>
+                } />
             </Route>
         </>
     )
