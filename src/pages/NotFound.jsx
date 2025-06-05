@@ -20,11 +20,11 @@ const NotFound = () => {
                 404
             </Typography>
             <Typography variant="h4" component="h2" gutterBottom>
-                Page Not Found
+                Página no encontrada
             </Typography>
             <Typography variant="body1" color="text.secondary" paragraph>
-                The page you are looking for might have been removed, had its name changed,
-                or is temporarily unavailable.
+                La página que estás buscando podría haber sido eliminada, haber cambiado su nombre
+                o estar temporalmente no disponible.
             </Typography>
             <Button
                 variant="contained"
@@ -32,7 +32,7 @@ const NotFound = () => {
                 onClick={() => navigate('/')}
                 sx={{ mt: 2 }}
             >
-                Go to Home
+                Ir al inicio
             </Button>
         </Box>
     )

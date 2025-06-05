@@ -43,11 +43,11 @@ export default function Courses() {
     <Container maxWidth="lg">
       <Box sx={{ mt: 6, mb: 4 }}>
         <Typography variant="h3" fontWeight={700} gutterBottom>
-          Welcome, {store.userName || 'User'}
+          Hola, {store.userName || 'User'}
         </Typography>
         <Divider sx={{ mb: 3 }} />
         <Typography variant="h5" fontWeight={500} sx={{ mb: 2 }}>
-          Your active programs
+          Tus programas activos
         </Typography>
 
         {loading ? (

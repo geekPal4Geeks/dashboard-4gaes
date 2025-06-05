@@ -5,9 +5,9 @@ export default function CoursesManagement() {
     <Container maxWidth="lg">
       <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Typography variant="h3" component="h1" gutterBottom>
-          Courses Management
+          Gestión de Cursos
         </Typography>
-        <Typography variant="body1">Bienvenido al módulo de Courses Management.</Typography>
+        <Typography variant="body1">Bienvenido al módulo de Gestión de Cursos.</Typography>
       </Box>
     </Container>
   );

@@ -37,7 +37,7 @@ export default function GuideCard() {
       </CardContent>
       <CardActions>
         <Button variant="contained" color="primary" fullWidth onClick={() => navigate('/documentation')}>
-          Go to Documentation
+          Ver documentación
         </Button>
       </CardActions>
     </Card>
