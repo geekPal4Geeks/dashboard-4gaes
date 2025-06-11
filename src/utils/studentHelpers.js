@@ -4,24 +4,32 @@ export const parseStudentData = (zapierData) => {
   // Dividir por cada estudiante (separados por coma)
   const studentsData = zapierData.split(',').filter(Boolean)
 
-  return studentsData.map((studentStr) => {
-    // Dividir cada propiedad del estudiante (separadas por |)
-    const properties = studentStr.split('|').reduce((acc, prop) => {
-      const [key, value] = prop.split(':')
-      acc[key] = value
-      return acc
-    }, {})
+  return studentsData
+    .map((studentStr) => {
+      // Dividir cada propiedad del estudiante (separadas por |)
+      const properties = studentStr.split('|').reduce((acc, prop) => {
+        const [key, value] = prop.split(':')
+        acc[key] = value
+        return acc
+      }, {})
 
-    return {
-      notion_id: properties.notion_id,
-      full_name: properties.full_name,
-      email: properties.email,
-      slack_id: properties.slack_id,
-      absences: parseInt(properties.absences) || 0,
-      pending_projects: parseInt(properties.pending_projects) || 0,
-      is_in_academic_recovery: properties.is_in_academic_recovery === 'true',
-    }
-  })
+      return {
+        notion_id: properties.notion_id,
+        full_name: properties.full_name,
+        email: properties.email,
+        slack_id: properties.slack_id,
+        absences: parseInt(properties.absences) || 0,
+        pending_projects: parseInt(properties.pending_projects) || 0,
+        is_in_academic_recovery: properties.is_in_academic_recovery === 'true',
+      }
+    })
+    .filter(
+      (student) =>
+        student.notion_id &&
+        student.full_name &&
+        student.full_name.trim() !== '' &&
+        student.full_name !== 'Sin nombre'
+    )
 }
 
 // Helper para generar la clave interna consistente

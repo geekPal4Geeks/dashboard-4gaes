@@ -305,167 +305,203 @@ export default function StudentSkillReview() {
         onClick={() => navigate(`/cohort/${cohortId}`)}
         sx={{ mb: 3 }}
       >
-        Volver a Detalles de Cohorte
+        Volver a la Cohorte
       </Button>
 
-      <Typography variant="h4" gutterBottom>
-        Revisión de Habilidades de Estudiantes -{' '}
-        {cohort.properties?.Cohort?.title?.[0]?.plain_text || 'Sin nombre'}
+      <Typography variant="h4" component="h1" gutterBottom>
+        Revisión de Habilidades
       </Typography>
 
-      {isSavingAny && (
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <CircularProgress size={20} sx={{ mr: 1 }} />
-          <Typography>Guardando cambios...</Typography>
+      <Alert severity="info" sx={{ mb: 3 }}>
+        Los cambios se guardan automáticamente. Puedes usar la tecla TAB para
+        navegar entre las columnas.
+      </Alert>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {loading && (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '60vh',
+          }}
+        >
+          <CircularProgress />
         </Box>
       )}
 
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ minWidth: 200 }}>Nombre</TableCell>
-                {skillReviewProperties.map((prop) => (
-                  <TableCell key={prop} align="center">
-                    {prop.replace(' (Skill review)', '') + ''}
-                  </TableCell>
-                ))}
-                <TableCell align="center">Technical specialties</TableCell>
-                <TableCell align="center">Recomendado para TA</TableCell>
-                <TableCell align="center">Student Rank</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {students.map((student, index) => (
-                <TableRow
-                  key={student.id}
-                  sx={{
-                    '&:nth-of-type(odd)': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                    },
-                  }}
-                >
-                  <TableCell>{student.name}</TableCell>
-                  {skillReviewProperties.map((propName) => {
-                    const propertyKey = generatePropertyKey(propName)
-                    const currentValue =
-                      pendingUpdatesQueue[student.id]?.[propertyKey] ??
-                      student[propertyKey]
+      {!loading && !cohort && (
+        <Alert severity="warning">
+          No se encontró información de la cohorte o estudiantes.
+        </Alert>
+      )}
 
-                    return (
-                      <TableCell key={propertyKey} align="center">
-                        {propName.includes('(Skill review)') && (
-                          <TextField
-                            type="number"
-                            value={
-                              localSkillValues[student.id]?.[propertyKey] ??
-                              currentValue
-                            }
-                            onChange={(e) =>
-                              handleRatingChange(
-                                student.id,
-                                propertyKey,
-                                e.target.value
-                              )
-                            }
-                            onBlur={(e) =>
-                              handleSkillBlur(
-                                student.id,
-                                propertyKey,
-                                e.target.value
-                              )
-                            }
-                            inputProps={{
-                              min: 0,
-                              max: 5,
-                              inputMode: 'numeric',
-                              style: {
-                                '-moz-appearance': 'textfield',
-                                '&::-webkit-outer-spin-button': {
-                                  '-webkit-appearance': 'none',
-                                  margin: 0,
-                                },
-                                '&::-webkit-inner-spin-button': {
-                                  '-webkit-appearance': 'none',
-                                  margin: 0,
-                                },
-                              },
-                            }}
-                            sx={{
-                              width: 60,
-                              '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button':
-                                {
-                                  '-webkit-appearance': 'none',
-                                  margin: 0,
-                                },
-                              '& input[type=number]': {
-                                '-moz-appearance': 'textfield',
-                              },
-                            }}
-                            disabled={!!savingStatus[student.id]}
-                          />
-                        )}
-                      </TableCell>
-                    )
-                  })}
-                  <TableCell align="center">
-                    <Select
-                      multiple
-                      value={
-                        pendingUpdatesQueue[student.id]?.technicalSpecialties ??
-                        student.technicalSpecialties
-                      }
-                      onChange={(e) =>
-                        handleSpecialtiesChange(student.id, e.target.value)
-                      }
-                      input={
-                        <OutlinedInput size="small" placeholder="Seleccionar" />
-                      }
-                      MenuProps={MenuProps}
-                      sx={{ minWidth: 150, maxWidth: 250 }}
-                      disabled={!!savingStatus[student.id]}
-                    >
-                      {technicalSpecialtiesOptions.map((name) => (
-                        <MenuItem key={name} value={name}>
-                          {name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Checkbox
-                      checked={
-                        pendingUpdatesQueue[student.id]?.recomendadoTA ??
-                        student.recomendadoTA
-                      }
-                      onChange={(e) =>
-                        handleCheckboxChange(
-                          student.id,
-                          'recomendadoTA',
-                          e.target.checked
-                        )
-                      }
-                      disabled={!!savingStatus[student.id]}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Rating
-                      name="read-only"
-                      value={student.studentRank}
-                      readOnly
-                      max={5}
-                    />
-                  </TableCell>
+      {!loading && cohort && (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Cohorte:{' '}
+            {cohort.properties?.Cohort?.title?.[0]?.plain_text || 'Sin nombre'}
+          </Typography>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Estudiante</TableCell>
+                  {skillReviewProperties.map((prop) => (
+                    <TableCell key={prop} align="center">
+                      {prop.replace(' (Skill review)', '')}
+                    </TableCell>
+                  ))}
+                  <TableCell align="center">Especialidades Técnicas</TableCell>
+                  <TableCell align="center">Recomendado TA</TableCell>
+                  <TableCell align="center">Rank</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
+              </TableHead>
+              <TableBody>
+                {students.map((student) => (
+                  <TableRow key={student.id}>
+                    <TableCell sx={{ minWidth: 150 }}>
+                      <Box
+                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 'medium', color: 'primary.main' }}
+                        >
+                          {student.name}
+                        </Typography>
+                        {savingStatus[student.id] && (
+                          <CircularProgress size={16} />
+                        )}
+                      </Box>
+                    </TableCell>
+                    {skillReviewProperties.map((prop) => {
+                      const propertyKey = generatePropertyKey(prop)
+                      const currentValue =
+                        localSkillValues[student.id]?.[propertyKey] ??
+                        student[propertyKey]
+
+                      return (
+                        <TableCell key={propertyKey} align="center">
+                          {prop.includes('(Skill review)') && (
+                            <TextField
+                              type="number"
+                              value={
+                                localSkillValues[student.id]?.[propertyKey] ??
+                                currentValue
+                              }
+                              onChange={(e) =>
+                                handleRatingChange(
+                                  student.id,
+                                  propertyKey,
+                                  e.target.value
+                                )
+                              }
+                              onBlur={(e) =>
+                                handleSkillBlur(
+                                  student.id,
+                                  propertyKey,
+                                  e.target.value
+                                )
+                              }
+                              inputProps={{
+                                min: 0,
+                                max: 5,
+                                inputMode: 'numeric',
+                                style: {
+                                  '-moz-appearance': 'textfield',
+                                  '&::-webkit-outer-spin-button': {
+                                    '-webkit-appearance': 'none',
+                                    margin: 0,
+                                  },
+                                  '&::-webkit-inner-spin-button': {
+                                    '-webkit-appearance': 'none',
+                                    margin: 0,
+                                  },
+                                },
+                              }}
+                              sx={{
+                                width: 60,
+                                '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button':
+                                  {
+                                    '-webkit-appearance': 'none',
+                                    margin: 0,
+                                  },
+                                '& input[type=number]': {
+                                  '-moz-appearance': 'textfield',
+                                },
+                              }}
+                              disabled={!!savingStatus[student.id]}
+                            />
+                          )}
+                        </TableCell>
+                      )
+                    })}
+                    <TableCell align="center">
+                      <Select
+                        multiple
+                        value={
+                          pendingUpdatesQueue[student.id]
+                            ?.technicalSpecialties ??
+                          student.technicalSpecialties
+                        }
+                        onChange={(e) =>
+                          handleSpecialtiesChange(student.id, e.target.value)
+                        }
+                        input={
+                          <OutlinedInput
+                            size="small"
+                            placeholder="Seleccionar"
+                          />
+                        }
+                        MenuProps={MenuProps}
+                        sx={{ minWidth: 150, maxWidth: 250 }}
+                        disabled={!!savingStatus[student.id]}
+                      >
+                        {technicalSpecialtiesOptions.map((name) => (
+                          <MenuItem key={name} value={name}>
+                            {name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Checkbox
+                        checked={
+                          pendingUpdatesQueue[student.id]?.recomendadoTA ??
+                          student.recomendadoTA
+                        }
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            student.id,
+                            'recomendadoTA',
+                            e.target.checked
+                          )
+                        }
+                        disabled={!!savingStatus[student.id]}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Rating
+                        name="read-only"
+                        value={student.studentRank}
+                        readOnly
+                        max={5}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
     </Container>
   )
 }

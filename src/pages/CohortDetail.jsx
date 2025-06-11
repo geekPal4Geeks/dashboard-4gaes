@@ -212,26 +212,34 @@ export default function CohortDetail() {
         const studentsData = parseStudentData(zapierData)
 
         // Obtener información detallada de cada estudiante usando su notion_id
-        const studentPromises = studentsData.map((student) =>
-          getStudentInfo(student.notion_id)
-        )
+        const studentPromises = studentsData.map((student) => {
+          if (student.notion_id) {
+            return getStudentInfo(student.notion_id)
+          } else {
+            return null
+          }
+        })
 
         // Obtener información de los profesores
         const teacherId = cohortData.properties?.Teacher?.relation?.[0]?.id
         const taIds =
           cohortData.properties?.['T.A.']?.relation?.map((ta) => ta.id) || []
 
-        const [studentsInfo, teacherInfo, ...taInfos] = await Promise.all([
-          Promise.all(studentPromises),
-          teacherId ? getStudentInfo(teacherId) : null,
-          ...taIds.map((taId) => getStudentInfo(taId)),
-        ])
 
-        // Combinar la información básica con la detallada
-        const combinedStudents = studentsInfo.map((info, index) => ({
-          ...info,
-          basicInfo: studentsData[index],
-        }))
+        const [fetchedStudentsInfo, teacherInfo, ...taInfos] =
+          await Promise.all([
+            Promise.all(studentPromises),
+            teacherId ? getStudentInfo(teacherId) : null,
+            ...taIds.map((taId) => getStudentInfo(taId)),
+          ])
+
+        const combinedStudents = studentsData.map((basicStudent, index) => {
+          const detailedInfo = fetchedStudentsInfo[index]
+          return {
+            ...(detailedInfo || {}),
+            basicInfo: basicStudent,
+          }
+        })
 
         // Actualizar la información de los profesores en la cohorte
         const updatedCohort = {

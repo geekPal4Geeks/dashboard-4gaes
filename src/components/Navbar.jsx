@@ -5,7 +5,7 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
-import logo from '../assets/Logo.png'
+import logo from '../assets/logo-4geeks.ico'
 
 
 export const Navbar = () => {
@@ -40,7 +40,7 @@ export const Navbar = () => {
           <img
             src={logo}
             alt="4Geeks Logo"
-            style={{ height: '50px', width: 'auto' }}
+            style={{ height: '30px', width: 'auto' }}
           />
           <Typography
             variant="h5"
