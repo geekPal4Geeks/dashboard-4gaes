@@ -16,8 +16,9 @@ import {
 import {
   findStudentByEmail,
   updateStudentComment,
-  cancelStudentMentorship, // Importar la nueva función (aunque esté comentada por ahora)
+  cancelStudentMentorship,
 } from '../services/studentService'
+import { getCohortNotionInfo } from '../services/notionService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { useNavigate } from 'react-router-dom'
 
@@ -31,6 +32,7 @@ const cancellationReasons = [
   'Penso que era mas tarde',
   'Tiene problemas con codespace',
   'No especifica',
+  'Cancelada por mentor/a'
 ]
 
 export default function Mentorships() {
@@ -44,10 +46,17 @@ export default function Mentorships() {
   const [showQuestion, setShowQuestion] = useState(false)
   const [mentorshipHeld, setMentorshipHeld] = useState(null)
   const [cancellationReason, setCancellationReason] = useState('')
-  const [cancellationDate, setCancellationDate] = useState('')
-  const [originalMentorshipDate, setOriginalMentorshipDate] = useState('')
+  const [cancellationDate, setCancellationDate] = useState(
+    new Date().toISOString().slice(0, 16)
+  )
+  const [originalMentorshipDate, setOriginalMentorshipDate] = useState(
+    new Date().toISOString().slice(0, 16)
+  )
   const [supliedWithOtherStudent, setSupliedWithOtherStudent] = useState(false)
   const [cancellationNotes, setCancellationNotes] = useState('')
+  const [cohortInfo, setCohortInfo] = useState(null) // Nuevo estado para info de la cohorte
+  const [mentorInfo, setMentorInfo] = useState(null) // Nuevo estado para info del mentor
+  const [taInfo, setTaInfo] = useState(null) // Nuevo estado para info del TA
   const navigate = useNavigate()
 
   // Redirección si no hay token
@@ -69,12 +78,62 @@ export default function Mentorships() {
     setFeedback('')
     setShowQuestion(false)
     setMentorshipHeld(null)
+    setCohortInfo(null) // Limpiar info anterior
+    setMentorInfo(null) // Limpiar info anterior
+    setTaInfo(null) // Limpiar info anterior
 
     try {
       const foundStudent = await findStudentByEmail(email)
       if (foundStudent) {
         setStudent(foundStudent)
         setShowQuestion(true)
+
+        // Obtener información de la cohorte si está disponible
+        if (foundStudent.properties?.['Cohort']?.relation?.length > 0) {
+          const cohortId = foundStudent.properties['Cohort'].relation[0].id
+          console.log(cohortId)
+          try {
+            const cohortDetails = await getCohortNotionInfo(cohortId)
+            setCohortInfo(cohortDetails)
+            console.log(cohortDetails)
+            // Asumiendo que cohortDetails tiene la estructura para mentor y TA
+            // Deberás ajustar los nombres de las propiedades según la respuesta real de la API
+            // Ejemplo basado en la fórmula de Notion que viste:
+            const teacherRelation = cohortDetails.properties?.[
+              'Teacher / TA'
+            ]?.relation.find(
+              (person) => person.object === 'user' // Asumiendo que Teacher/TA son usuarios relacionados
+              // Podrías necesitar lógica adicional para distinguir entre Teacher y TA si ambos están en la misma propiedad
+            )
+            const taRelation = cohortDetails.properties?.[
+              'Teacher / TA'
+            ]?.relation.find(
+              (person) =>
+                person.object === 'user' && person.id !== teacherRelation?.id // Asumiendo que Teacher/TA son usuarios relacionados y diferentes
+            )
+
+            if (teacherRelation) {
+              // Para obtener el nombre y slack, probablemente necesites otra llamada API con el teacherRelation.id
+              // O la información ya viene anidada en cohortDetails.properties?.['Teacher / TA']
+              // Por ahora, usaremos placeholders. Deberás reemplazar esto con la forma correcta de acceder.
+              setMentorInfo({
+                name: teacherRelation.id, // Reemplazar con el nombre real
+                slack: 'Slack Mentor N/A', // Reemplazar con el Slack ID real
+              })
+            }
+
+            if (taRelation) {
+              // Similar al mentor, necesitas obtener el nombre y slack real
+              setTaInfo({
+                name: taRelation.id, // Reemplazar con el nombre real
+                slack: 'Slack TA N/A', // Reemplazar con el Slack ID real
+              })
+            }
+          } catch (cohortError) {
+            console.error('Error fetching cohort info:', cohortError)
+            // No bloqueamos la búsqueda si falla la info de la cohorte
+          }
+        }
       } else {
         setError('Estudiante no encontrado.')
       }
@@ -194,7 +253,7 @@ export default function Mentorships() {
 
         <Paper sx={{ p: 3, width: '100%', mb: 3 }}>
           <Typography variant="h6" gutterBottom>
-            Buscar Estudiante
+            Buscar Estudiante por Correo Electrónico
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
             <TextField
@@ -203,10 +262,15 @@ export default function Mentorships() {
               fullWidth
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              type="email"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch()
+                }
+              }}
             />
             <Button
               variant="contained"
+              color="primary"
               onClick={handleSearch}
               disabled={loading}
             >
@@ -223,10 +287,10 @@ export default function Mentorships() {
         {/* Sección para la pregunta */}
         {student && showQuestion && (
           <Paper sx={{ p: 3, width: '100%', mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
               ¿Se llevó a cabo la mentoría?
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button
                 variant="contained"
                 color="success"
@@ -291,6 +355,19 @@ export default function Mentorships() {
                   'N/A'
                 )}
               </Typography>
+              {/* Mostrar información del Mentor y TA */}
+              {mentorInfo && (
+                <Typography variant="body1">
+                  <strong>Mentor:</strong> {mentorInfo.name}{' '}
+                  {mentorInfo.slack !== 'N/A' ? `(${mentorInfo.slack})` : ''}
+                </Typography>
+              )}
+              {taInfo && (
+                <Typography variant="body1">
+                  <strong>TA:</strong> {taInfo.name}{' '}
+                  {taInfo.slack !== 'N/A' ? `(${taInfo.slack})` : ''}
+                </Typography>
+              )}
               <Typography variant="body1">
                 <strong>Program Manager:</strong>{' '}
                 {student.properties?.['Program Manager']?.rollup?.array?.[0] ? (
@@ -424,7 +501,7 @@ export default function Mentorships() {
                 value={cancellationReason}
                 onChange={handleCancellationReasonChange}
               >
-                <MenuItem value="">Seleccionar motivo</MenuItem>
+                {/* <MenuItem value="">Seleccionar motivo</MenuItem> */}
                 {cancellationReasons.map((reason) => (
                   <MenuItem key={reason} value={reason}>
                     {reason}

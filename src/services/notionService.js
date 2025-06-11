@@ -6,19 +6,19 @@ export async function getNotionPage(pageId, token) {
   const resp = await fetch(`${API_URL}/notion-page`, {
     method: 'POST',
     headers: {
-      'Authorization': `Token ${token}`,
-      'Content-Type': 'application/json'
+      Authorization: `Token ${token}`,
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ pageId })
-  });
+    body: JSON.stringify({ pageId }),
+  })
 
   if (!resp.ok) {
-    const errorData = await resp.json();
-    throw new Error(errorData.detail || 'Failed to fetch Notion page');
+    const errorData = await resp.json()
+    throw new Error(errorData.detail || 'Failed to fetch Notion page')
   }
 
-  return await resp.json();
-} 
+  return await resp.json()
+}
 // Lista de cohortes que sabemos que no existen en Notion
 export async function getCohortNotionInfo(cohortId) {
   try {
@@ -44,12 +44,9 @@ export async function getCohortNotionInfo(cohortId) {
 // Función para obtener información de un estudiante
 export const getStudentInfo = async (studentId) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/student-info`,
-      {
-        studentId: studentId,
-      }
-    )
+    const response = await axios.post(`${API_URL}/student-info`, {
+      studentId: studentId,
+    })
     return response.data
   } catch (error) {
     console.error('Error al obtener información del estudiante:', error.message)
