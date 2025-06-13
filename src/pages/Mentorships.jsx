@@ -23,8 +23,9 @@ import {
   findStudentByEmail,
   updateStudentComment,
   cancelStudentMentorship,
+  updateStudentProperty,
 } from '../services/studentService'
-import { getNotionPage, getCohortPageById } from '../services/notionService'
+import { getCohortPageById } from '../services/notionService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { useNavigate } from 'react-router-dom'
 
@@ -80,6 +81,7 @@ export default function Mentorships() {
   // Estados para el tipo y estado de registro - inicializados con valores por defecto
   const [sessionStatus, setSessionStatus] = useState('realizada') // Default: 'realizada'
   const [sessionType, setSessionType] = useState('mentorship') // Default: 'mentorship'
+  const [mockInterviewResult, setMockInterviewResult] = useState('') // Nuevo estado para el resultado de la mock interview
 
   // Función para volver a la selección inicial y limpiar estados
   const handleBack = () => {
@@ -100,6 +102,7 @@ export default function Mentorships() {
     setTaInfo(null) // Limpiar info de TA
     setCancellationDate(formatLocalDateTime(new Date())) // Resetear fecha de cancelación
     setOriginalMentorshipDate(formatLocalDateTime(new Date())) // Resetear fecha de mentoría original
+    setMockInterviewResult('') // Limpiar resultado de mock interview
   }
 
   // Redirección si no hay token
@@ -150,7 +153,6 @@ export default function Mentorships() {
             // Usar la nueva función getCohortPageById
             const cohortDetails = await getCohortPageById(cohortId) // <-- CAMBIO AQUI
             setCohortInfo(cohortDetails)
-            console.log(cohortDetails)
             // Asumiendo que cohortDetails ahora es una página de Notion directamente
             // Las propiedades de NotionPage son diferentes a las de getCohortNotionInfo
             const teacherRelation = cohortDetails.properties?.[
@@ -206,16 +208,104 @@ export default function Mentorships() {
       setError('No hay estudiante seleccionado para guardar feedback.')
       return
     }
-    if (!feedback.trim()) {
-      setError('Por favor, ingrese el feedback.')
-      return
+
+    if (sessionType === 'mock_interview') {
+      if (!mockInterviewResult) {
+        setError('Por favor, seleccione un resultado para la Mock Interview.')
+        return
+      }
+      if (!feedback.trim()) {
+        setError('Por favor, ingrese el feedback de la Mock Interview.')
+        return
+      }
+    } else {
+      if (!feedback.trim()) {
+        setError('Por favor, ingrese el feedback.')
+        return
+      }
     }
 
     setSaving(true)
     setError(null)
     try {
-      await updateStudentComment(student.id, feedback, store.userName)
+      let commentToSave = feedback
+
+      const propertiesToUpdate = []
+
+      if (sessionType === 'mock_interview') {
+        // Agregamos el ícono según el resultado
+        const icon = mockInterviewResult === 'Aprueba' ? '🟢' : '🔵'
+        commentToSave = `${icon} ${mockInterviewResult} Mock Interview\n${feedback}`
+
+        // Obtenemos los valores actuales directamente del estudiante
+        const currentSessions =
+          student.properties['GeekFORCE Sessions']?.multi_select || []
+        const currentStage =
+          student.properties['GeekFORCE Stage']?.status?.name || ''
+
+        // Verificamos si ya tiene la etiqueta "Behavioral interview"
+        const hasBehavioralInterview = currentSessions.some(
+          (session) => session.name === 'Behavioral interview'
+        )
+
+        console.log('DEBUG MOCK INTERVIEW:')
+        console.log('mockInterviewResult:', mockInterviewResult)
+        console.log('hasBehavioralInterview:', hasBehavioralInterview)
+        console.log('currentStage:', currentStage)
+        console.log(
+          "student.properties['GeekFORCE Stage']:",
+          student.properties['GeekFORCE Stage']
+        )
+        console.log(
+          "Condición para Stage (mockInterviewResult === 'Aprueba' && hasBehavioralInterview && currentStage === 'Stage 2'):",
+          mockInterviewResult === 'Aprueba' &&
+            hasBehavioralInterview &&
+            currentStage === 'Stage 2'
+        )
+
+        // Si aprueba y cumple las condiciones para actualizar el Stage
+        if (
+          mockInterviewResult === 'Aprueba' &&
+          hasBehavioralInterview &&
+          currentStage === 'Stage 2'
+        ) {
+          propertiesToUpdate.push({
+            propertyName: 'GeekFORCE Stage',
+            propertyValue: 'Stage 3',
+          })
+        }
+
+        // Agregamos la etiqueta "Technical interview" si no existe
+        if (
+          !currentSessions.some(
+            (session) => session.name === 'Technical interview'
+          )
+        ) {
+          const updatedSessions = [
+            ...currentSessions,
+            { name: 'Technical interview' },
+          ]
+          propertiesToUpdate.push({
+            propertyName: 'GeekFORCE Sessions',
+            propertyValue: updatedSessions,
+          })
+        }
+      }
+
+      // Si hay propiedades para actualizar, las enviamos al backend
+      if (propertiesToUpdate.length > 0) {
+        console.log('propertiesToUpdate array:', propertiesToUpdate)
+        try {
+          await updateStudentProperty(student.id, propertiesToUpdate)
+        } catch (notionError) {
+          console.error('Error al actualizar Notion:', notionError)
+          // No bloqueamos el guardado del feedback si falla la actualización en Notion
+        }
+      }
+
+      await updateStudentComment(student.id, commentToSave, store.userName)
       setFeedback('')
+      setMockInterviewResult('')
       setError('Feedback guardado con éxito.')
       setTimeout(() => setError(null), 3000)
     } catch (err) {
@@ -268,7 +358,8 @@ export default function Mentorships() {
         store.userName,
         originalMentorshipDate,
         student.id,
-        supliedWithOtherStudent
+        supliedWithOtherStudent,
+        'mentorship'
       )
 
       setError('Cancelación registrada con éxito.')
@@ -304,30 +395,15 @@ export default function Mentorships() {
     setSaving(true)
     setError(null)
     try {
-      const formattedCancellationDate = new Date(
-        cancellationDate
-      ).toLocaleString('es-ES', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-      const formattedOriginalMentorshipDate = new Date(
-        originalMentorshipDate
-      ).toLocaleString('es-ES', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-
       const mockInterviewComment = `Cancelación Mock Interview:
-Fecha Cancelación: ${formattedCancellationDate}
-Fecha Original Sesión: ${formattedOriginalMentorshipDate}
 Motivo: ${cancellationReason}
 Notas: ${cancellationNotes.trim()}`
+
+      // Determinar el ícono basado en el motivo de cancelación
+      const cancellationIcon = cancellationReason === 'Reprograma' ? '🟠' : '🔴'
+
+      // Prepend el ícono al comentario
+      const finalMockInterviewComment = `${cancellationIcon} ${mockInterviewComment}`
 
       // Solo enviar notificación si el motivo no es "Reprogramo"
       const shouldNotify = cancellationReason !== 'Reprograma'
@@ -339,7 +415,7 @@ Notas: ${cancellationNotes.trim()}`
 
       await updateStudentComment(
         student.id,
-        mockInterviewComment,
+        finalMockInterviewComment,
         store.userName,
         shouldNotify
           ? {
@@ -348,6 +424,18 @@ Notas: ${cancellationNotes.trim()}`
               type: 'mock_interview_cancellation',
             }
           : null
+      )
+
+      // Llamar a cancelStudentMentorship para registrar la cancelación en la base de datos
+      await cancelStudentMentorship(
+        cancellationDate,
+        cancellationNotes,
+        cancellationReason,
+        store.userName,
+        originalMentorshipDate,
+        student.id,
+        supliedWithOtherStudent,
+        'mock_interview'
       )
 
       setError('Cancelación de Mock Interview registrada con éxito.')
@@ -364,6 +452,10 @@ Notas: ${cancellationNotes.trim()}`
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleMockInterviewResultChange = (event) => {
+    setMockInterviewResult(event.target.value)
   }
 
   return (
@@ -798,11 +890,104 @@ Notas: ${cancellationNotes.trim()}`
                   <Typography variant="h6" gutterBottom>
                     Registrar Mock Interview
                   </Typography>
-                  <Typography variant="body1">
-                    Aquí irá el formulario para registrar la Mock Interview
-                    realizada.
-                  </Typography>
-                  {/* Futuros campos de Mock Interview */}
+
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                      mb: 2,
+                    }}
+                  >
+                    {/* Información del estudiante */}
+                    <Paper
+                      sx={{
+                        p: 3,
+                        width: '100%',
+                        mb: 3,
+                        border: '1px solid #ccc',
+                        backgroundColor: '#f9f9f9',
+                      }}
+                    >
+                      <Typography variant="h6" gutterBottom>
+                        Información del Estudiante
+                      </Typography>
+                      <Typography variant="body1">
+                        <strong>Nombre:</strong>
+                        {student?.properties?.['Student']?.title?.[0]
+                          ?.plain_text ? (
+                          <Chip
+                            label={
+                              student.properties['Student'].title[0].plain_text
+                            }
+                            variant="outlined"
+                            size="small"
+                            sx={{ ml: 1 }}
+                          />
+                        ) : (
+                          'N/A'
+                        )}
+                      </Typography>
+                      <Typography variant="body1">
+                        <strong>Cohorte:</strong>{' '}
+                        {student.properties?.['Cohort name for Zapier'].formula
+                          ?.string ? (
+                          <Chip
+                            label={
+                              student.properties?.['Cohort name for Zapier']
+                                .formula?.string || 'N/A'
+                            }
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            sx={{ ml: 1 }}
+                          />
+                        ) : (
+                          'N/A'
+                        )}
+                      </Typography>
+                    </Paper>
+
+                    {/* Resultado de la Mock Interview */}
+                    <TextField
+                      select
+                      label="Resultado de la sesión"
+                      fullWidth
+                      value={mockInterviewResult}
+                      onChange={handleMockInterviewResultChange}
+                      required
+                    >
+                      <MenuItem value="Aprueba">Aprueba</MenuItem>
+                      <MenuItem value="Repetir sesión">Repetir sesión</MenuItem>
+                    </TextField>
+
+                    {/* Feedback de la Mock Interview */}
+                    <TextField
+                      label="Feedback de la Mock Interview"
+                      variant="outlined"
+                      fullWidth
+                      multiline
+                      rows={4}
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      disabled={saving}
+                      sx={{ mb: 2 }}
+                    />
+
+                    {/* Botón para guardar */}
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleSaveFeedback}
+                      disabled={saving || !mockInterviewResult}
+                    >
+                      {saving ? (
+                        <CircularProgress size={24} />
+                      ) : (
+                        'Guardar Resultado'
+                      )}
+                    </Button>
+                  </Box>
                 </Paper>
               )}
 
