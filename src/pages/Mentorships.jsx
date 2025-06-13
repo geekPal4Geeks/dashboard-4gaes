@@ -85,7 +85,7 @@ export default function Mentorships() {
   const handleBack = () => {
     setFormPhase('selection') // Siempre volver a la fase de selección inicial
     setSessionStatus('realizada') // Resetear a default
-    setSessionType('mentorship') // Resetear a default
+    setSessionType(null) // Resetear a default
     setEmail('') // Limpiar el correo para una nueva búsqueda
     setStudent(null) // Limpiar el estudiante
     setError(null) // Limpiar cualquier error
@@ -323,14 +323,31 @@ export default function Mentorships() {
         minute: '2-digit',
       })
 
-      const mockInterviewComment = `Cancelación Mock Interview:\nFecha Cancelación: ${formattedCancellationDate}\nFecha Original Sesión: ${formattedOriginalMentorshipDate}\nMotivo: ${cancellationReason}\nNotas: ${cancellationNotes.trim()}\nSuplida con otro alumno: ${
-        supliedWithOtherStudent ? 'Sí' : 'No'
-      }\nRegistrado por: ${store.userName} - Mock Interview`
+      const mockInterviewComment = `Cancelación Mock Interview:
+Fecha Cancelación: ${formattedCancellationDate}
+Fecha Original Sesión: ${formattedOriginalMentorshipDate}
+Motivo: ${cancellationReason}
+Notas: ${cancellationNotes.trim()}`
+
+      // Solo enviar notificación si el motivo no es "Reprogramo"
+      const shouldNotify = cancellationReason !== 'Reprograma'
+      const slackId =
+        student.properties?.['Slack ID']?.rich_text?.[0]?.plain_text || ''
+      const coachName =
+        student.properties?.['GeekFORCE Coach']?.select?.name ||
+        'Coach de Carreras'
 
       await updateStudentComment(
         student.id,
         mockInterviewComment,
-        store.userName
+        store.userName,
+        shouldNotify
+          ? {
+              slackId,
+              coachName,
+              type: 'mock_interview_cancellation',
+            }
+          : null
       )
 
       setError('Cancelación de Mock Interview registrada con éxito.')
@@ -754,9 +771,9 @@ export default function Mentorships() {
                     sx={{ mb: 2 }}
                   />
                   {/* Campo Mentor (Autocompletado) */}
-                  <Typography variant="body1">
+                  {/*<Typography variant="body1">
                     <strong>Mentor:</strong> {store.userName || 'Cargando...'}{' '}
-                  </Typography>
+                  </Typography> */}
                 </Box>
 
                 {/* Botón para registrar cancelación */}
@@ -846,16 +863,6 @@ export default function Mentorships() {
                         </MenuItem>
                       ))}
                     </TextField>
-                    {/* Checkbox para suplir hora */}
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={supliedWithOtherStudent}
-                          onChange={handleSupliedWithOtherStudentChange}
-                        />
-                      }
-                      label="¿Ha suplido con otro alumno la hora de sesión?"
-                    />
                     {/* Campo Notas de Cancelación */}
                     <TextField
                       label="Notas sobre la cancelación de Mock Interview"
@@ -868,9 +875,9 @@ export default function Mentorships() {
                       sx={{ mb: 2 }}
                     />
                     {/* Campo Mentor (Autocompletado) */}
-                    <Typography variant="body1">
+                    {/*<Typography variant="body1">
                       <strong>Mentor:</strong> {store.userName || 'Cargando...'}{' '}
-                    </Typography>
+                    </Typography>*/}
                   </Box>
 
                   {/* Botón para registrar cancelación */}
