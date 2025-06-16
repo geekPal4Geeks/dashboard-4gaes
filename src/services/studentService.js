@@ -2,14 +2,20 @@ import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_BACKEND_URL
 
-export const updateStudentComment = async (studentId, comment, userName) => {
+export const updateStudentComment = async (
+  studentId,
+  comment,
+  userName,
+  notificationData = null
+) => {
+  console.log(notificationData)
   try {
     const commentWithSignature = `${comment}\n\n- ${userName}`
     const response = await axios.post(`${API_URL}/create-student-comment`, {
       studentId,
       comment: commentWithSignature,
+      notificationData,
     })
-    console.log('Student id', studentId, 'Comment:', commentWithSignature)
     return response.data
   } catch (error) {
     console.error('Error al actualizar el comentario:', error)
@@ -19,19 +25,26 @@ export const updateStudentComment = async (studentId, comment, userName) => {
 
 export const updateStudentProperty = async (
   studentId,
-  propertyName,
+  propertyNameOrProperties,
   propertyValue
 ) => {
   try {
+    // Si propertyNameOrProperties es un string, es una sola propiedad
+    // Si es un array, son múltiples propiedades
+
+    const properties =
+      typeof propertyNameOrProperties === 'string'
+        ? [{ propertyName: propertyNameOrProperties, propertyValue }]
+        : propertyNameOrProperties
+
     const response = await axios.put(`${API_URL}/update-student-property`, {
       studentId,
-      propertyName,
-      propertyValue,
+      properties,
     })
     return response.data
   } catch (error) {
     console.error(
-      `Error al actualizar la propiedad ${propertyName} del estudiante ${studentId}:`,
+      `Error al actualizar las propiedades del estudiante ${studentId}:`,
       error
     )
     throw error
@@ -79,7 +92,8 @@ export const cancelStudentMentorship = async (
   mentorName,
   originalMentorshipDate,
   studentId,
-  supliedWithOtherStudent
+  supliedWithOtherStudent,
+  mentorshipType
 ) => {
   try {
     const response = await axios.post(`${API_URL}/cancel-mentorship`, {
@@ -90,6 +104,7 @@ export const cancelStudentMentorship = async (
       originalMentorshipDate,
       studentId,
       supliedWithOtherStudent,
+      mentorshipType,
     })
     console.log('Mentorship cancellation registered:', response.data)
     return response.data

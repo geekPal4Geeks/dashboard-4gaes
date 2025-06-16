@@ -1,30 +1,35 @@
-import { useState, useEffect } from 'react';
-import { getNotionPage } from '../services/notionService';
+import { useState, useEffect } from 'react'
+import { getNotionPage } from '../services/notionService'
 
-export function useNotionPage(pageId, token) {
-  const [recordMap, setRecordMap] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const useNotionPage = (pageId, token) => {
+  const [recordMap, setRecordMap] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (!pageId) return;
+    if (!pageId) {
+      setLoading(false)
+      return
+    }
 
-    const fetchNotionPage = async () => {
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
       try {
-        setLoading(true);
-        setError(null);
-        const data = await getNotionPage(pageId, token);
-        setRecordMap(data.recordMap || data);
+        const data = await getNotionPage(pageId, token)
+        setRecordMap(data.recordMap || data)
       } catch (err) {
-        setError(err.message);
-        setRecordMap(null);
+        console.error('Error fetching Notion page:', err)
+        setError(err.message)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchNotionPage();
-  }, [pageId, token]);
+    fetchData()
+  }, [pageId, token])
 
-  return { recordMap, loading, error };
-} 
+  return { recordMap, loading, error }
+}
+
+export default useNotionPage

@@ -101,9 +101,14 @@ export default function StudentDetailModal({
             {student?.properties?.['Github profile']?.url || 'No disponible'}
           </Link>
           <Divider />
-
           <Typography variant="subtitle1" color="text.secondary">
-            Comentarios
+           Información del alumno
+          </Typography>
+          <Typography variant="subtitle1">
+            {student?.properties?.['Información para Dashboard']?.rich_textl || 'No hay información disponible'}
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Deja comentarios
           </Typography>
           <TextField
             multiline

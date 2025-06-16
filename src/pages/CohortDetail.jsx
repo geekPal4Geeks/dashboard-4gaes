@@ -225,7 +225,6 @@ export default function CohortDetail() {
         const taIds =
           cohortData.properties?.['T.A.']?.relation?.map((ta) => ta.id) || []
 
-
         const [fetchedStudentsInfo, teacherInfo, ...taInfos] =
           await Promise.all([
             Promise.all(studentPromises),
@@ -285,13 +284,6 @@ export default function CohortDetail() {
 
     fetchData()
   }, [cohortId])
-
-  const isStudentActive = (student) => {
-    const status =
-      student.properties?.['Educational Status']?.select?.name?.toLowerCase() ||
-      ''
-    return !['dropped', 'early dropped'].includes(status)
-  }
 
   const renderNumber = (number) => {
     if (number <= 3) {
@@ -558,18 +550,15 @@ export default function CohortDetail() {
                 )}
                 {isPrework && (
                   <>
-                    <TableCell align="center">Prework Status</TableCell>
-                    <TableCell align="center">Days in PW Status</TableCell>
+                    <TableCell align="center">Estado de Prework</TableCell>
+                    <TableCell align="center"># Días en estado</TableCell>
                   </>
                 )}
                 <TableCell align="center">Inasistencias</TableCell>
-                <TableCell align="center">Estado</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortStudentsByPreworkStatus(
-                students.filter(isStudentActive)
-              ).map((student, index) => (
+              {sortStudentsByPreworkStatus(students).map((student, index) => (
                 <TableRow
                   key={student.id}
                   sx={{
@@ -672,20 +661,6 @@ export default function CohortDetail() {
                     ) : (
                       renderNumber(student.basicInfo?.absences || 0)
                     )}
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={
-                        student.properties?.['Educational Status']?.select?.name
-                      }
-                      color={
-                        notionToMuiColor[
-                          student.properties?.['Educational Status']?.select
-                            ?.color
-                        ]
-                      }
-                      size="small"
-                    />
                   </TableCell>
                 </TableRow>
               ))}
