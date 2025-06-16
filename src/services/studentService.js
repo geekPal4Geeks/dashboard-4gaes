@@ -8,7 +8,7 @@ export const updateStudentComment = async (
   userName,
   notificationData = null
 ) => {
-  console.log(notificationData)
+
   try {
     const commentWithSignature = `${comment}\n\n- ${userName}`
     const response = await axios.post(`${API_URL}/create-student-comment`, {
@@ -106,7 +106,7 @@ export const cancelStudentMentorship = async (
       supliedWithOtherStudent,
       mentorshipType,
     })
-    console.log('Mentorship cancellation registered:', response.data)
+
     return response.data
   } catch (error) {
     console.error('Error registrando cancelación de mentoría:', error)

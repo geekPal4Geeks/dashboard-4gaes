@@ -35,7 +35,7 @@ export default function CourseCard({ cohort }) {
         sx={{
           width: 350,
           height: 'auto',
-          minHeight: 300,
+          minHeight: 350,
           border: '1px solid #e0e0e0',
           bgcolor: '#fff',
           boxShadow: 1,
