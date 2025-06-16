@@ -15,7 +15,6 @@ export const updateStudentComment = async (
       comment: commentWithSignature,
       notificationData,
     })
-    console.log('Student id', studentId, 'Comment:', commentWithSignature)
     return response.data
   } catch (error) {
     console.error('Error al actualizar el comentario:', error)
@@ -31,6 +30,7 @@ export const updateStudentProperty = async (
   try {
     // Si propertyNameOrProperties es un string, es una sola propiedad
     // Si es un array, son múltiples propiedades
+
     const properties =
       typeof propertyNameOrProperties === 'string'
         ? [{ propertyName: propertyNameOrProperties, propertyValue }]

@@ -70,24 +70,24 @@ export default function Mentorships() {
   )
   const [supliedWithOtherStudent, setSupliedWithOtherStudent] = useState(false)
   const [cancellationNotes, setCancellationNotes] = useState('')
-  const [cohortInfo, setCohortInfo] = useState(null) // Nuevo estado para info de la cohorte
-  const [mentorInfo, setMentorInfo] = useState(null) // Nuevo estado para info del mentor
-  const [taInfo, setTaInfo] = useState(null) // Nuevo estado para info del TA
+  const [cohortInfo, setCohortInfo] = useState(null)
+  const [mentorInfo, setMentorInfo] = useState(null)
+  const [taInfo, setTaInfo] = useState(null)
   const navigate = useNavigate()
 
   // Nuevos estados para el control de la fase del formulario
-  const [formPhase, setFormPhase] = useState('selection') // 'selection', 'search', 'detail'
+  const [formPhase, setFormPhase] = useState('selection')
 
   // Estados para el tipo y estado de registro - inicializados con valores por defecto
-  const [sessionStatus, setSessionStatus] = useState('realizada') // Default: 'realizada'
-  const [sessionType, setSessionType] = useState('mentorship') // Default: 'mentorship'
-  const [mockInterviewResult, setMockInterviewResult] = useState('') // Nuevo estado para el resultado de la mock interview
+  const [sessionStatus, setSessionStatus] = useState('realizada')
+  const [sessionType, setSessionType] = useState('mentorship')
+  const [mockInterviewResult, setMockInterviewResult] = useState('')
 
   // Función para volver a la selección inicial y limpiar estados
   const handleBack = () => {
-    setFormPhase('selection') // Siempre volver a la fase de selección inicial
-    setSessionStatus('realizada') // Resetear a default
-    setSessionType(null) // Resetear a default
+    setFormPhase('selection')
+    setSessionStatus('realizada')
+    setSessionType(null)
     setEmail('') // Limpiar el correo para una nueva búsqueda
     setStudent(null) // Limpiar el estudiante
     setError(null) // Limpiar cualquier error
@@ -135,8 +135,7 @@ export default function Mentorships() {
       const foundStudent = await findStudentByEmail(email)
       if (foundStudent) {
         setStudent(foundStudent)
-        setFormPhase('detail') // Activar: La fase cambia a 'detail' al encontrar estudiante
-        // Solo mostrar la pregunta de la mentoría si el tipo de registro es 'mentorship'
+        setFormPhase('detail')
         if (sessionType === 'mentorship') {
           setMentorshipHeld(true)
           setShowQuestion(false)
@@ -148,13 +147,11 @@ export default function Mentorships() {
         // Obtener información de la cohorte si está disponible
         if (foundStudent.properties?.['Cohort']?.relation?.length > 0) {
           const cohortId = foundStudent.properties['Cohort'].relation[0].id
-          // console.log('Intentando obtener información de la cohorte con ID:', cohortId) // Eliminar este console.log
+
           try {
-            // Usar la nueva función getCohortPageById
-            const cohortDetails = await getCohortPageById(cohortId) // <-- CAMBIO AQUI
+            const cohortDetails = await getCohortPageById(cohortId)
             setCohortInfo(cohortDetails)
-            // Asumiendo que cohortDetails ahora es una página de Notion directamente
-            // Las propiedades de NotionPage son diferentes a las de getCohortNotionInfo
+
             const teacherRelation = cohortDetails.properties?.[
               'Teacher / TA'
             ]?.relation.find((person) => person.object === 'user')
@@ -196,11 +193,6 @@ export default function Mentorships() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleMentorshipQuestion = (held) => {
-    setMentorshipHeld(held)
-    setShowQuestion(false)
   }
 
   const handleSaveFeedback = async () => {
@@ -248,21 +240,6 @@ export default function Mentorships() {
           (session) => session.name === 'Behavioral interview'
         )
 
-        console.log('DEBUG MOCK INTERVIEW:')
-        console.log('mockInterviewResult:', mockInterviewResult)
-        console.log('hasBehavioralInterview:', hasBehavioralInterview)
-        console.log('currentStage:', currentStage)
-        console.log(
-          "student.properties['GeekFORCE Stage']:",
-          student.properties['GeekFORCE Stage']
-        )
-        console.log(
-          "Condición para Stage (mockInterviewResult === 'Aprueba' && hasBehavioralInterview && currentStage === 'Stage 2'):",
-          mockInterviewResult === 'Aprueba' &&
-            hasBehavioralInterview &&
-            currentStage === 'Stage 2'
-        )
-
         // Si aprueba y cumple las condiciones para actualizar el Stage
         if (
           mockInterviewResult === 'Aprueba' &&
@@ -285,6 +262,7 @@ export default function Mentorships() {
             ...currentSessions,
             { name: 'Technical interview' },
           ]
+
           propertiesToUpdate.push({
             propertyName: 'GeekFORCE Sessions',
             propertyValue: updatedSessions,
@@ -294,9 +272,15 @@ export default function Mentorships() {
 
       // Si hay propiedades para actualizar, las enviamos al backend
       if (propertiesToUpdate.length > 0) {
-        console.log('propertiesToUpdate array:', propertiesToUpdate)
         try {
-          await updateStudentProperty(student.id, propertiesToUpdate)
+          // Modificación: Iterar y llamar a updateStudentProperty para cada propiedad
+          for (const propUpdate of propertiesToUpdate) {
+            await updateStudentProperty(
+              student.id,
+              propUpdate.propertyName,
+              propUpdate.propertyValue
+            )
+          }
         } catch (notionError) {
           console.error('Error al actualizar Notion:', notionError)
           // No bloqueamos el guardado del feedback si falla la actualización en Notion
@@ -359,7 +343,7 @@ export default function Mentorships() {
         originalMentorshipDate,
         student.id,
         supliedWithOtherStudent,
-        'mentorship'
+        sessionType
       )
 
       setError('Cancelación registrada con éxito.')
@@ -435,7 +419,7 @@ Notas: ${cancellationNotes.trim()}`
         originalMentorshipDate,
         student.id,
         supliedWithOtherStudent,
-        'mock_interview'
+        sessionType
       )
 
       setError('Cancelación de Mock Interview registrada con éxito.')
@@ -591,10 +575,10 @@ Notas: ${cancellationNotes.trim()}`
                 {loading ? <CircularProgress size={24} /> : 'Buscar'}
               </Button>
             </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
-              *Asegúrate de usar el correo registrado en la academia. Si tienes
-              problemas para encontrar un alumno, comunícate con el staff.
-            </Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Asegúrate de usar el correo registrado en la academia. Si no
+              encuentras al alumno, comunícate con el staff.
+            </Alert>
             {error && (
               <Alert severity={error.includes('éxito') ? 'success' : 'error'}>
                 {error}
