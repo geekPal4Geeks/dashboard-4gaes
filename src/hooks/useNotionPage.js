@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getNotionPage, getCohortPageById } from '../services/notionService'
+import { getNotionPage } from '../services/notionService'
 
 const useNotionPage = (pageId, token) => {
   const [recordMap, setRecordMap] = useState(null)
@@ -16,11 +16,11 @@ const useNotionPage = (pageId, token) => {
       setLoading(true)
       setError(null)
       try {
-        const data = await getCohortPageById(pageId, token)
-        setRecordMap(data)
+        const data = await getNotionPage(pageId, token)
+        setRecordMap(data.recordMap || data)
       } catch (err) {
         console.error('Error fetching Notion page:', err)
-        setError(err)
+        setError(err.message)
       } finally {
         setLoading(false)
       }

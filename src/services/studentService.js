@@ -8,6 +8,7 @@ export const updateStudentComment = async (
   userName,
   notificationData = null
 ) => {
+  console.log(notificationData)
   try {
     const commentWithSignature = `${comment}\n\n- ${userName}`
     const response = await axios.post(`${API_URL}/create-student-comment`, {
