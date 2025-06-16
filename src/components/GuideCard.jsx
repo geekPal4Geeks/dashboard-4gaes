@@ -1,14 +1,22 @@
-import { Card, CardContent, CardActions, Typography, Button, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import {
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+  Box,
+} from '@mui/material'
+import { useNavigate } from 'react-router-dom'
 
 export default function GuideCard() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   return (
     <Card
       sx={{
         width: 350,
-        height: 300,
+        height: 'auto',
+        minHeight: 350,
         border: '2px solid #1976d2',
         bgcolor: '#f5faff',
         boxShadow: 4,
@@ -17,7 +25,15 @@ export default function GuideCard() {
         justifyContent: 'center',
       }}
     >
-      <CardContent sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+      <CardContent
+        sx={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+        }}
+      >
         <Box
           sx={{
             width: 48,
@@ -29,17 +45,24 @@ export default function GuideCard() {
             justifyContent: 'center',
           }}
         >
-          <Typography variant="h4" color="white">📚</Typography>
+          <Typography variant="h3" color="white">
+            📚
+          </Typography>
         </Box>
-        <Typography variant="h6" fontWeight={600}>
+        <Typography variant="h5" fontWeight={600}>
           Guías y Recursos
         </Typography>
       </CardContent>
       <CardActions>
-        <Button variant="contained" color="primary" fullWidth onClick={() => navigate('/documentation')}>
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          onClick={() => navigate('/documentation')}
+        >
           Ver documentación
         </Button>
       </CardActions>
     </Card>
-  );
-} 
+  )
+}

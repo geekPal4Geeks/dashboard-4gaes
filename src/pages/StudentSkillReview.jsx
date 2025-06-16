@@ -20,8 +20,10 @@ import {
   MenuItem,
   Rating,
   OutlinedInput,
+  IconButton,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import SaveIcon from '@mui/icons-material/Save'
 import { getCohortNotionInfo, getStudentInfo } from '../services/notionService'
 import { updateStudentProperty } from '../services/studentService'
 import {
@@ -50,9 +52,7 @@ export default function StudentSkillReview() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [savingStatus, setSavingStatus] = useState({})
-  const [pendingUpdatesQueue, setPendingUpdatesQueue] = useState({})
-  const [pendingTimeouts, setPendingTimeouts] = useState({})
-  const [localSkillValues, setLocalSkillValues] = useState({})
+  const [localChanges, setLocalChanges] = useState({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -116,113 +116,9 @@ export default function StudentSkillReview() {
     fetchData()
   }, [cohortId])
 
-  const processStudentUpdates = useCallback(
-    async (studentId) => {
-      if (!pendingUpdatesQueue[studentId]) return
-
-      setSavingStatus((prev) => ({ ...prev, [studentId]: true }))
-      const updatesToProcess = { ...pendingUpdatesQueue[studentId] }
-      setPendingUpdatesQueue((prev) => {
-        const newState = { ...prev }
-        delete newState[studentId]
-        return newState
-      })
-
-      try {
-        const updatePromises = []
-        for (const propertyKey in updatesToProcess) {
-          let notionPropertyName = propertyKey
-          const notionProp = skillReviewProperties.find(
-            (prop) => generatePropertyKey(prop) === propertyKey
-          )
-          if (notionProp) {
-            notionPropertyName = notionProp
-          } else if (propertyKey === 'recomendadoTA') {
-            notionPropertyName = 'Recomendado para TA'
-          } else if (propertyKey === 'technicalSpecialties') {
-            notionPropertyName = 'Technical specialties'
-            updatesToProcess[propertyKey] = updatesToProcess[propertyKey].map(
-              (name) => ({ name })
-            )
-          }
-
-          updatePromises.push(
-            updateStudentProperty(
-              studentId,
-              notionPropertyName,
-              updatesToProcess[propertyKey]
-            )
-          )
-        }
-
-        await Promise.all(updatePromises)
-
-        setStudents((prevStudents) =>
-          prevStudents.map((student) => {
-            if (student.id === studentId) {
-              const updatedStudent = { ...student, ...updatesToProcess }
-              if (
-                updatedStudent.technicalSpecialties &&
-                Array.isArray(updatedStudent.technicalSpecialties)
-              ) {
-                updatedStudent.technicalSpecialties =
-                  updatedStudent.technicalSpecialties.map(
-                    (item) => item.name || item
-                  )
-              }
-
-              if (typeof updatedStudent.studentRank !== 'number') {
-                updatedStudent.studentRank =
-                  updatedStudent.studentRank?.length || 0
-              }
-              return updatedStudent
-            }
-            return student
-          })
-        )
-      } catch (err) {
-        console.error(
-          `Error al guardar cambios para estudiante ${studentId}:`,
-          err
-        )
-        setError('Error al guardar algunos cambios.')
-      } finally {
-        setSavingStatus((prev) => {
-          const newState = { ...prev }
-          delete newState[studentId]
-          return newState
-        })
-      }
-    },
-    [pendingUpdatesQueue, skillReviewProperties]
-  )
-
-  const debouncedUpdateProperty = useCallback(
-    (studentId, propertyKey, value) => {
-      setPendingUpdatesQueue((prev) => ({
-        ...prev,
-        [studentId]: {
-          ...(prev[studentId] || {}),
-          [propertyKey]: value,
-        },
-      }))
-
-      if (pendingTimeouts[studentId]) {
-        clearTimeout(pendingTimeouts[studentId])
-      }
-
-      const timeoutId = setTimeout(() => {
-        processStudentUpdates(studentId)
-      }, 1000)
-
-      setPendingTimeouts((prev) => ({ ...prev, [studentId]: timeoutId }))
-    },
-    [pendingUpdatesQueue, pendingTimeouts, processStudentUpdates]
-  )
-
   const handleRatingChange = (studentId, propertyName, value) => {
     if (value === '' || /^\d*$/.test(value)) {
-      setLocalSkillValues((prev) => ({
+      setLocalChanges((prev) => ({
         ...prev,
         [studentId]: {
           ...(prev[studentId] || {}),
@@ -233,11 +129,23 @@ export default function StudentSkillReview() {
   }
 
   const handleCheckboxChange = (studentId, propertyName, checked) => {
-    debouncedUpdateProperty(studentId, propertyName, checked)
+    setLocalChanges((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...(prev[studentId] || {}),
+        [propertyName]: checked,
+      },
+    }))
   }
 
   const handleSpecialtiesChange = (studentId, value) => {
-    debouncedUpdateProperty(studentId, 'technicalSpecialties', value)
+    setLocalChanges((prev) => ({
+      ...prev,
+      [studentId]: {
+        ...(prev[studentId] || {}),
+        technicalSpecialties: value,
+      },
+    }))
   }
 
   const handleSkillBlur = (studentId, propertyName, value) => {
@@ -246,24 +154,97 @@ export default function StudentSkillReview() {
     if (numericValue < 0) numericValue = 0
     if (numericValue > 5) numericValue = 5
 
-    setLocalSkillValues((prev) => ({
+    setLocalChanges((prev) => ({
       ...prev,
       [studentId]: {
         ...(prev[studentId] || {}),
         [propertyName]: numericValue,
       },
     }))
-
-    debouncedUpdateProperty(studentId, propertyName, numericValue)
   }
 
-  useEffect(() => {
-    return () => {
-      Object.values(pendingTimeouts).forEach((timeoutId) =>
-        clearTimeout(timeoutId)
+  const handleSaveRow = async (studentId) => {
+    if (!localChanges[studentId]) return
+
+    setSavingStatus((prev) => ({ ...prev, [studentId]: true }))
+    const changesToSave = { ...localChanges[studentId] }
+
+    try {
+      // Preparar el array de propiedades para la actualización
+      const propertiesToUpdate = []
+
+      // Procesar las propiedades de skill review
+      skillReviewProperties.forEach((prop) => {
+        const propertyKey = generatePropertyKey(prop)
+        if (changesToSave[propertyKey] !== undefined) {
+          propertiesToUpdate.push({
+            propertyName: prop,
+            propertyValue: changesToSave[propertyKey],
+          })
+        }
+      })
+
+      // Procesar las especialidades técnicas
+      if (changesToSave.technicalSpecialties !== undefined) {
+        propertiesToUpdate.push({
+          propertyName: 'Technical specialties',
+          propertyValue: changesToSave.technicalSpecialties.map((name) => ({
+            name,
+          })),
+        })
+      }
+
+      // Procesar el checkbox de recomendado TA
+      if (changesToSave.recomendadoTA !== undefined) {
+        propertiesToUpdate.push({
+          propertyName: 'Recomendado para TA',
+          propertyValue: changesToSave.recomendadoTA,
+        })
+      }
+
+      // Realizar una única llamada con todas las propiedades
+      await updateStudentProperty(studentId, propertiesToUpdate)
+
+      // Actualizar el estado local
+      setStudents((prevStudents) =>
+        prevStudents.map((student) => {
+          if (student.id === studentId) {
+            const updatedStudent = { ...student, ...changesToSave }
+            if (
+              updatedStudent.technicalSpecialties &&
+              Array.isArray(updatedStudent.technicalSpecialties)
+            ) {
+              updatedStudent.technicalSpecialties =
+                updatedStudent.technicalSpecialties.map(
+                  (item) => item.name || item
+                )
+            }
+            return updatedStudent
+          }
+          return student
+        })
       )
+
+      // Limpiar los cambios locales después de guardar exitosamente
+      setLocalChanges((prev) => {
+        const newChanges = { ...prev }
+        delete newChanges[studentId]
+        return newChanges
+      })
+    } catch (err) {
+      console.error(
+        `Error al guardar cambios para estudiante ${studentId}:`,
+        err
+      )
+      setError('Error al guardar algunos cambios.')
+    } finally {
+      setSavingStatus((prev) => {
+        const newState = { ...prev }
+        delete newState[studentId]
+        return newState
+      })
     }
-  }, [pendingTimeouts])
+  }
 
   if (loading) {
     return (
@@ -296,7 +277,7 @@ export default function StudentSkillReview() {
     )
   }
 
-  const isSavingAny = Object.keys(savingStatus).length > 0
+  // const isSavingAny = Object.keys(savingStatus).length > 0
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -379,12 +360,23 @@ export default function StudentSkillReview() {
                         {savingStatus[student.id] && (
                           <CircularProgress size={16} />
                         )}
+                        {Object.keys(localChanges[student.id] || {}).length >
+                          0 && (
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleSaveRow(student.id)}
+                            disabled={!!savingStatus[student.id]}
+                          >
+                            <SaveIcon />
+                          </IconButton>
+                        )}
                       </Box>
                     </TableCell>
                     {skillReviewProperties.map((prop) => {
                       const propertyKey = generatePropertyKey(prop)
                       const currentValue =
-                        localSkillValues[student.id]?.[propertyKey] ??
+                        localChanges[student.id]?.[propertyKey] ??
                         student[propertyKey]
 
                       return (
@@ -392,10 +384,7 @@ export default function StudentSkillReview() {
                           {prop.includes('(Skill review)') && (
                             <TextField
                               type="number"
-                              value={
-                                localSkillValues[student.id]?.[propertyKey] ??
-                                currentValue
-                              }
+                              value={currentValue}
                               onChange={(e) =>
                                 handleRatingChange(
                                   student.id,
@@ -447,8 +436,7 @@ export default function StudentSkillReview() {
                       <Select
                         multiple
                         value={
-                          pendingUpdatesQueue[student.id]
-                            ?.technicalSpecialties ??
+                          localChanges[student.id]?.technicalSpecialties ??
                           student.technicalSpecialties
                         }
                         onChange={(e) =>
@@ -474,7 +462,7 @@ export default function StudentSkillReview() {
                     <TableCell align="center">
                       <Checkbox
                         checked={
-                          pendingUpdatesQueue[student.id]?.recomendadoTA ??
+                          localChanges[student.id]?.recomendadoTA ??
                           student.recomendadoTA
                         }
                         onChange={(e) =>
