@@ -38,6 +38,12 @@ export default function StudentDetailModal({
     : null
 
   const handleSaveComment = async () => {
+    // Validación: No permitir guardar comentarios vacíos o solo con espacios
+    if (comment.trim() === '') {
+      setError('El comentario no puede estar vacío.')
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -102,10 +108,11 @@ export default function StudentDetailModal({
           </Link>
           <Divider />
           <Typography variant="subtitle1" color="text.secondary">
-           Información del alumno
+            Información del alumno
           </Typography>
           <Typography variant="subtitle1">
-            {student?.properties?.['Información para Dashboard']?.rich_textl || 'No hay información disponible'}
+            {student?.properties?.['Información para Dashboard']?.rich_textl ||
+              'No hay información disponible'}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Deja comentarios
@@ -133,7 +140,7 @@ export default function StudentDetailModal({
           onClick={handleSaveComment}
           variant="contained"
           color="primary"
-          disabled={loading}
+          disabled={loading || comment.trim() === ''}
         >
           {loading ? <CircularProgress size={24} /> : 'Guardar'}
         </Button>
