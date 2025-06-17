@@ -75,7 +75,8 @@ export default function CohortDetail() {
   // Función para procesa las actualizaciones
   const processUpdateQueue = useCallback(
     async (studentId) => {
-      if (!updateQueue[studentId]) return
+      // Verificar si existe el valor en la cola, incluyendo 0
+      if (updateQueue[studentId] === undefined) return
 
       try {
         setSavingAbsences((prev) => ({ ...prev, [studentId]: true }))
@@ -152,9 +153,13 @@ export default function CohortDetail() {
   )
 
   const handleAbsencesChange = (studentId, value) => {
+    // Asegurarnos de que el valor sea un número válido, incluyendo 0
+    const numericValue = value === '' ? 0 : Number(value)
+    if (isNaN(numericValue)) return
+
     setEditingAbsences((prev) => ({
       ...prev,
-      [studentId]: value,
+      [studentId]: numericValue,
     }))
 
     // Actualizar el estado local inmediatamente para reflejar el cambio
@@ -165,14 +170,14 @@ export default function CohortDetail() {
               ...student,
               basicInfo: {
                 ...student.basicInfo,
-                absences: value,
+                absences: numericValue,
               },
             }
           : student
       )
     )
 
-    debouncedUpdate(studentId, value)
+    debouncedUpdate(studentId, numericValue)
   }
 
   // Limpiar timeouts pendientes al desmontar el componente
@@ -570,7 +575,14 @@ export default function CohortDetail() {
                       cursor: 'pointer',
                     },
                   }}
-                  onClick={() => handleStudentClick(student)}
+                  onClick={(e) => {
+                    // Si el clic fue en la celda de inasistencias, no abrir el modal
+                    if (e.target.closest('td:last-child')) {
+                      e.stopPropagation()
+                      return
+                    }
+                    handleStudentClick(student)
+                  }}
                 >
                   <TableCell>
                     <Typography
@@ -646,10 +658,7 @@ export default function CohortDetail() {
                             0
                           }
                           onChange={(e) =>
-                            handleAbsencesChange(
-                              student.id,
-                              parseInt(e.target.value)
-                            )
+                            handleAbsencesChange(student.id, e.target.value)
                           }
                           disabled={savingAbsences[student.id]}
                           sx={{ width: '80px' }}
