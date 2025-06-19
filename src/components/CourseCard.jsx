@@ -114,13 +114,39 @@ export default function CourseCard({ cohort }) {
           <Box sx={{ display: 'flex', gap: 1 }}>
             {cohort.notionInfo?.properties?.['Projects in review']?.number >
               20 && (
-              <Chip
-                label={`${cohort.notionInfo?.properties['Projects in review'].number} proyectos pendientes`}
-                color="warning"
-                variant="outlined"
-                icon={<WarningIcon />}
-                size="small"
-              />
+              <Tooltip
+                title={`${cohort.notionInfo?.properties['Projects in review'].number} proyectos pendientes`}
+                arrow
+              >
+                <Chip
+                  label={
+                    cohort.cohort.stage === 'FINAL_PROJECT'
+                      ? `${cohort.notionInfo?.properties['Projects in review'].number} proyectos pend...`
+                      : `${cohort.notionInfo?.properties['Projects in review'].number} proyectos pendientes`
+                  }
+                  color="warning"
+                  variant="outlined"
+                  icon={<WarningIcon />}
+                  size="small"
+                  sx={{
+                    fontWeight: 'bold',
+                    maxWidth:
+                      cohort.cohort.stage === 'FINAL_PROJECT' ? 140 : 'none',
+                    overflow:
+                      cohort.cohort.stage === 'FINAL_PROJECT'
+                        ? 'hidden'
+                        : 'visible',
+                    textOverflow:
+                      cohort.cohort.stage === 'FINAL_PROJECT'
+                        ? 'ellipsis'
+                        : 'unset',
+                    whiteSpace: 'nowrap',
+                    '& .MuiChip-icon': {
+                      color: 'inherit',
+                    },
+                  }}
+                />
+              </Tooltip>
             )}
             <Chip
               label={getCourseCardStageLabel(cohort.cohort.stage)}
@@ -135,6 +161,7 @@ export default function CourseCard({ cohort }) {
             />
           </Box>
         </Box>
+
         <Typography variant="h5" color="text.primary">
           <strong>
             {(cohort.cohort?.name || 'Sin nombre')

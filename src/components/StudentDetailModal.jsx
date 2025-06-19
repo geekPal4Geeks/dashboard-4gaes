@@ -12,7 +12,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { updateStudentComment } from '../services/studentService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { getTeamSlackId } from '../utils/cohortHelpers'
@@ -29,6 +29,12 @@ export default function StudentDetailModal({
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Limpiar el campo de comentario cuando cambie el estudiante o se abra/cierre el modal
+  useEffect(() => {
+    setComment(student?.properties?.Comments?.rich_text?.[0]?.plain_text || '')
+    setError(null)
+  }, [student, open])
 
   // Obtener el nombre y Slack ID del Asesor de Prework fuera del JSX
   const preworkAdvisorName =
@@ -48,6 +54,7 @@ export default function StudentDetailModal({
       setLoading(true)
       setError(null)
       await updateStudentComment(student.id, comment, store.userName)
+      setComment('') // Limpiar el campo tras guardar
       onClose()
     } catch (err) {
       setError('Error al guardar el comentario')
