@@ -75,7 +75,8 @@ export default function CohortDetail() {
   // Función para procesa las actualizaciones
   const processUpdateQueue = useCallback(
     async (studentId) => {
-      if (!updateQueue[studentId]) return
+      // Verificar si existe el valor en la cola, incluyendo 0
+      if (updateQueue[studentId] === undefined) return
 
       try {
         setSavingAbsences((prev) => ({ ...prev, [studentId]: true }))
@@ -152,9 +153,13 @@ export default function CohortDetail() {
   )
 
   const handleAbsencesChange = (studentId, value) => {
+    // Asegurarnos de que el valor sea un número válido, incluyendo 0
+    const numericValue = value === '' ? 0 : Number(value)
+    if (isNaN(numericValue)) return
+
     setEditingAbsences((prev) => ({
       ...prev,
-      [studentId]: value,
+      [studentId]: numericValue,
     }))
 
     // Actualizar el estado local inmediatamente para reflejar el cambio
@@ -165,14 +170,14 @@ export default function CohortDetail() {
               ...student,
               basicInfo: {
                 ...student.basicInfo,
-                absences: value,
+                absences: numericValue,
               },
             }
           : student
       )
     )
 
-    debouncedUpdate(studentId, value)
+    debouncedUpdate(studentId, numericValue)
   }
 
   // Limpiar timeouts pendientes al desmontar el componente
@@ -286,17 +291,34 @@ export default function CohortDetail() {
   }, [cohortId])
 
   const renderNumber = (number) => {
-    if (number <= 3) {
+    if (number <= 3)
       return (
         <Typography color="success.main" sx={{ fontWeight: 'thin' }}>
           {number}
         </Typography>
       )
-    }
+    if (number <= 5)
+      return (
+        <Chip
+          label={number}
+          color="warning"
+          size="small"
+          sx={{ fontWeight: 'medium' }}
+        />
+      )
+    if (number <= 8)
+      return (
+        <Chip
+          label={number}
+          color="warning"
+          size="small"
+          sx={{ fontWeight: 'medium' }}
+        />
+      )
     return (
       <Chip
         label={number}
-        color={getNumberColor(number)}
+        color="error"
         size="small"
         sx={{ fontWeight: 'medium' }}
       />
@@ -546,7 +568,12 @@ export default function CohortDetail() {
                 <TableCell>Nombre</TableCell>
                 <TableCell align="center">Slack</TableCell>
                 {!isPrework && (
-                  <TableCell align="center">Proyectos Pendientes</TableCell>
+                  <>
+                    <TableCell align="center">Proyectos Pendientes</TableCell>
+                    <TableCell align="center">% Proyectos pendientes</TableCell>
+                    <TableCell align="center">Inasistencias</TableCell>
+                    <TableCell align="center">% Inasistencias</TableCell>
+                  </>
                 )}
                 {isPrework && (
                   <>
@@ -554,116 +581,177 @@ export default function CohortDetail() {
                     <TableCell align="center"># Días en estado</TableCell>
                   </>
                 )}
-                <TableCell align="center">Inasistencias</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortStudentsByPreworkStatus(students).map((student, index) => (
-                <TableRow
-                  key={student.id}
-                  sx={{
-                    '&:nth-of-type(odd)': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                    },
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                      cursor: 'pointer',
-                    },
-                  }}
-                  onClick={() => handleStudentClick(student)}
-                >
-                  <TableCell>
-                    <Typography
-                      sx={{
-                        color: 'primary.main',
-                        '&:hover': {
-                          textDecoration: 'underline',
-                        },
-                      }}
-                    >
-                      {student.basicInfo?.full_name || 'Sin nombre'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    {student.basicInfo?.slack_id ? (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation() // Evita que se active el onClick de la fila
-                          window.open(
-                            `slack://user?team=${'T0BFXMWMV'}&id=${
-                              student.basicInfo.slack_id
-                            }`,
-                            '_blank'
-                          )
+              {sortStudentsByPreworkStatus(students).map((student, index) => {
+                // Helpers para color de %
+                const percentProjects =
+                  student.properties?.['% Projects undelivered']?.formula
+                    ?.number
+                let colorProjects = 'default'
+                if (typeof percentProjects === 'number') {
+                  if (percentProjects >= 30) colorProjects = 'error'
+                  else if (percentProjects >= 20) colorProjects = 'warning'
+                  else if (percentProjects >= 10) colorProjects = 'tertiary'
+                  else if (percentProjects > 0) colorProjects = 'success'
+                  else colorProjects = 'default'
+                }
+                const percentAbsences =
+                  student.properties?.['% Absences']?.formula?.number
+                let colorAbsences = 'default'
+                if (typeof percentAbsences === 'number') {
+                  if (percentAbsences >= 15) colorAbsences = 'error'
+                  else if (percentAbsences >= 10) colorAbsences = 'warning'
+                  else if (percentAbsences >= 5) colorAbsences = 'tertiary'
+                  else if (percentAbsences > 0) colorAbsences = 'success'
+                  else colorAbsences = 'default'
+                }
+                return (
+                  <TableRow
+                    key={student.id}
+                    sx={{
+                      '&:nth-of-type(odd)': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                      },
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                        cursor: 'pointer',
+                      },
+                    }}
+                    onClick={(e) => {
+                      if (e.target.closest('td:last-child')) {
+                        e.stopPropagation()
+                        return
+                      }
+                      handleStudentClick(student)
+                    }}
+                  >
+                    <TableCell>
+                      <Typography
+                        sx={{
+                          color: 'primary.main',
+                          '&:hover': {
+                            textDecoration: 'underline',
+                          },
                         }}
                       >
-                        Slack
-                      </Button>
-                    ) : (
-                      'Sin Slack ID'
-                    )}
-                  </TableCell>
-                  {!isPrework && (
-                    <TableCell align="center">
-                      {renderNumber(student.basicInfo?.pending_projects || 0)}
+                        {student.basicInfo?.full_name || 'Sin nombre'}
+                      </Typography>
                     </TableCell>
-                  )}
-                  {isPrework && (
-                    <>
-                      <TableCell align="center">
-                        <Chip
-                          label={
-                            student.properties?.['Prework Status']?.select
-                              ?.name || 'No definido'
-                          }
-                          color={getPreworkStatusColor(
-                            student.properties?.['Prework Status']?.select?.name
-                          )}
+                    <TableCell align="center">
+                      {student.basicInfo?.slack_id ? (
+                        <Button
+                          variant="outlined"
                           size="small"
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        {renderDaysInPrework(
-                          student.properties?.['Days in prework status']
-                            ?.formula?.number || 0
-                        )}
-                      </TableCell>
-                    </>
-                  )}
-                  <TableCell align="center">
-                    {isPrework ? (
-                      <Box
-                        sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-                      >
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={
-                            editingAbsences[student.id] ??
-                            student.basicInfo?.absences ??
-                            0
-                          }
-                          onChange={(e) =>
-                            handleAbsencesChange(
-                              student.id,
-                              parseInt(e.target.value)
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            window.open(
+                              `slack://user?team=${'T0BFXMWMV'}&id=${
+                                student.basicInfo.slack_id
+                              }`,
+                              '_blank'
                             )
-                          }
-                          disabled={savingAbsences[student.id]}
-                          sx={{ width: '80px' }}
-                        />
-                        {savingAbsences[student.id] && (
-                          <CircularProgress size={20} />
-                        )}
-                      </Box>
-                    ) : (
-                      renderNumber(student.basicInfo?.absences || 0)
+                          }}
+                        >
+                          Slack
+                        </Button>
+                      ) : (
+                        'Sin Slack ID'
+                      )}
+                    </TableCell>
+                    {!isPrework && (
+                      <>
+                        <TableCell align="center">
+                          {renderNumber(
+                            student.basicInfo?.pending_projects || 0
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          {typeof percentProjects === 'number' ? (
+                            colorProjects === 'success' ||
+                            colorProjects === 'default' ? (
+                              <Typography
+                                sx={{
+                                  color:
+                                    colorProjects === 'success'
+                                      ? 'success.main'
+                                      : 'inherit',
+                                  fontWeight: 'light',
+                                }}
+                              >
+                                {`${percentProjects}%`}
+                              </Typography>
+                            ) : (
+                              <Chip
+                                label={`${percentProjects}%`}
+                                color={colorProjects}
+                                size="small"
+                                sx={{ fontWeight: 'bold' }}
+                              />
+                            )
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          {renderNumber(student.basicInfo?.absences || 0)}
+                        </TableCell>
+                        <TableCell align="center">
+                          {typeof percentAbsences === 'number' ? (
+                            colorAbsences === 'success' ||
+                            colorAbsences === 'default' ? (
+                              <Typography
+                                sx={{
+                                  color:
+                                    colorAbsences === 'success'
+                                      ? 'success.main'
+                                      : 'inherit',
+                                  fontWeight: 'light',
+                                }}
+                              >
+                                {`${percentAbsences}%`}
+                              </Typography>
+                            ) : (
+                              <Chip
+                                label={`${percentAbsences}%`}
+                                color={colorAbsences}
+                                size="small"
+                                sx={{ fontWeight: 'bold' }}
+                              />
+                            )
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                      </>
                     )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    {isPrework && (
+                      <>
+                        <TableCell align="center">
+                          <Chip
+                            label={
+                              student.properties?.['Prework Status']?.select
+                                ?.name || 'No definido'
+                            }
+                            color={getPreworkStatusColor(
+                              student.properties?.['Prework Status']?.select
+                                ?.name
+                            )}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          {renderDaysInPrework(
+                            student.properties?.['Days in prework status']
+                              ?.formula?.number || 0
+                          )}
+                        </TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </TableContainer>
