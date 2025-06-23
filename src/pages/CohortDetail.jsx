@@ -571,7 +571,6 @@ export default function CohortDetail() {
                   <>
                     <TableCell align="center">Proyectos Pendientes</TableCell>
                     <TableCell align="center">% Proyectos pendientes</TableCell>
-                    <TableCell align="center">Inasistencias</TableCell>
                     <TableCell align="center">% Inasistencias</TableCell>
                   </>
                 )}
@@ -581,6 +580,7 @@ export default function CohortDetail() {
                     <TableCell align="center"># Días en estado</TableCell>
                   </>
                 )}
+                <TableCell align="center">Inasistencias</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -695,9 +695,6 @@ export default function CohortDetail() {
                           )}
                         </TableCell>
                         <TableCell align="center">
-                          {renderNumber(student.basicInfo?.absences || 0)}
-                        </TableCell>
-                        <TableCell align="center">
                           {typeof percentAbsences === 'number' ? (
                             colorAbsences === 'success' ||
                             colorAbsences === 'default' ? (
@@ -749,6 +746,31 @@ export default function CohortDetail() {
                         </TableCell>
                       </>
                     )}
+                    {/* Celda de Inasistencias: editable solo en prework, siempre al final */}
+                    <TableCell align="center">
+                      {isPrework ? (
+                        <TextField
+                          type="number"
+                          size="small"
+                          value={
+                            editingAbsences[student.id] !== undefined
+                              ? editingAbsences[student.id]
+                              : student.basicInfo?.absences || 0
+                          }
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            handleAbsencesChange(student.id, e.target.value)
+                          }}
+                          inputProps={{
+                            min: 0,
+                            style: { width: 60, textAlign: 'center' },
+                          }}
+                          disabled={savingAbsences[student.id]}
+                        />
+                      ) : (
+                        renderNumber(student.basicInfo?.absences || 0)
+                      )}
+                    </TableCell>
                   </TableRow>
                 )
               })}
