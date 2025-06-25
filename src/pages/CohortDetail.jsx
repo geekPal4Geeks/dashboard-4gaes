@@ -38,6 +38,7 @@ import {
 } from '../utils/cohortHelpers'
 import { updateStudentProperty } from '../services/studentService'
 import { parseStudentData } from '../utils/studentHelpers'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 
 export default function CohortDetail() {
   const { cohortId } = useParams()
@@ -394,7 +395,7 @@ export default function CohortDetail() {
         onClick={() => navigate('/courses')}
         sx={{ mb: 3 }}
       >
-        Volver 
+        Volver
       </Button>
 
       {error && (
@@ -454,17 +455,17 @@ export default function CohortDetail() {
         <Grid container spacing={8} sx={{ mb: 4 }}>
           <Grid item xs={12} md={4}>
             <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              Fechas Importantes
+              Fechas importantes
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography variant="body2">
-                <strong>Inicio Prework:</strong>{' '}
+                <strong>Inicio prework:</strong>{' '}
                 {formatDate(
                   cohort.properties?.['Start date (prework)']?.date?.start
                 )}
               </Typography>
               <Typography variant="body2">
-                <strong>Inicio Contenido:</strong>{' '}
+                <strong>Inicio contenido:</strong>{' '}
                 {formatDate(
                   cohort.properties?.['Start Date (content)']?.date?.start
                 )}
@@ -484,7 +485,7 @@ export default function CohortDetail() {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography variant="body2">
-                <strong>Program Manager:</strong>{' '}
+                <strong>Program manager:</strong>{' '}
                 {programManagerName ? (
                   <Tooltip title="Ir a Slack">
                     <Button
@@ -506,12 +507,12 @@ export default function CohortDetail() {
                 )}
               </Typography>
               <Typography variant="body2">
-                <strong>Teacher:</strong>{' '}
+                <strong>Mentor:</strong>{' '}
                 {cohort.properties?.Teacher?.relation?.[0]?.name ||
                   'No asignado'}
               </Typography>
               <Typography variant="body2">
-                <strong>Teaching Assistant:</strong>{' '}
+                <strong>Mentor asistente:</strong>{' '}
                 {cohort.properties?.['T.A.']?.relation?.[0]?.name ||
                   'No asignado'}
               </Typography>
@@ -524,11 +525,11 @@ export default function CohortDetail() {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Typography variant="body2">
-                <strong>Estudiantes Activos:</strong>{' '}
+                <strong>Estudiantes activos:</strong>{' '}
                 {cohort.properties?.['Active (#)']?.rollup?.number || 0}
               </Typography>
               <Typography variant="body2">
-                <strong>Proyectos en Revisión:</strong>{' '}
+                <strong>Proyectos en revisión:</strong>{' '}
                 {cohort.properties?.['Projects in review']?.number || 0}
               </Typography>
             </Box>
@@ -549,7 +550,7 @@ export default function CohortDetail() {
             Estudiantes
           </Typography>
           <Button variant="outlined" onClick={handleSkillReviewClick}>
-            Revisión de Habilidades
+            Revisión de habilidades
           </Button>
         </Box>
 
@@ -558,17 +559,30 @@ export default function CohortDetail() {
             <TableHead>
               <TableRow>
                 <TableCell>Nombre</TableCell>
-                <TableCell align="center">Slack</TableCell>
+                <TableCell align="center">Slack                          <Tooltip
+                            title="Debes tener instalada la app de Slack en tu dispositivo para abrir el chat directamente desde aquí."
+                            arrow
+                          >
+                            <InfoOutlinedIcon
+                              sx={{
+                                fontSize: 18,
+                                ml: 0.5,
+                                color: 'text.secondary',
+                                verticalAlign: 'middle',
+                                cursor: 'pointer',
+                              }}
+                            />
+                          </Tooltip></TableCell>
                 {!isPrework && (
                   <>
-                    <TableCell align="center">Proyectos Pendientes</TableCell>
+                    <TableCell align="center">Proyectos pendientes</TableCell>
                     <TableCell align="center">% Proyectos pendientes</TableCell>
                     <TableCell align="center">% Inasistencias</TableCell>
                   </>
                 )}
                 {isPrework && (
                   <>
-                    <TableCell align="center">Estado de Prework</TableCell>
+                    <TableCell align="center">Estado de prework</TableCell>
                     <TableCell align="center"># Días en estado</TableCell>
                   </>
                 )}

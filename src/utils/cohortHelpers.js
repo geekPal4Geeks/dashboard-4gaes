@@ -172,7 +172,9 @@ export const getCourseCardRoleLabel = (role) => {
     case 'TEACHER ASSISTANT':
       return 'Asistente'
     case 'TEACHER':
-      return 'Profesor'
+      return 'Mentor'
+    case 'ASSISTANT':
+      return 'Asistente'
     default:
       return role
   }
@@ -192,17 +194,14 @@ export const getCourseCardBorderColor = (stage) => {
   }
 }
 
-
-export const getTeamSlackId = (programManager)=> {
+export const getTeamSlackId = (programManager) => {
   const teamSlackIds = {
-    'Ehiber': 'UU409472Q',
-    'Carmen': 'U06KK46LYH5',
-    'Francesc': 'U06FN52SR36',
-    'Luis': 'U08BGKH117A',
-    'Adrian': 'U07EX1PE6TC',
+    Ehiber: 'UU409472Q',
+    Carmen: 'U06KK46LYH5',
+    Francesc: 'U06FN52SR36',
+    Luis: 'U08BGKH117A',
+    Adrian: 'U07EX1PE6TC',
   }
-  
-  
+
   return teamSlackIds[programManager]
 }
-

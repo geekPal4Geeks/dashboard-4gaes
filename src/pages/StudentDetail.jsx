@@ -11,12 +11,14 @@ import {
   TextField,
   Container,
   Paper,
+  Tooltip,
 } from '@mui/material'
 import { updateStudentComment } from '../services/studentService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { getTeamSlackId } from '../utils/cohortHelpers'
 import { getStudentInfo } from '../services/notionService'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 
 export default function StudentDetail() {
   const { studentId } = useParams()
@@ -90,11 +92,58 @@ export default function StudentDetail() {
       >
         Volver
       </Button>
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          {student?.properties?.Name?.title?.[0]?.plain_text ||
-            'Detalles del Estudiante'}
-        </Typography>
+      <Paper sx={{ p: 3, mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: 2,
+              flexDirection: { xs: 'column', sm: 'row' },
+            }}
+          >
+            <Typography sx={{ fontSize: '3em' }}>🎓</Typography>
+            <Typography variant="h4" fontWeight={700}>
+              {student?.properties?.['Student'].title[0]?.text?.content ||
+                'Sin nombre'}
+            </Typography>
+            {student?.properties?.['Slack ID']?.rich_text?.[0]?.text
+              ?.content && (
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() =>
+                  window.open(
+                    `slack://user?team=T0BFXMWMV&id=${student.properties['Slack ID'].rich_text[0].text.content}`,
+                    '_blank'
+                  )
+                }
+              >
+                Slack
+              </Button>
+            )}
+            <Typography color="gray">
+              ({' '}
+              {student?.properties?.['Cohort name for Zapier']?.formula
+                ?.string || 'Se desconoce'}{' '}
+              )
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <Tooltip
+              title="Si necesita cambiar información no editable por favor comuníquese con el Program manager de la cohorte"
+              arrow
+            >
+              <InfoOutlinedIcon
+                sx={{
+                  fontSize: 24,
+                  color: 'text.secondary',
+                  cursor: 'pointer',
+                }}
+              />
+            </Tooltip>
+          </Box>
+        </Box>
         <Box
           sx={{
             display: 'flex',
@@ -135,71 +184,72 @@ export default function StudentDetail() {
               <Divider />
             </>
           )}
-          <Typography variant="subtitle2" color="text.secondary">
-            Nombre
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 1 }}>
-            {student?.properties?.['Student'].title[0]?.text?.content ||
-              'Se desconoce'}
-          </Typography>
           <Divider />
-          <Typography variant="subtitle2" color="text.secondary">
-            Cohorte
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 1 }}>
-            {student?.properties?.['Cohort name for Zapier']?.formula?.string ||
-              'Se desconoce'}
-          </Typography>
-          <Divider />
-          <Typography variant="subtitle2" color="text.secondary">
-            Email
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 1 }}>
-            {student?.properties?.Email?.email || 'Se desconoce'}
-          </Typography>
-          <Divider />
-          <Typography variant="subtitle2" color="text.secondary">
-            Slack
-          </Typography>
-          {student?.properties?.['Slack ID']?.rich_text?.[0]?.text?.content ? (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() =>
-                window.open(
-                  `slack://user?team=${'T0BFXMWMV'}&id=${
-                    student.properties['Slack ID'].rich_text[0].text.content
-                  }`,
-                  '_blank'
-                )
-              }
-              sx={{ mb: 1, alignSelf: 'flex-start' }}
-            >
-              Slack
-            </Button>
-          ) : (
-            <Typography variant="body1" sx={{ mb: 1 }}>
-              Se desconoce
-            </Typography>
-          )}
-          <Divider />
-          <Typography variant="subtitle2" color="text.secondary">
-            GitHub Profile
-          </Typography>
-          <Link
-            href={student?.properties?.['Github profile']?.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: 4,
+            }}
+            alignItems={'center'}
           >
-            {student?.properties?.['Github profile']?.url || 'Se desconoce'}
-          </Link>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Email
+              </Typography>
+              <Typography variant="body1">
+                {student?.properties?.Email?.email || 'Se desconoce'}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                GitHub profile
+              </Typography>
+              <Link
+                href={student?.properties?.['Github profile']?.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {student?.properties?.['Github profile']?.url || 'Se desconoce'}
+              </Link>
+            </Box>
+            {/* Prework Advisor */}
+            {student?.properties?.['Cohort Status']?.rollup?.array?.[0]?.select
+              ?.name === 'Prework' &&
+              student?.properties?.['Prework Advisor']?.select?.name && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Prework Advisor
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      const advisorSlackId = getTeamSlackId(
+                        student.properties['Prework Advisor'].select.name
+                      )
+                      if (advisorSlackId) {
+                        window.open(
+                          `slack://user?team=T0BFXMWMV&id=${advisorSlackId}`,
+                          '_blank'
+                        )
+                      }
+                    }}
+                  >
+                    {student?.properties?.['Prework Advisor']?.select?.name}
+                  </Button>
+                </Box>
+              )}
+          </Box>
           <Divider />
           <Typography variant="subtitle2" color="text.secondary">
             Información del alumno
           </Typography>
           <Typography variant="body1">
             {student?.properties?.['Información para Dashboard']?.rich_text?.[0]
-              ?.text?.content || 'No hay información disponible'}
+              ?.text?.content ||
+              'No hay información disponible de ser necesario contacta al PM'}
           </Typography>
           <Typography
             variant="subtitle2"
@@ -222,9 +272,6 @@ export default function StudentDetail() {
             </Alert>
           )}
           <Box display="flex" justifyContent="flex-end" gap={2}>
-            <Button onClick={() => navigate(-1)} disabled={saving}>
-              Cancelar
-            </Button>
             <Button
               onClick={handleSaveComment}
               variant="contained"
@@ -277,6 +324,13 @@ export default function StudentDetail() {
                 * Previo al ingreso
               </Typography>
             </Box>
+          )}
+          {/* Mensaje si el alumno no ha completado la encuesta */}
+          {!student?.properties?.['Synced?']?.checkbox && (
+            <Alert severity="info" sx={{ my: 2 }}>
+              El alumno no ha completado aún la encuesta de información
+              personal.
+            </Alert>
           )}
         </Box>
       </Paper>

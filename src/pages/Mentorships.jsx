@@ -28,6 +28,7 @@ import {
 import { getCohortPageById } from '../services/notionService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { useNavigate } from 'react-router-dom'
+import Swal from 'sweetalert2'
 
 // Motivos de reprogramación
 const cancellationReasons = [
@@ -290,11 +291,33 @@ export default function Mentorships() {
       await updateStudentComment(student.id, commentToSave, store.userName)
       setFeedback('')
       setMockInterviewResult('')
-      setError('Feedback guardado con éxito.')
-      setTimeout(() => setError(null), 3000)
+      // Mostrar SweetAlert y limpiar estados al volver al inicio
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'La mentoría se registró correctamente.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        handleBack()
+        setFormPhase('selection')
+      })
+      return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
       console.error('Error saving feedback:', err)
-      setError('Error al guardar feedback.')
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'Ha ocurrido un error al registrar el Feedback.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
     } finally {
       setSaving(false)
     }
@@ -347,16 +370,33 @@ export default function Mentorships() {
       )
 
       setError('Cancelación registrada con éxito.')
-      // Opcional: Limpiar campos y resetear estados relevantes
-      setCancellationDate(formatLocalDateTime(new Date()))
-      setOriginalMentorshipDate(formatLocalDateTime(new Date()))
-      setCancellationReason('')
-      setSupliedWithOtherStudent(false)
-      setCancellationNotes('')
-      setTimeout(() => setError(null), 3000)
+      // Mostrar SweetAlert y limpiar estados al volver al inicio
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'La cancelación se registró correctamente.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        handleBack()
+        setFormPhase('selection')
+      })
+      return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
       console.error('Error registrando cancelación:', err)
-      setError('Error al registrar cancelación.')
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error registrando cancelación',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
     } finally {
       setSaving(false)
     }
@@ -422,17 +462,31 @@ Notas: ${cancellationNotes.trim()}`
         sessionType
       )
 
-      setError('Cancelación de Mock Interview registrada con éxito.')
-      // Opcional: Limpiar campos y resetear estados relevantes
-      setCancellationDate(formatLocalDateTime(new Date()))
-      setOriginalMentorshipDate(formatLocalDateTime(new Date()))
-      setCancellationReason('')
-      setSupliedWithOtherStudent(false)
-      setCancellationNotes('')
-      setTimeout(() => setError(null), 3000)
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'Cancelación de Mock Interview registrada con éxito.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
+      return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
       console.error('Error registrando cancelación de Mock Interview:', err)
-      setError('Error al registrar cancelación de Mock Interview.')
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ha ocurrido un error al registrar cancelación de Mock Interview.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
     } finally {
       setSaving(false)
     }
@@ -790,27 +844,77 @@ Notas: ${cancellationNotes.trim()}`
                       'N/A'}
                   </Typography>
                   {/* Campo Fecha y hora de cancelación */}
-                  <TextField
-                    label="Fecha y hora de cancelación"
-                    type="datetime-local"
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      mb: 2,
                     }}
-                    value={cancellationDate}
-                    onChange={handleCancellationDateChange}
-                  />
+                  >
+                    <TextField
+                      label="Fecha de cancelación"
+                      type="date"
+                      value={cancellationDate.split('T')[0]}
+                      onChange={(e) =>
+                        setCancellationDate(
+                          e.target.value + 'T' + cancellationDate.split('T')[1]
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Hora de cancelación"
+                      type="time"
+                      value={cancellationDate.split('T')[1]}
+                      onChange={(e) =>
+                        setCancellationDate(
+                          cancellationDate.split('T')[0] + 'T' + e.target.value
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
                   {/* Campo Fecha y hora de mentoría */}
-                  <TextField
-                    label="Fecha y hora de sesión original"
-                    type="datetime-local"
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      mb: 2,
                     }}
-                    value={originalMentorshipDate}
-                    onChange={handleOriginalMentorshipDateChange}
-                  />
+                  >
+                    <TextField
+                      label="Fecha de sesión original"
+                      type="date"
+                      value={originalMentorshipDate.split('T')[0]}
+                      onChange={(e) =>
+                        setOriginalMentorshipDate(
+                          e.target.value +
+                            'T' +
+                            originalMentorshipDate.split('T')[1]
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Hora de sesión original"
+                      type="time"
+                      value={originalMentorshipDate.split('T')[1]}
+                      onChange={(e) =>
+                        setOriginalMentorshipDate(
+                          originalMentorshipDate.split('T')[0] +
+                            'T' +
+                            e.target.value
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
                   {/* Campo Motivo de reprogramación */}
                   <TextField
                     select
@@ -997,27 +1101,81 @@ Notas: ${cancellationNotes.trim()}`
                         ?.plain_text || 'N/A'}
                     </Typography>
                     {/* Campo Fecha y hora de cancelación */}
-                    <TextField
-                      label="Fecha y hora de cancelación"
-                      type="datetime-local"
-                      fullWidth
-                      InputLabelProps={{
-                        shrink: true,
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        mb: 2,
                       }}
-                      value={cancellationDate}
-                      onChange={handleCancellationDateChange}
-                    />
+                    >
+                      <TextField
+                        label="Fecha de cancelación"
+                        type="date"
+                        value={cancellationDate.split('T')[0]}
+                        onChange={(e) =>
+                          setCancellationDate(
+                            e.target.value +
+                              'T' +
+                              cancellationDate.split('T')[1]
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                      <TextField
+                        label="Hora de cancelación"
+                        type="time"
+                        value={cancellationDate.split('T')[1]}
+                        onChange={(e) =>
+                          setCancellationDate(
+                            cancellationDate.split('T')[0] +
+                              'T' +
+                              e.target.value
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    </Box>
                     {/* Campo Fecha y hora de mentoría */}
-                    <TextField
-                      label="Fecha y hora de sesión original"
-                      type="datetime-local"
-                      fullWidth
-                      InputLabelProps={{
-                        shrink: true,
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        mb: 2,
                       }}
-                      value={originalMentorshipDate}
-                      onChange={handleOriginalMentorshipDateChange}
-                    />
+                    >
+                      <TextField
+                        label="Fecha de sesión original"
+                        type="date"
+                        value={originalMentorshipDate.split('T')[0]}
+                        onChange={(e) =>
+                          setOriginalMentorshipDate(
+                            e.target.value +
+                              'T' +
+                              originalMentorshipDate.split('T')[1]
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                      <TextField
+                        label="Hora de sesión original"
+                        type="time"
+                        value={originalMentorshipDate.split('T')[1]}
+                        onChange={(e) =>
+                          setOriginalMentorshipDate(
+                            originalMentorshipDate.split('T')[0] +
+                              'T' +
+                              e.target.value
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    </Box>
                     {/* Campo Motivo de reprogramación */}
                     <TextField
                       select

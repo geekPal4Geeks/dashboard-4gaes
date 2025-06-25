@@ -120,7 +120,9 @@ export default function CourseCard({ cohort }) {
               >
                 <Chip
                   label={
-                    cohort.cohort.stage === 'FINAL_PROJECT'
+                    cohort.cohort.stage === 'FINAL_PROJECT' ||
+                    cohort.role === 'ASSISTANT' ||
+                    cohort.role === 'ASISTANT'
                       ? `${cohort.notionInfo?.properties['Projects in review'].number} proyectos pend...`
                       : `${cohort.notionInfo?.properties['Projects in review'].number} proyectos pendientes`
                   }
@@ -131,13 +133,18 @@ export default function CourseCard({ cohort }) {
                   sx={{
                     fontWeight: 'bold',
                     maxWidth:
-                      cohort.cohort.stage === 'FINAL_PROJECT' ? 140 : 'none',
+                      cohort.cohort.stage === 'FINAL_PROJECT' ||
+                      cohort.role === 'ASSISTANT'
+                        ? 140
+                        : 'none',
                     overflow:
-                      cohort.cohort.stage === 'FINAL_PROJECT'
+                      cohort.cohort.stage === 'FINAL_PROJECT' ||
+                      cohort.role === 'ASSISTANT'
                         ? 'hidden'
                         : 'visible',
                     textOverflow:
-                      cohort.cohort.stage === 'FINAL_PROJECT'
+                      cohort.cohort.stage === 'FINAL_PROJECT' ||
+                      cohort.role === 'ASSISTANT'
                         ? 'ellipsis'
                         : 'unset',
                     whiteSpace: 'nowrap',
