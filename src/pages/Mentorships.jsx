@@ -28,6 +28,7 @@ import {
 import { getCohortPageById } from '../services/notionService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { useNavigate } from 'react-router-dom'
+import Swal from 'sweetalert2'
 
 // Motivos de reprogramación
 const cancellationReasons = [
@@ -290,11 +291,33 @@ export default function Mentorships() {
       await updateStudentComment(student.id, commentToSave, store.userName)
       setFeedback('')
       setMockInterviewResult('')
-      setError('Feedback guardado con éxito.')
-      setTimeout(() => setError(null), 3000)
+      // Mostrar SweetAlert y limpiar estados al volver al inicio
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'La mentoría se registró correctamente.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        handleBack()
+        setFormPhase('selection')
+      })
+      return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
       console.error('Error saving feedback:', err)
-      setError('Error al guardar feedback.')
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'Ha ocurrido un error al registrar el Feedback.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
     } finally {
       setSaving(false)
     }
@@ -347,16 +370,33 @@ export default function Mentorships() {
       )
 
       setError('Cancelación registrada con éxito.')
-      // Opcional: Limpiar campos y resetear estados relevantes
-      setCancellationDate(formatLocalDateTime(new Date()))
-      setOriginalMentorshipDate(formatLocalDateTime(new Date()))
-      setCancellationReason('')
-      setSupliedWithOtherStudent(false)
-      setCancellationNotes('')
-      setTimeout(() => setError(null), 3000)
+      // Mostrar SweetAlert y limpiar estados al volver al inicio
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'La cancelación se registró correctamente.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        handleBack()
+        setFormPhase('selection')
+      })
+      return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
       console.error('Error registrando cancelación:', err)
-      setError('Error al registrar cancelación.')
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Error registrando cancelación',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
     } finally {
       setSaving(false)
     }
@@ -422,17 +462,31 @@ Notas: ${cancellationNotes.trim()}`
         sessionType
       )
 
-      setError('Cancelación de Mock Interview registrada con éxito.')
-      // Opcional: Limpiar campos y resetear estados relevantes
-      setCancellationDate(formatLocalDateTime(new Date()))
-      setOriginalMentorshipDate(formatLocalDateTime(new Date()))
-      setCancellationReason('')
-      setSupliedWithOtherStudent(false)
-      setCancellationNotes('')
-      setTimeout(() => setError(null), 3000)
+      Swal.fire({
+        icon: 'success',
+        title: '¡Registro exitoso!',
+        text: 'Cancelación de Mock Interview registrada con éxito.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
+      return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
       console.error('Error registrando cancelación de Mock Interview:', err)
-      setError('Error al registrar cancelación de Mock Interview.')
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ha ocurrido un error al registrar cancelación de Mock Interview.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#1976d2',
+        timer: 2500,
+        timerProgressBar: true,
+      }).then(() => {
+        setFormPhase('selection')
+      })
     } finally {
       setSaving(false)
     }
@@ -441,6 +495,8 @@ Notas: ${cancellationNotes.trim()}`
   const handleMockInterviewResultChange = (event) => {
     setMockInterviewResult(event.target.value)
   }
+
+  console.log(mentorInfo)
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
@@ -604,27 +660,14 @@ Notas: ${cancellationNotes.trim()}`
                         backgroundColor: '#f9f9f9',
                       }}
                     >
-                      <Typography variant="h6" gutterBottom>
-                        Información del Estudiante
-                      </Typography>
-                      <Typography variant="body1">
-                        <strong>Nombre:</strong>
-                        {student?.properties?.['Student']?.title?.[0]
-                          ?.plain_text ? (
-                          <Chip
-                            label={
-                              student.properties['Student'].title[0].plain_text
-                            }
-                            variant="outlined"
-                            size="small"
-                            sx={{ ml: 1 }}
-                          />
-                        ) : (
+                    <Box sx={{display:'flex', gap:2, alignItems:'center'}}>
+                      <Typography variant="body1" fontSize={20}> 
+                        <strong>{student?.properties?.['Student']?.title?.[0]
+                          ?.plain_text ||
                           'N/A'
-                        )}
+                        }</strong>
                       </Typography>
                       <Typography variant="body1">
-                        <strong>Cohorte:</strong>{' '}
                         {student.properties?.['Cohort name for Zapier'].formula
                           ?.string ? (
                           <Chip
@@ -641,21 +684,6 @@ Notas: ${cancellationNotes.trim()}`
                           'N/A'
                         )}
                       </Typography>
-                      {/* Mostrar información del Mentor y TA */}
-                      {mentorInfo && (
-                        <Typography variant="body1">
-                          <strong>Mentor:</strong> {mentorInfo.name}{' '}
-                          {mentorInfo.slack !== 'N/A'
-                            ? `(${mentorInfo.slack})`
-                            : ''}
-                        </Typography>
-                      )}
-                      {taInfo && (
-                        <Typography variant="body1">
-                          <strong>TA:</strong> {taInfo.name}{' '}
-                          {taInfo.slack !== 'N/A' ? `(${taInfo.slack})` : ''}
-                        </Typography>
-                      )}
                       <Typography variant="body1">
                         <strong>Program Manager:</strong>{' '}
                         {student.properties?.['Program Manager']?.rollup
@@ -674,6 +702,78 @@ Notas: ${cancellationNotes.trim()}`
                           'N/A'
                         )}
                       </Typography>
+                      </Box>
+                      {/* Mostrar información del Mentor y TA */}
+                      {/* {mentorInfo && (
+                        <Typography variant="body1">
+                          <strong>Mentor:</strong> {mentorInfo.name}{' '}
+                          {mentorInfo.slack !== 'N/A'
+                            ? `(${mentorInfo.slack})`
+                            : ''}
+                        </Typography>
+                      )}
+                      {taInfo && (
+                        <Typography variant="body1">
+                          <strong>TA:</strong> {taInfo.name}{' '}
+                          {taInfo.slack !== 'N/A' ? `(${taInfo.slack})` : ''}
+                        </Typography>
+                      )} */}
+                      
+
+                      {/* Información adicional del estudiante */}
+                      {student?.properties?.['Synced?']?.checkbox ? (
+                        <Box
+                          sx={{
+                            mt: 3,
+                            mb: 2,
+                            p: 2,
+                            background: 'rgba(0,0,0,0.03)',
+                            borderRadius: 2,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            sx={{ fontSize: '1rem', mb: 1 }}
+                          >
+                            Información adicional del estudiante
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            ¿Por qué hace este curso?
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {student?.properties?.['Why do this course?']
+                              ?.rich_text?.[0]?.text?.content || 'Se desconoce'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Área de estudios*
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {student?.properties?.['Studies area']?.select
+                              ?.name || 'Se desconoce'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Experiencia o conocimientos en programación*
+                          </Typography>
+                          <Typography variant="body2">
+                            {student?.properties?.[
+                              'Programming Experience or Knowledge'
+                            ]?.rich_text?.[0]?.text?.content || 'Se desconoce'}
+                          </Typography>
+                          <Typography
+                            sx={{ marginTop: 2, fontSize: '11px' }}
+                            variant="body2"
+                            color="gray"
+                          >
+                            * Previo al ingreso
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Alert severity="info" sx={{ my: 2 }}>
+                          El alumno no ha completado aún la encuesta de
+                          información personal.
+                        </Alert>
+                      )}
                     </Paper>
 
                     <Paper sx={{ p: 3, width: '100%' }}>
@@ -790,27 +890,77 @@ Notas: ${cancellationNotes.trim()}`
                       'N/A'}
                   </Typography>
                   {/* Campo Fecha y hora de cancelación */}
-                  <TextField
-                    label="Fecha y hora de cancelación"
-                    type="datetime-local"
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      mb: 2,
                     }}
-                    value={cancellationDate}
-                    onChange={handleCancellationDateChange}
-                  />
+                  >
+                    <TextField
+                      label="Fecha de cancelación"
+                      type="date"
+                      value={cancellationDate.split('T')[0]}
+                      onChange={(e) =>
+                        setCancellationDate(
+                          e.target.value + 'T' + cancellationDate.split('T')[1]
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Hora de cancelación"
+                      type="time"
+                      value={cancellationDate.split('T')[1]}
+                      onChange={(e) =>
+                        setCancellationDate(
+                          cancellationDate.split('T')[0] + 'T' + e.target.value
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
                   {/* Campo Fecha y hora de mentoría */}
-                  <TextField
-                    label="Fecha y hora de sesión original"
-                    type="datetime-local"
-                    fullWidth
-                    InputLabelProps={{
-                      shrink: true,
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      mb: 2,
                     }}
-                    value={originalMentorshipDate}
-                    onChange={handleOriginalMentorshipDateChange}
-                  />
+                  >
+                    <TextField
+                      label="Fecha de sesión original"
+                      type="date"
+                      value={originalMentorshipDate.split('T')[0]}
+                      onChange={(e) =>
+                        setOriginalMentorshipDate(
+                          e.target.value +
+                            'T' +
+                            originalMentorshipDate.split('T')[1]
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Hora de sesión original"
+                      type="time"
+                      value={originalMentorshipDate.split('T')[1]}
+                      onChange={(e) =>
+                        setOriginalMentorshipDate(
+                          originalMentorshipDate.split('T')[0] +
+                            'T' +
+                            e.target.value
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
                   {/* Campo Motivo de reprogramación */}
                   <TextField
                     select
@@ -997,27 +1147,81 @@ Notas: ${cancellationNotes.trim()}`
                         ?.plain_text || 'N/A'}
                     </Typography>
                     {/* Campo Fecha y hora de cancelación */}
-                    <TextField
-                      label="Fecha y hora de cancelación"
-                      type="datetime-local"
-                      fullWidth
-                      InputLabelProps={{
-                        shrink: true,
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        mb: 2,
                       }}
-                      value={cancellationDate}
-                      onChange={handleCancellationDateChange}
-                    />
+                    >
+                      <TextField
+                        label="Fecha de cancelación"
+                        type="date"
+                        value={cancellationDate.split('T')[0]}
+                        onChange={(e) =>
+                          setCancellationDate(
+                            e.target.value +
+                              'T' +
+                              cancellationDate.split('T')[1]
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                      <TextField
+                        label="Hora de cancelación"
+                        type="time"
+                        value={cancellationDate.split('T')[1]}
+                        onChange={(e) =>
+                          setCancellationDate(
+                            cancellationDate.split('T')[0] +
+                              'T' +
+                              e.target.value
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    </Box>
                     {/* Campo Fecha y hora de mentoría */}
-                    <TextField
-                      label="Fecha y hora de sesión original"
-                      type="datetime-local"
-                      fullWidth
-                      InputLabelProps={{
-                        shrink: true,
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        mb: 2,
                       }}
-                      value={originalMentorshipDate}
-                      onChange={handleOriginalMentorshipDateChange}
-                    />
+                    >
+                      <TextField
+                        label="Fecha de sesión original"
+                        type="date"
+                        value={originalMentorshipDate.split('T')[0]}
+                        onChange={(e) =>
+                          setOriginalMentorshipDate(
+                            e.target.value +
+                              'T' +
+                              originalMentorshipDate.split('T')[1]
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                      <TextField
+                        label="Hora de sesión original"
+                        type="time"
+                        value={originalMentorshipDate.split('T')[1]}
+                        onChange={(e) =>
+                          setOriginalMentorshipDate(
+                            originalMentorshipDate.split('T')[0] +
+                              'T' +
+                              e.target.value
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    </Box>
                     {/* Campo Motivo de reprogramación */}
                     <TextField
                       select
