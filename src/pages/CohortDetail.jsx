@@ -559,20 +559,23 @@ export default function CohortDetail() {
             <TableHead>
               <TableRow>
                 <TableCell>Nombre</TableCell>
-                <TableCell align="center">Slack                          <Tooltip
-                            title="Debes tener instalada la app de Slack en tu dispositivo para abrir el chat directamente desde aquí."
-                            arrow
-                          >
-                            <InfoOutlinedIcon
-                              sx={{
-                                fontSize: 18,
-                                ml: 0.5,
-                                color: 'text.secondary',
-                                verticalAlign: 'middle',
-                                cursor: 'pointer',
-                              }}
-                            />
-                          </Tooltip></TableCell>
+                <TableCell align="center">
+                  Slack{' '}
+                  <Tooltip
+                    title="Debes tener instalada la app de Slack en tu dispositivo para abrir el chat directamente desde aquí."
+                    arrow
+                  >
+                    <InfoOutlinedIcon
+                      sx={{
+                        fontSize: 18,
+                        ml: 0.5,
+                        color: 'text.secondary',
+                        verticalAlign: 'middle',
+                        cursor: 'pointer',
+                      }}
+                    />
+                  </Tooltip>
+                </TableCell>
                 {!isPrework && (
                   <>
                     <TableCell align="center">Proyectos pendientes</TableCell>

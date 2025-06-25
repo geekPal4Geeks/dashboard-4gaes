@@ -496,6 +496,8 @@ Notas: ${cancellationNotes.trim()}`
     setMockInterviewResult(event.target.value)
   }
 
+  console.log(mentorInfo)
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Box
@@ -658,27 +660,14 @@ Notas: ${cancellationNotes.trim()}`
                         backgroundColor: '#f9f9f9',
                       }}
                     >
-                      <Typography variant="h6" gutterBottom>
-                        Información del Estudiante
-                      </Typography>
-                      <Typography variant="body1">
-                        <strong>Nombre:</strong>
-                        {student?.properties?.['Student']?.title?.[0]
-                          ?.plain_text ? (
-                          <Chip
-                            label={
-                              student.properties['Student'].title[0].plain_text
-                            }
-                            variant="outlined"
-                            size="small"
-                            sx={{ ml: 1 }}
-                          />
-                        ) : (
+                    <Box sx={{display:'flex', gap:2, alignItems:'center'}}>
+                      <Typography variant="body1" fontSize={20}> 
+                        <strong>{student?.properties?.['Student']?.title?.[0]
+                          ?.plain_text ||
                           'N/A'
-                        )}
+                        }</strong>
                       </Typography>
                       <Typography variant="body1">
-                        <strong>Cohorte:</strong>{' '}
                         {student.properties?.['Cohort name for Zapier'].formula
                           ?.string ? (
                           <Chip
@@ -695,21 +684,6 @@ Notas: ${cancellationNotes.trim()}`
                           'N/A'
                         )}
                       </Typography>
-                      {/* Mostrar información del Mentor y TA */}
-                      {mentorInfo && (
-                        <Typography variant="body1">
-                          <strong>Mentor:</strong> {mentorInfo.name}{' '}
-                          {mentorInfo.slack !== 'N/A'
-                            ? `(${mentorInfo.slack})`
-                            : ''}
-                        </Typography>
-                      )}
-                      {taInfo && (
-                        <Typography variant="body1">
-                          <strong>TA:</strong> {taInfo.name}{' '}
-                          {taInfo.slack !== 'N/A' ? `(${taInfo.slack})` : ''}
-                        </Typography>
-                      )}
                       <Typography variant="body1">
                         <strong>Program Manager:</strong>{' '}
                         {student.properties?.['Program Manager']?.rollup
@@ -728,6 +702,78 @@ Notas: ${cancellationNotes.trim()}`
                           'N/A'
                         )}
                       </Typography>
+                      </Box>
+                      {/* Mostrar información del Mentor y TA */}
+                      {/* {mentorInfo && (
+                        <Typography variant="body1">
+                          <strong>Mentor:</strong> {mentorInfo.name}{' '}
+                          {mentorInfo.slack !== 'N/A'
+                            ? `(${mentorInfo.slack})`
+                            : ''}
+                        </Typography>
+                      )}
+                      {taInfo && (
+                        <Typography variant="body1">
+                          <strong>TA:</strong> {taInfo.name}{' '}
+                          {taInfo.slack !== 'N/A' ? `(${taInfo.slack})` : ''}
+                        </Typography>
+                      )} */}
+                      
+
+                      {/* Información adicional del estudiante */}
+                      {student?.properties?.['Synced?']?.checkbox ? (
+                        <Box
+                          sx={{
+                            mt: 3,
+                            mb: 2,
+                            p: 2,
+                            background: 'rgba(0,0,0,0.03)',
+                            borderRadius: 2,
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            sx={{ fontSize: '1rem', mb: 1 }}
+                          >
+                            Información adicional del estudiante
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            ¿Por qué hace este curso?
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {student?.properties?.['Why do this course?']
+                              ?.rich_text?.[0]?.text?.content || 'Se desconoce'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Área de estudios*
+                          </Typography>
+                          <Typography variant="body2" sx={{ mb: 1 }}>
+                            {student?.properties?.['Studies area']?.select
+                              ?.name || 'Se desconoce'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Experiencia o conocimientos en programación*
+                          </Typography>
+                          <Typography variant="body2">
+                            {student?.properties?.[
+                              'Programming Experience or Knowledge'
+                            ]?.rich_text?.[0]?.text?.content || 'Se desconoce'}
+                          </Typography>
+                          <Typography
+                            sx={{ marginTop: 2, fontSize: '11px' }}
+                            variant="body2"
+                            color="gray"
+                          >
+                            * Previo al ingreso
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Alert severity="info" sx={{ my: 2 }}>
+                          El alumno no ha completado aún la encuesta de
+                          información personal.
+                        </Alert>
+                      )}
                     </Paper>
 
                     <Paper sx={{ p: 3, width: '100%' }}>
