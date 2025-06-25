@@ -36,7 +36,6 @@ import {
   getDaysInPreworkColor,
   getTeamSlackId,
 } from '../utils/cohortHelpers'
-import StudentDetailModal from '../components/StudentDetailModal'
 import { updateStudentProperty } from '../services/studentService'
 import { parseStudentData } from '../utils/studentHelpers'
 
@@ -51,8 +50,6 @@ export default function CohortDetail() {
   const [savingAbsences, setSavingAbsences] = useState({})
   const [pendingUpdates, setPendingUpdates] = useState({})
   const [updateQueue, setUpdateQueue] = useState({})
-  const [selectedStudent, setSelectedStudent] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const isPrework = cohort?.properties?.Status?.select?.name === 'Prework'
 
@@ -344,13 +341,8 @@ export default function CohortDetail() {
   }
 
   const handleStudentClick = (student) => {
-    setSelectedStudent(student)
-    setIsModalOpen(true)
-  }
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false)
-    setSelectedStudent(null)
+    console.log(student)
+    navigate(`/cohort/${cohortId}/student/${student.basicInfo?.notion_id}`)
   }
 
   const handleSkillReviewClick = () => {
@@ -402,7 +394,7 @@ export default function CohortDetail() {
         onClick={() => navigate('/courses')}
         sx={{ mb: 3 }}
       >
-        Volver a Cursos
+        Volver 
       </Button>
 
       {error && (
@@ -778,13 +770,6 @@ export default function CohortDetail() {
           </Table>
         </TableContainer>
       </Paper>
-
-      <StudentDetailModal
-        open={isModalOpen}
-        onClose={handleCloseModal}
-        student={selectedStudent}
-        isPrework={isPrework}
-      />
     </Container>
   )
 }
