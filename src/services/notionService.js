@@ -5,7 +5,39 @@ const API_URL = import.meta.env.VITE_BACKEND_URL
 
 let cohortInfoErrorShown = false;
 
+// Cache simple con expiración
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
+function getCacheKey(endpoint, params) {
+  return `${endpoint}_${JSON.stringify(params)}`;
+}
+
+function getCachedData(key) {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  cache.delete(key);
+  return null;
+}
+
+function setCachedData(key, data) {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
+// Axios con timeout personalizado
+const axiosWithTimeout = axios.create({
+  timeout: 30000, // 15 segundos máximo
+});
+
 export async function getNotionPage(pageId, token) {
+  const cacheKey = getCacheKey('notion-page', { pageId });
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
   const resp = await fetch(`${API_URL}/notion-page`, {
     method: 'POST',
     headers: {
@@ -20,13 +52,22 @@ export async function getNotionPage(pageId, token) {
     throw new Error(errorData.detail || 'Failed to fetch Notion page')
   }
 
-  return await resp.json()
+  const data = await resp.json();
+  setCachedData(cacheKey, data);
+  return data;
 }
+
 // Lista de cohortes que sabemos que no existen en Notion
 export async function getCohortNotionInfo(cohortId) {
+  const cacheKey = getCacheKey('cohort-info', { cohortId });
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
   try {
     const token = localStorage.getItem('token');
-    const response = await axios.post(
+    const response = await axiosWithTimeout.post(
       `${API_URL}/cohort-info`,
       { cohortId: cohortId },
       {
@@ -35,6 +76,8 @@ export async function getCohortNotionInfo(cohortId) {
         },
       }
     );
+    
+    setCachedData(cacheKey, response.data);
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 403) {
@@ -64,9 +107,15 @@ export async function getCohortNotionInfo(cohortId) {
 
 // Función para obtener información de un estudiante
 export const getStudentInfo = async (studentId) => {
+  const cacheKey = getCacheKey('student-info', { studentId });
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
   try {
     const token = localStorage.getItem('token');
-    const response = await axios.post(
+    const response = await axiosWithTimeout.post(
       `${API_URL}/student-info`,
       { studentId: studentId },
       {
@@ -75,6 +124,8 @@ export const getStudentInfo = async (studentId) => {
         },
       }
     );
+    
+    setCachedData(cacheKey, response.data);
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 403) {
@@ -88,9 +139,15 @@ export const getStudentInfo = async (studentId) => {
 
 // Nueva función para obtener información de la página de la cohorte por ID
 export async function getCohortPageById(pageId) {
+  const cacheKey = getCacheKey('cohort-page-by-id', { pageId });
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) {
+    return cachedData;
+  }
+
   try {
     const token = localStorage.getItem('token');
-    const response = await axios.post(
+    const response = await axiosWithTimeout.post(
       `${API_URL}/cohort-page-by-id`,
       { pageId: pageId },
       {
@@ -99,6 +156,8 @@ export async function getCohortPageById(pageId) {
         },
       }
     );
+    
+    setCachedData(cacheKey, response.data);
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 403) {
@@ -108,4 +167,25 @@ export async function getCohortPageById(pageId) {
     }
     throw error;
   }
+}
+
+// Función para limpiar el cache manualmente si es necesario
+export const clearNotionCache = () => {
+  cache.clear();
+}
+
+// Función para obtener múltiples estudiantes en paralelo con manejo de errores
+export const getMultipleStudentsInfo = async (studentIds) => {
+  const results = await Promise.allSettled(
+    studentIds.map(studentId => getStudentInfo(studentId))
+  );
+  
+  return results.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    } else {
+      console.error(`Error obteniendo info del estudiante ${studentIds[index]}:`, result.reason);
+      return null;
+    }
+  });
 }

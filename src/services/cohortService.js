@@ -7,7 +7,9 @@ const EXCLUDED_COHORTS = [
 
 const API_URL = import.meta.env.VITE_4GEEKS_API_URL
 
-export async function getActiveCohorts(token) {
+export async function getActiveCohorts(token, options = {}) {
+  const { onProgress } = options;
+  
   const resp = await fetch(
     `${API_URL}/admissions/user/me`,
     {
@@ -21,7 +23,6 @@ export async function getActiveCohorts(token) {
   if (!resp.ok) throw new Error('No se pudieron obtener las cohortes')
 
   const data = await resp.json()
-
 
   const activeStages = ['PREWORK', 'STARTED', 'FINAL_PROJECT']
   const allowedRoles = ['REVIEWER', 'ASSISTANT', 'TEACHER']
@@ -39,19 +40,25 @@ export async function getActiveCohorts(token) {
     (cohort) => !EXCLUDED_COHORTS.includes(Number(cohort.cohort.id))
   )
 
-  // Obtenemos información de Notion solo para las cohortes filtradas
-  const cohortsWithNotionInfo = await Promise.all(
-    filteredCohorts.map(async (cohort) => {
-      try {
-        const notionInfo = await getCohortNotionInfo(cohort.cohort.id)
+  if (!onProgress) {
+    // Comportamiento original si no se pasa callback
+    const cohortNotionPromises = filteredCohorts.map(cohort => 
+      getCohortNotionInfo(cohort.cohort.id)
+    )
+
+    const cohortNotionResults = await Promise.allSettled(cohortNotionPromises)
+
+    const cohortsWithNotionInfo = filteredCohorts.map((cohort, index) => {
+      const result = cohortNotionResults[index]
+      if (result.status === 'fulfilled') {
         return {
           ...cohort,
-          notionInfo,
+          notionInfo: result.value,
         }
-      } catch (error) {
+      } else {
         console.error(
           `Error obteniendo información de Notion para cohorte ${cohort.cohort.id}:`,
-          error
+          result.reason
         )
         return {
           ...cohort,
@@ -59,7 +66,69 @@ export async function getActiveCohorts(token) {
         }
       }
     })
-  )
 
-  return cohortsWithNotionInfo
+    return cohortsWithNotionInfo
+  }
+
+  // Nuevo comportamiento con callback de progreso
+  const completedCohorts = []
+  const pendingCohorts = [...filteredCohorts]
+
+  // Notificar cohorts pendientes inicialmente
+  if (onProgress) {
+    onProgress([], pendingCohorts)
+  }
+
+  // Procesar cada cohorte individualmente
+  const promises = filteredCohorts.map(async (cohort, index) => {
+    try {
+      const notionInfo = await getCohortNotionInfo(cohort.cohort.id)
+      const completedCohort = {
+        ...cohort,
+        notionInfo,
+      }
+      
+      // Mover de pending a completed
+      const pendingIndex = pendingCohorts.findIndex(p => p.cohort.id === cohort.cohort.id)
+      if (pendingIndex !== -1) {
+        pendingCohorts.splice(pendingIndex, 1)
+      }
+      completedCohorts.push(completedCohort)
+      
+      // Notificar progreso
+      if (onProgress) {
+        onProgress([completedCohort], [...pendingCohorts])
+      }
+      
+      return completedCohort
+    } catch (error) {
+      console.error(
+        `Error obteniendo información de Notion para cohorte ${cohort.cohort.id}:`,
+        error
+      )
+      const cohortWithError = {
+        ...cohort,
+        notionInfo: null,
+      }
+      
+      // Mover de pending a completed (aunque haya fallado)
+      const pendingIndex = pendingCohorts.findIndex(p => p.cohort.id === cohort.cohort.id)
+      if (pendingIndex !== -1) {
+        pendingCohorts.splice(pendingIndex, 1)
+      }
+      completedCohorts.push(cohortWithError)
+      
+      // Notificar progreso
+      if (onProgress) {
+        onProgress([cohortWithError], [...pendingCohorts])
+      }
+      
+      return cohortWithError
+    }
+  })
+
+  // Esperar a que todas terminen
+  await Promise.allSettled(promises)
+  
+  return completedCohorts
 }

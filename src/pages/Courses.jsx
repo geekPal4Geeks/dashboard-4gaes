@@ -17,7 +17,9 @@ import { useNavigate } from 'react-router-dom'
 export default function Courses() {
   const { store } = useGlobalReducer()
   const [cohorts, setCohorts] = useState([])
+  const [loadingCohorts, setLoadingCohorts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMoreCohorts, setLoadingMoreCohorts] = useState(false)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
 
@@ -29,12 +31,31 @@ export default function Courses() {
           navigate('/', { replace: true })
           return
         }
-        const activeCohorts = await getActiveCohorts(token)
+        
+        // Usar el nuevo servicio optimizado que nos notifica progresivamente
+        const activeCohorts = await getActiveCohorts(token, {
+          onProgress: (newCohorts, pendingCohorts) => {
+            // Actualizar cohorts completados
+            setCohorts(prev => [...prev, ...newCohorts])
+            // Actualizar cohorts que están cargando
+            setLoadingCohorts(pendingCohorts)
+            // Ya no estamos en loading inicial si tenemos al menos uno
+            if (newCohorts.length > 0) {
+              setLoading(false)
+              setLoadingMoreCohorts(pendingCohorts.length > 0)
+            }
+          }
+        })
+        
+        // Actualizar con resultado final
         setCohorts(activeCohorts)
+        setLoadingCohorts([])
+        setLoadingMoreCohorts(false)
       } catch (err) {
         setError(err.message)
       } finally {
         setLoading(false)
+        setLoadingMoreCohorts(false)
       }
     }
 
@@ -54,7 +75,7 @@ export default function Courses() {
           Tus programas activos
         </Typography>
 
-        {loading ? (
+        {loading && cohorts.length === 0 ? (
           <Box display="flex" justifyContent="center" my={4}>
             <CircularProgress />
           </Box>
@@ -63,16 +84,34 @@ export default function Courses() {
             {error}
           </Alert>
         ) : (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <GuideCard />
-            </Grid>
-            {cohorts.map((cohort) => (
-              <Grid item xs={12} sm={6} md={4} key={cohort.cohort?.id}>
-                <CourseCard cohort={cohort} />
+          <>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <GuideCard />
               </Grid>
-            ))}
-          </Grid>
+              {/* Mostrar cohorts completados */}
+              {cohorts.map((cohort) => (
+                <Grid item xs={12} sm={6} md={4} key={cohort.cohort?.id}>
+                  <CourseCard cohort={cohort} />
+                </Grid>
+              ))}
+              {/* Mostrar placeholders para cohorts que están cargando */}
+              {loadingCohorts.map((cohort, index) => (
+                <Grid item xs={12} sm={6} md={4} key={`loading-${cohort.cohort?.id || index}`}>
+                  <CourseCard cohort={{...cohort, isLoading: true}} />
+                </Grid>
+              ))}
+            </Grid>
+            
+            {loadingMoreCohorts && (
+              <Box display="flex" justifyContent="center" alignItems="center" mt={3}>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                <Typography variant="body2" color="text.secondary">
+                  Cargando más cohortes...
+                </Typography>
+              </Box>
+            )}
+          </>
         )}
       </Box>
     </Container>

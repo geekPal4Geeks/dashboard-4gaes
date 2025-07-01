@@ -19,10 +19,11 @@ import {
   Alert,
   TextField,
   Tooltip,
+  Skeleton,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
-import { getCohortNotionInfo, getStudentInfo } from '../services/notionService'
+import { getCohortNotionInfo, getMultipleStudentsInfo } from '../services/notionService'
 import WarningIcon from '@mui/icons-material/Warning'
 import {
   notionToMuiColor,
@@ -46,6 +47,8 @@ export default function CohortDetail() {
   const [cohort, setCohort] = useState(null)
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMoreStudents, setLoadingMoreStudents] = useState(false)
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false)
   const [error, setError] = useState(null)
   const [editingAbsences, setEditingAbsences] = useState({})
   const [savingAbsences, setSavingAbsences] = useState({})
@@ -204,44 +207,78 @@ export default function CohortDetail() {
 
   useEffect(() => {
     const fetchData = async () => {
+      const BATCH_SIZE = 8; // Cargar primeros 8 estudiantes inmediatamente
+      
       try {
-        // Obtener información de la cohorte
+        // === FASE INICIAL: Mostrar información básica inmediatamente ===
         const cohortData = await getCohortNotionInfo(cohortId)
+        
+        // Mostrar información básica de la cohorte inmediatamente
         setCohort(cohortData)
+        setInitialDataLoaded(true)
+        setLoading(false) // Ya no estamos en loading principal
 
         // Obtener los datos de los estudiantes desde Data for Zapier
         const zapierData =
           cohortData.properties?.['Data for Zapier']?.formula?.string
         const studentsData = parseStudentData(zapierData)
 
-        // Obtener información detallada de cada estudiante usando su notion_id
-        const studentPromises = studentsData.map((student) => {
-          if (student.notion_id) {
-            return getStudentInfo(student.notion_id)
-          } else {
-            return null
-          }
-        })
+        // Si no hay estudiantes, terminar aquí
+        if (!studentsData || studentsData.length === 0) {
+          setStudents([])
+          return
+        }
 
-        // Obtener información de los profesores
+        // === MOSTRAR PLACEHOLDERS PARA TODOS LOS ESTUDIANTES ===
+        const allStudentPlaceholders = studentsData.map((basicStudent) => ({
+          basicInfo: basicStudent,
+          properties: null,
+          isLoading: true
+        }))
+        setStudents(allStudentPlaceholders)
+
+        // Preparar IDs para peticiones en paralelo
+        const studentIds = studentsData
+          .map(student => student.notion_id)
+          .filter(id => id !== null && id !== undefined)
+
         const teacherId = cohortData.properties?.Teacher?.relation?.[0]?.id
         const taIds =
           cohortData.properties?.['T.A.']?.relation?.map((ta) => ta.id) || []
 
-        const [fetchedStudentsInfo, teacherInfo, ...taInfos] =
-          await Promise.all([
-            Promise.all(studentPromises),
-            teacherId ? getStudentInfo(teacherId) : null,
-            ...taIds.map((taId) => getStudentInfo(taId)),
-          ])
+        // === PROGRESSIVE LOADING: PRIMERA FASE ===
+        // Cargar primer lote de estudiantes + profesores inmediatamente
+        const firstBatchIds = studentIds.slice(0, BATCH_SIZE)
+        const teacherAndTaIds = [
+          ...(teacherId ? [teacherId] : []),
+          ...taIds
+        ]
 
-        const combinedStudents = studentsData.map((basicStudent, index) => {
-          const detailedInfo = fetchedStudentsInfo[index]
+        const firstBatchResults = await getMultipleStudentsInfo([
+          ...firstBatchIds,
+          ...teacherAndTaIds
+        ])
+
+        // Separar resultados del primer lote
+        const firstBatchStudentsInfo = firstBatchResults.slice(0, firstBatchIds.length)
+        const teacherInfo = teacherId ? firstBatchResults[firstBatchIds.length] : null
+        const taInfos = taIds.length > 0 ? firstBatchResults.slice(firstBatchIds.length + (teacherId ? 1 : 0)) : []
+
+        // Crear estudiantes del primer lote completados
+        const firstBatchStudents = studentsData.slice(0, BATCH_SIZE).map((basicStudent, index) => {
+          const detailedInfo = firstBatchStudentsInfo[index]
           return {
             ...(detailedInfo || {}),
             basicInfo: basicStudent,
           }
         })
+
+        // Crear placeholders para estudiantes restantes
+        const remainingPlaceholders = studentsData.slice(BATCH_SIZE).map((basicStudent) => ({
+          basicInfo: basicStudent,
+          properties: null,
+          isLoading: true
+        }))
 
         // Actualizar la información de los profesores en la cohorte
         const updatedCohort = {
@@ -276,11 +313,38 @@ export default function CohortDetail() {
         }
 
         setCohort(updatedCohort)
-        setStudents(combinedStudents)
+        setStudents([...firstBatchStudents, ...remainingPlaceholders])
+
+        // === PROGRESSIVE LOADING: SEGUNDA FASE ===
+        // Cargar estudiantes restantes en background
+        const remainingIds = studentIds.slice(BATCH_SIZE)
+        if (remainingIds.length > 0) {
+          setLoadingMoreStudents(true)
+          
+          try {
+            const remainingResults = await getMultipleStudentsInfo(remainingIds)
+            
+            const remainingStudents = studentsData.slice(BATCH_SIZE).map((basicStudent, index) => {
+              const detailedInfo = remainingResults[index]
+              return {
+                ...(detailedInfo || {}),
+                basicInfo: basicStudent,
+              }
+            })
+
+            // Actualizar con todos los estudiantes completos
+            setStudents([...firstBatchStudents, ...remainingStudents])
+          } catch (err) {
+            console.error('Error cargando estudiantes restantes:', err)
+            // Mantener placeholders si falla la segunda carga
+          } finally {
+            setLoadingMoreStudents(false)
+          }
+        }
+
       } catch (err) {
         setError('Error al cargar la información')
         console.error('Error completo:', err)
-      } finally {
         setLoading(false)
       }
     }
@@ -594,6 +658,53 @@ export default function CohortDetail() {
             </TableHead>
             <TableBody>
               {sortStudentsByPreworkStatus(students).map((student, index) => {
+                // Si el estudiante está cargando, mostrar skeleton
+                if (student.isLoading) {
+                  return (
+                    <TableRow
+                      key={student.basicInfo?.notion_id || `loading-${index}`}
+                      sx={{
+                        '&:nth-of-type(odd)': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        },
+                      }}
+                    >
+                      <TableCell>
+                        <Skeleton variant="text" width="80%" />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Skeleton variant="rectangular" width={60} height={25} />
+                      </TableCell>
+                      {!isPrework && (
+                        <>
+                          <TableCell align="center">
+                            <Skeleton variant="rectangular" width={40} height={25} />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Skeleton variant="rectangular" width={50} height={25} />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Skeleton variant="rectangular" width={50} height={25} />
+                          </TableCell>
+                        </>
+                      )}
+                      {isPrework && (
+                        <>
+                          <TableCell align="center">
+                            <Skeleton variant="rectangular" width={80} height={25} />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Skeleton variant="rectangular" width={40} height={25} />
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell align="center">
+                        <Skeleton variant="rectangular" width={60} height={25} />
+                      </TableCell>
+                    </TableRow>
+                  )
+                }
+
                 // Helpers para color de %
                 const percentProjects =
                   student.properties?.['% Projects undelivered']?.formula
@@ -786,6 +897,15 @@ export default function CohortDetail() {
             </TableBody>
           </Table>
         </TableContainer>
+        
+        {loadingMoreStudents && (
+          <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
+            <CircularProgress size={20} sx={{ mr: 1 }} />
+            <Typography variant="body2" color="text.secondary">
+              Cargando más estudiantes...
+            </Typography>
+          </Box>
+        )}
       </Paper>
     </Container>
   )
