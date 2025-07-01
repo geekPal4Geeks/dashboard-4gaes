@@ -39,27 +39,31 @@ export async function getActiveCohorts(token) {
     (cohort) => !EXCLUDED_COHORTS.includes(Number(cohort.cohort.id))
   )
 
-  // Obtenemos información de Notion solo para las cohortes filtradas
-  const cohortsWithNotionInfo = await Promise.all(
-    filteredCohorts.map(async (cohort) => {
-      try {
-        const notionInfo = await getCohortNotionInfo(cohort.cohort.id)
-        return {
-          ...cohort,
-          notionInfo,
-        }
-      } catch (error) {
-        console.error(
-          `Error obteniendo información de Notion para cohorte ${cohort.cohort.id}:`,
-          error
-        )
-        return {
-          ...cohort,
-          notionInfo: null,
-        }
-      }
-    })
+  // Obtenemos información de Notion solo para las cohortes filtradas usando Promise.allSettled
+  const cohortNotionPromises = filteredCohorts.map(cohort => 
+    getCohortNotionInfo(cohort.cohort.id)
   )
+
+  const cohortNotionResults = await Promise.allSettled(cohortNotionPromises)
+
+  const cohortsWithNotionInfo = filteredCohorts.map((cohort, index) => {
+    const result = cohortNotionResults[index]
+    if (result.status === 'fulfilled') {
+      return {
+        ...cohort,
+        notionInfo: result.value,
+      }
+    } else {
+      console.error(
+        `Error obteniendo información de Notion para cohorte ${cohort.cohort.id}:`,
+        result.reason
+      )
+      return {
+        ...cohort,
+        notionInfo: null,
+      }
+    }
+  })
 
   return cohortsWithNotionInfo
 }
