@@ -28,7 +28,7 @@ function setCachedData(key, data) {
 
 // Axios con timeout personalizado
 const axiosWithTimeout = axios.create({
-  timeout: 15000, // 15 segundos máximo
+  timeout: 30000, // 15 segundos máximo
 });
 
 export async function getNotionPage(pageId, token) {

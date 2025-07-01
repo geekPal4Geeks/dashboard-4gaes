@@ -8,6 +8,7 @@ import {
   Chip,
   Tooltip,
   Divider,
+  Skeleton,
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
 import WarningIcon from '@mui/icons-material/Warning'
@@ -26,6 +27,62 @@ export default function CourseCard({ cohort }) {
   if (!cohort || !cohort.cohort) {
     console.error("CourseCard recibió un prop 'cohort' inválido:", cohort)
     return null
+  }
+
+  // Si la card está cargando, mostrar skeleton
+  if (cohort.isLoading) {
+    return (
+      <Card
+        sx={{
+          width: 350,
+          height: 'auto',
+          minHeight: 300,
+          border: '1px solid #e0e0e0',
+          bgcolor: '#f5f5f5',
+          boxShadow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+          overflow: 'visible',
+          borderLeft: `8px solid ${getCourseCardBorderColor(
+            cohort.cohort.stage?.toUpperCase()
+          )}`,
+          opacity: 0.7,
+        }}
+      >
+        <CardContent
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Skeleton variant="rectangular" width={60} height={24} />
+            <Skeleton variant="rectangular" width={80} height={24} />
+          </Box>
+          
+          <Skeleton variant="text" sx={{ fontSize: '1.5rem' }} />
+          <Divider />
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Skeleton variant="text" width="90%" />
+            <Skeleton variant="text" width="85%" />
+            <Skeleton variant="text" width="80%" />
+            <Skeleton variant="text" width="70%" />
+          </Box>
+          
+          <Box sx={{ mt: 1, display: 'flex', alignItems: 'baseline', gap: 1 }}>
+            <Skeleton variant="text" width="60%" />
+            <Skeleton variant="rectangular" width={30} height={24} />
+          </Box>
+        </CardContent>
+        <CardActions>
+          <Skeleton variant="rectangular" width="100%" height={36} />
+        </CardActions>
+      </Card>
+    )
   }
 
   // Verificar si falta la información de Notion

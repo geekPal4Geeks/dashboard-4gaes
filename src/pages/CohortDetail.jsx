@@ -48,6 +48,7 @@ export default function CohortDetail() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadingMoreStudents, setLoadingMoreStudents] = useState(false)
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false)
   const [error, setError] = useState(null)
   const [editingAbsences, setEditingAbsences] = useState({})
   const [savingAbsences, setSavingAbsences] = useState({})
@@ -209,14 +210,32 @@ export default function CohortDetail() {
       const BATCH_SIZE = 8; // Cargar primeros 8 estudiantes inmediatamente
       
       try {
-        // Obtener información de la cohorte
+        // === FASE INICIAL: Mostrar información básica inmediatamente ===
         const cohortData = await getCohortNotionInfo(cohortId)
+        
+        // Mostrar información básica de la cohorte inmediatamente
         setCohort(cohortData)
+        setInitialDataLoaded(true)
+        setLoading(false) // Ya no estamos en loading principal
 
         // Obtener los datos de los estudiantes desde Data for Zapier
         const zapierData =
           cohortData.properties?.['Data for Zapier']?.formula?.string
         const studentsData = parseStudentData(zapierData)
+
+        // Si no hay estudiantes, terminar aquí
+        if (!studentsData || studentsData.length === 0) {
+          setStudents([])
+          return
+        }
+
+        // === MOSTRAR PLACEHOLDERS PARA TODOS LOS ESTUDIANTES ===
+        const allStudentPlaceholders = studentsData.map((basicStudent) => ({
+          basicInfo: basicStudent,
+          properties: null,
+          isLoading: true
+        }))
+        setStudents(allStudentPlaceholders)
 
         // Preparar IDs para peticiones en paralelo
         const studentIds = studentsData
@@ -245,7 +264,7 @@ export default function CohortDetail() {
         const teacherInfo = teacherId ? firstBatchResults[firstBatchIds.length] : null
         const taInfos = taIds.length > 0 ? firstBatchResults.slice(firstBatchIds.length + (teacherId ? 1 : 0)) : []
 
-        // Crear estudiantes del primer lote con placeholders para el resto
+        // Crear estudiantes del primer lote completados
         const firstBatchStudents = studentsData.slice(0, BATCH_SIZE).map((basicStudent, index) => {
           const detailedInfo = firstBatchStudentsInfo[index]
           return {
@@ -257,7 +276,7 @@ export default function CohortDetail() {
         // Crear placeholders para estudiantes restantes
         const remainingPlaceholders = studentsData.slice(BATCH_SIZE).map((basicStudent) => ({
           basicInfo: basicStudent,
-          properties: null, // Placeholder
+          properties: null,
           isLoading: true
         }))
 
@@ -295,7 +314,6 @@ export default function CohortDetail() {
 
         setCohort(updatedCohort)
         setStudents([...firstBatchStudents, ...remainingPlaceholders])
-        setLoading(false) // Ya mostramos el primer lote
 
         // === PROGRESSIVE LOADING: SEGUNDA FASE ===
         // Cargar estudiantes restantes en background
