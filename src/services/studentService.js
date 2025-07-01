@@ -1,4 +1,5 @@
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 const API_URL = import.meta.env.VITE_BACKEND_URL
 
@@ -8,18 +9,26 @@ export const updateStudentComment = async (
   userName,
   notificationData = null
 ) => {
-
+  const token = localStorage.getItem('token');
   try {
     const commentWithSignature = `${comment}\n\n- ${userName}`
     const response = await axios.post(`${API_URL}/create-student-comment`, {
       studentId,
       comment: commentWithSignature,
       notificationData,
+    }, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
     })
     return response.data
   } catch (error) {
-    console.error('Error al actualizar el comentario:', error)
-    throw error
+    if (error.response && error.response.status === 403) {
+      Swal.fire('Permiso denegado', 'No tienes permisos para comentar sobre este estudiante', 'error');
+    } else {
+      Swal.fire('Error al actualizar el comentario:', error.message || 'Ocurrió un error inesperado', 'error');
+    }
+    throw error;
   }
 }
 
@@ -31,7 +40,7 @@ export const updateStudentProperty = async (
   try {
     // Si propertyNameOrProperties es un string, es una sola propiedad
     // Si es un array, son múltiples propiedades
-
+    const token = localStorage.getItem('token');
     const properties =
       typeof propertyNameOrProperties === 'string'
         ? [{ propertyName: propertyNameOrProperties, propertyValue }]
@@ -40,18 +49,24 @@ export const updateStudentProperty = async (
     const response = await axios.put(`${API_URL}/update-student-property`, {
       studentId,
       properties,
+    }, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
     })
     return response.data
   } catch (error) {
-    console.error(
-      `Error al actualizar las propiedades del estudiante ${studentId}:`,
-      error
-    )
-    throw error
+    if (error.response && error.response.status === 403) {
+      Swal.fire('Permiso denegado', 'No tienes permisos para actualizar propiedades de este estudiante', 'error');
+    } else {
+      Swal.fire('Error al actualizar las propiedades del estudiante:', error.message || 'Ocurrió un error inesperado', 'error');
+    }
+    throw error;
   }
 }
 
 export const findStudentByEmail = async (email) => {
+  const token = localStorage.getItem('token');
   try {
     const response = await axios.post(
       `${API_URL}/search-student-by-email`,
@@ -61,27 +76,22 @@ export const findStudentByEmail = async (email) => {
       {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Token ${token}`,
         },
       }
     )
     return response.data
   } catch (error) {
-    // Manejo de errores
-    if (error.response) {
-      // El servidor respondió con un código de estado fuera del rango 2xx
-      console.error('Error en la respuesta:', error.response.data)
-      throw new Error(
-        error.response.data.error || 'Error al buscar el estudiante'
-      )
+    if (error.response && error.response.status === 403) {
+      Swal.fire('Permiso denegado', 'No tienes permisos para buscar estudiantes', 'error');
+    } else if (error.response) {
+      Swal.fire('Error', error.response.data.error || 'Error al buscar el estudiante', 'error');
     } else if (error.request) {
-      // La petición fue hecha pero no se recibió respuesta
-      console.error('No se recibió respuesta:', error.request)
-      throw new Error('No se pudo conectar con el servidor')
+      Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
     } else {
-      // Algo sucedió al configurar la petición
-      console.error('Error:', error.message)
-      throw new Error('Error al hacer la petición')
+      Swal.fire('Error', error.message || 'Error al hacer la petición', 'error');
     }
+    throw error;
   }
 }
 
@@ -96,6 +106,7 @@ export const cancelStudentMentorship = async (
   mentorshipType
 ) => {
   try {
+    const token = localStorage.getItem('token');
     const response = await axios.post(`${API_URL}/cancel-mentorship`, {
       cancellationDate,
       cancellationNotes,
@@ -105,11 +116,19 @@ export const cancelStudentMentorship = async (
       studentId,
       supliedWithOtherStudent,
       mentorshipType,
+    }, {
+      headers: {
+        'Authorization': `Token ${token}`,
+      },
     })
 
     return response.data
   } catch (error) {
-    console.error('Error registrando cancelación de mentoría:', error)
-    throw error
+    if (error.response && error.response.status === 403) {
+      Swal.fire('Permiso denegado', 'No tienes permisos para cancelar mentorías', 'error');
+    } else {
+      Swal.fire('Error registrando cancelación de mentoría:', error.message || 'Ocurrió un error inesperado', 'error');
+    }
+    throw error;
   }
 }
