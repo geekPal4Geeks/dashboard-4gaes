@@ -1,6 +1,9 @@
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 const API_URL = import.meta.env.VITE_BACKEND_URL
+
+let cohortInfoErrorShown = false;
 
 export async function getNotionPage(pageId, token) {
   const resp = await fetch(`${API_URL}/notion-page`, {
@@ -22,68 +25,87 @@ export async function getNotionPage(pageId, token) {
 // Lista de cohortes que sabemos que no existen en Notion
 export async function getCohortNotionInfo(cohortId) {
   try {
-    const response = await axios.post(`${API_URL}/cohort-info`, {
-      cohortId: cohortId,
-    })
-    return response.data
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/cohort-info`,
+      { cohortId: cohortId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
   } catch (error) {
-    console.error('Error al obtener información de la cohorte:', error.message)
-    if (error.response) {
-      console.error('Detalles del error:', error.response.data)
-      throw new Error(`Error del servidor: ${error.response.status}`)
-    } else if (error.request) {
-      console.error('No se recibió respuesta del servidor')
-      throw new Error('No se pudo conectar con el servidor')
+    if (error.response && error.response.status === 403) {
+      if (!cohortInfoErrorShown) {
+        cohortInfoErrorShown = true;
+        Swal.fire('Permiso denegado', 'No tienes permisos para ver esta cohorte', 'error')
+          .then(() => {
+            setTimeout(() => {
+              cohortInfoErrorShown = false;
+            }, 5000);
+          });
+      }
     } else {
-      console.error('Error en la configuración de la petición:', error.message)
-      throw new Error('Error en la configuración de la petición')
+      if (!cohortInfoErrorShown) {
+        cohortInfoErrorShown = true;
+        Swal.fire('Ha ocurrido un error', error.message,  'error')
+          .then(() => {
+            setTimeout(() => {
+              cohortInfoErrorShown = false;
+            }, 5000);
+          });
+      }
     }
+    throw error;
   }
 }
 
 // Función para obtener información de un estudiante
 export const getStudentInfo = async (studentId) => {
   try {
-    const response = await axios.post(`${API_URL}/student-info`, {
-      studentId: studentId,
-    })
-    return response.data
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/student-info`,
+      { studentId: studentId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
   } catch (error) {
-    console.error('Error al obtener información del estudiante:', error.message)
-    if (error.response) {
-      console.error('Detalles del error:', error.response.data)
-      throw new Error(`Error del servidor: ${error.response.status}`)
-    } else if (error.request) {
-      console.error('No se recibió respuesta del servidor')
-      throw new Error('No se pudo conectar con el servidor')
+    if (error.response && error.response.status === 403) {
+      Swal.fire('Permiso denegado', 'No tienes permisos para ver este estudiante', 'error');
     } else {
-      console.error('Error en la configuración de la petición:', error.message)
-      throw new Error('Error en la configuración de la petición')
+      Swal.fire('Error', error.message || 'Ocurrió un error inesperado', 'error');
     }
+    throw error;
   }
 }
 
 // Nueva función para obtener información de la página de la cohorte por ID
 export async function getCohortPageById(pageId) {
   try {
-    const response = await axios.post(`${API_URL}/cohort-page-by-id`, {
-      pageId: pageId,
-    })
-    return response.data
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/cohort-page-by-id`,
+      { pageId: pageId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
   } catch (error) {
-    console.error(
-      'Error al obtener información de la página de la cohorte por ID:',
-      error.message
-    )
-    if (error.response) {
-      console.error('Detalles del error:', error.response.data)
-      throw new Error(`Error del servidor: ${error.response.status}`)
-    } else if (error.request) {
-      console.error('No se recibió respuesta del servidor')
-      throw new Error('No se pudo conectar con el servidor')
+    if (error.response && error.response.status === 403) {
+      Swal.fire('Permiso denegado', 'No tienes permisos para ver esta página de cohorte', 'error');
     } else {
-      console.error('Error en la configuración de la petición:', error.message)
-      throw new Error('Error en la configuración de la petición')
+      Swal.fire('Error', error.message || 'Ocurrió un error inesperado', 'error');
     }
+    throw error;
   }
 }
