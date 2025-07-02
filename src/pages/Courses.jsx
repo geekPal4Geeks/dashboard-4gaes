@@ -86,9 +86,6 @@ export default function Courses() {
         ) : (
           <>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <GuideCard />
-              </Grid>
               {/* Mostrar cohorts completados */}
               {cohorts.map((cohort) => (
                 <Grid item xs={12} sm={6} md={4} key={cohort.cohort?.id}>

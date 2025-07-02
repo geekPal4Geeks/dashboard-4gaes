@@ -45,7 +45,7 @@ export const Navbar = () => {
           <Typography
             variant="h5"
             component={RouterLink}
-            to="/courses"
+            to="/home"
             sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
           >
             4Geeks Spain Dashboard
