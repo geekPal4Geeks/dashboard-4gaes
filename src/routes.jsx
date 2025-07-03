@@ -22,6 +22,7 @@ const Documentation = lazy(() => import('./pages/Documentation'))
 const CohortDetail = lazy(() => import('./pages/CohortDetail'))
 const StudentSkillReview = lazy(() => import('./pages/StudentSkillReview'))
 const StudentDetail = lazy(() => import('./pages/StudentDetail'))
+const Students = lazy(() => import('./pages/Students'))
 
 // Loading component
 const LoadingFallback = () => (
@@ -128,6 +129,14 @@ export const router = createBrowserRouter(
           element={
             <RequireAuth>
               <LazyRoute Component={StudentDetail} />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/students"
+          element={
+            <RequireAuth>
+              <LazyRoute Component={Students} />
             </RequireAuth>
           }
         />

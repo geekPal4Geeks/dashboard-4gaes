@@ -201,6 +201,7 @@ export const getTeamSlackId = (programManager) => {
     Francesc: 'U06FN52SR36',
     Luis: 'U08BGKH117A',
     Adrian: 'U07EX1PE6TC',
+    "Lucía": 'U040Y1LA97E',
   }
 
   return teamSlackIds[programManager]

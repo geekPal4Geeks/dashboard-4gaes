@@ -63,6 +63,22 @@ function Home() {
                             <Button onClick={() => navigate('/mentorships')} color="secondary">Registrar mentoría &rarr;</Button>
                         </CardActions>
                     </Card>
+                    <Card sx={{ width: 350, minHeight: 175, boxShadow: 3, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <CardContent sx={{ pb: 0, flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
+                            <Box display="flex" alignItems="center" mb={1}>
+                                <SchoolIcon color="primary" sx={{ fontSize: 36, mr: 1 }} />
+                                <Typography variant="h6" fontWeight={700}>
+                                    Estudiantes
+                                </Typography>
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" mb={1}>
+                                Busca y consulta información detallada de cualquier alumno por correo electrónico.
+                            </Typography>
+                        </CardContent>
+                        <CardActions sx={{ pt: 0, mt: '10px' }}>
+                            <Button onClick={() => navigate('/students')} size="small">Buscar estudiante &rarr;</Button>
+                        </CardActions>
+                    </Card>
                     {canSeeManagement && (
                         <Card sx={{ width: 350, minHeight: 175, boxShadow: 3, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                             <CardContent sx={{ pb: 0, flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>

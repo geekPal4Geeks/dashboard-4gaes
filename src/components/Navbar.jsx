@@ -68,6 +68,14 @@ export const Navbar = () => {
           >
             Mentorías
           </Button>
+          <Button
+            color="inherit"
+            component={RouterLink}
+            to="/students"
+            sx={buttonStyles('/students')}
+          >
+            Estudiantes
+          </Button>
           {canSeeManagement && (
             <Button
               color="inherit"

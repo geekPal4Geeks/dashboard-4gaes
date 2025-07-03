@@ -406,8 +406,11 @@ export default function CohortDetail() {
   }
 
   const handleStudentClick = (student) => {
-    console.log(student)
-    navigate(`/cohort/${cohortId}/student/${student.basicInfo?.notion_id}`)
+    // Pasar el objeto student y cohort por el state de navegación
+    const studentId = student.id || student.basicInfo?.notion_id
+    navigate(`/cohort/${cohortId}/student/${studentId}`, {
+      state: { student, cohort }
+    })
   }
 
   const handleSkillReviewClick = () => {
