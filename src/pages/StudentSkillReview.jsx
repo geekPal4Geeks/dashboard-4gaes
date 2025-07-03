@@ -21,9 +21,11 @@ import {
   Rating,
   OutlinedInput,
   IconButton,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import SaveIcon from '@mui/icons-material/Save'
+import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
 import { getCohortNotionInfo, getStudentInfo } from '../services/notionService'
 import { updateStudentProperty } from '../services/studentService'
 import {
@@ -53,6 +55,8 @@ export default function StudentSkillReview() {
   const [error, setError] = useState(null)
   const [savingStatus, setSavingStatus] = useState({})
   const [localChanges, setLocalChanges] = useState({})
+  const theme = useTheme()
+  const isWideScreen = useMediaQuery('(min-width:1400px)')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,8 +73,9 @@ export default function StudentSkillReview() {
         )
 
         const studentsInfo = await Promise.all(studentPromises)
-
-        const formattedStudents = studentsInfo.map((info, index) => ({
+        const formattedStudents = studentsInfo.map((student, index) => {
+          const info = student.student
+          return ({
           id: info.id,
           name:
             info.properties?.['Student']?.title?.[0]?.plain_text ||
@@ -102,7 +107,8 @@ export default function StudentSkillReview() {
           studentRank:
             info.properties?.['Student Rank']?.formula?.string?.length || 0,
           basicInfo: studentsData[index],
-        }))
+          })
+        })
 
         setStudents(formattedStudents)
       } catch (err) {
@@ -279,6 +285,17 @@ export default function StudentSkillReview() {
 
   // const isSavingAny = Object.keys(savingStatus).length > 0
 
+  // Filtrar especialidades técnicas según el programa
+  let filteredSpecialties = technicalSpecialtiesOptions;
+  const program = cohort?.properties?.Program?.select?.name || '';
+  if (program.toLowerCase().includes('full')) {
+    filteredSpecialties = technicalSpecialtiesOptions.filter(opt => opt.startsWith('FS'));
+  } else if (program.toLowerCase().includes('data')) {
+    filteredSpecialties = technicalSpecialtiesOptions.filter(opt => opt.startsWith('DS'));
+  } else if (program.toLowerCase().includes('ciber') || program.toLowerCase().includes('cyber') || program.toLowerCase().includes('cs')) {
+    filteredSpecialties = technicalSpecialtiesOptions.filter(opt => opt.startsWith('CS'));
+  }
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Button
@@ -294,8 +311,8 @@ export default function StudentSkillReview() {
       </Typography>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        Los cambios se guardan automáticamente. Puedes usar la tecla TAB para
-        navegar entre las columnas.
+        Puedes guardar todos los campos de una vez haciendo clic en el boton de guardar. 
+        Puedes usar la tecla TAB para navegar entre las columnas.
       </Alert>
 
       {error && (
@@ -324,7 +341,7 @@ export default function StudentSkillReview() {
       )}
 
       {!loading && cohort && (
-        <Paper sx={{ p: 3 }}>
+        <Paper sx={isWideScreen ? { p: 3, minWidth: '1350px', margin: '0 -150px' } : { p: 3 }}>
           <Typography variant="h6" gutterBottom>
             Cohorte:{' '}
             {cohort.properties?.Cohort?.title?.[0]?.plain_text || 'Sin nombre'}
@@ -368,7 +385,7 @@ export default function StudentSkillReview() {
                             onClick={() => handleSaveRow(student.id)}
                             disabled={!!savingStatus[student.id]}
                           >
-                            <SaveIcon />
+                            <CloudUploadOutlinedIcon />
                           </IconButton>
                         )}
                       </Box>
@@ -452,7 +469,7 @@ export default function StudentSkillReview() {
                         sx={{ minWidth: 150, maxWidth: 250 }}
                         disabled={!!savingStatus[student.id]}
                       >
-                        {technicalSpecialtiesOptions.map((name) => (
+                        {filteredSpecialties.map((name) => (
                           <MenuItem key={name} value={name}>
                             {name}
                           </MenuItem>

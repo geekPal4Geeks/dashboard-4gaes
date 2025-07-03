@@ -684,9 +684,11 @@ export default function CohortDetail() {
           <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
             Estudiantes
           </Typography>
-          <Button variant="outlined" onClick={handleSkillReviewClick}>
-            Revisión de habilidades
-          </Button>
+          {cohort.properties?.['Status']?.select?.name === 'Final Project' && (
+            <Button variant="outlined" onClick={handleSkillReviewClick}>
+              Revisión de habilidades
+            </Button>
+          )}
         </Box>
 
         <TableContainer>
