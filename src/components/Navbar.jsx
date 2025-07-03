@@ -45,7 +45,7 @@ export const Navbar = () => {
           <Typography
             variant="h5"
             component={RouterLink}
-            to="/courses"
+            to="/home"
             sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
           >
             4Geeks Spain Dashboard
@@ -67,6 +67,14 @@ export const Navbar = () => {
             sx={buttonStyles('/mentorships')}
           >
             Mentorías
+          </Button>
+          <Button
+            color="inherit"
+            component={RouterLink}
+            to="/students"
+            sx={buttonStyles('/students')}
+          >
+            Estudiantes
           </Button>
           {canSeeManagement && (
             <Button

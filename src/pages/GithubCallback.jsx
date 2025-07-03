@@ -24,7 +24,7 @@ export default function GithubCallback() {
       // Manejar la promesa correctamente
       (async () => {
         const ok = await fetchAndSetUser(token, true);
-        if (ok) navigate('/courses');
+        if (ok) navigate('/home');
         // Si no, el hook ya hace logout y redirige
       })();
     } else {

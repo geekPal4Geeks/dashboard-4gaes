@@ -67,3 +67,46 @@ export const skillReviewProperties = [
   'Capacidad resolutiva (Skill review)',
   'Trabajo en equipo (Skill review)',
 ]
+
+// Parsea la propiedad Cohort Data de Notion
+export function parseCohortData(str) {
+  if (!str) return { mentors: [], tas: [] }
+  let mentors = []
+  let tas = []
+  // El string es una lista separada por comas de bloques notion_id:...|full_name:...|...|rol:...
+  const people = str.split(/,notion_id:/).map((p, i) => (i === 0 ? p : 'notion_id:' + p))
+  for (const person of people) {
+    const fullName = person.match(/full_name:([^|]+)/)?.[1]
+    const firstName = fullName.split(' ')[0]
+    const lastName = fullName.split(' ')[1]
+    const email = person.match(/email:([^|]+)/)?.[1]
+    const slackId = person.match(/slack_id:([^|]+)/)?.[1]
+    const rol = person.match(/rol:([^|]+)/)?.[1]
+    if (rol && fullName) {
+      const obj = { firstName, lastName, fullName, email, slackId, rol }
+      if (rol.toLowerCase().includes('senior mentor')) mentors.push(obj)
+      else if (rol.toLowerCase().includes('mentor assistant')) tas.push(obj)
+    }
+  }
+  return { mentors, tas }
+}
+
+// Parsea el módulo actual de la cohorte y devuelve un label amigable
+export function parseCurrentModuleLabel(currentModuleArr) {
+  if (Array.isArray(currentModuleArr) && currentModuleArr.length > 0) {
+    const select = currentModuleArr[0]?.select;
+    if (select?.name) {
+      // Ejemplo: 'FS-12-DOM Practice'
+      const match = select.name.match(/^(FS|DS|CS)-(\d+)-(.*)$/);
+      if (match) {
+        const modulo = match[2];
+        const proyecto = match[3].trim();
+        return `Módulo ${modulo} · ${proyecto}`;
+      } else {
+        // Si no matchea, mostrar el string completo
+        return select.name;
+      }
+    }
+  }
+  return null;
+}

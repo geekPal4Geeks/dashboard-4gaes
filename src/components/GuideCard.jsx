@@ -15,52 +15,46 @@ export default function GuideCard() {
     <Card
       sx={{
         width: 350,
-        height: 'auto',
-        minHeight: 350,
-        border: '2px solid #1976d2',
-        bgcolor: '#f5faff',
-        boxShadow: 4,
+        minHeight: 150,
+        boxShadow: 3,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: 'space-between',
       }}
     >
-      <CardContent
-        sx={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
-        }}
-      >
-        <Box
-          sx={{
-            width: 48,
-            height: 48,
-            bgcolor: '#1976d2',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography variant="h3" color="white">
-            📚
+      <CardContent sx={{ pb: 0, flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
+        <Box display="flex" alignItems="center" mb={1}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              bgcolor: '#1976d2',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mr: 1
+            }}
+          >
+            <Typography variant="h6" color="white">
+              📚
+            </Typography>
+          </Box>
+          <Typography variant="h6" fontWeight={700}>
+            Guías y Recursos
           </Typography>
         </Box>
-        <Typography variant="h5" fontWeight={600}>
-          Guías y Recursos
+        <Typography variant="body2" color="text.secondary" mb={1}>
+          Accede a documentación, tutoriales y recursos útiles para potenciar tu experiencia en la plataforma.
         </Typography>
       </CardContent>
-      <CardActions>
+      <CardActions sx={{ pt: 0, mt: '10px' }}>
         <Button
-          variant="contained"
+          variant="text"
           color="primary"
-          fullWidth
           onClick={() => navigate('/documentation')}
         >
-          Ver documentación
+          Ver documentación &rarr;
         </Button>
       </CardActions>
     </Card>
