@@ -23,6 +23,8 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import { parseCohortData, parseCurrentModuleLabel } from '../utils/studentHelpers'
 import GitHubIcon from '@mui/icons-material/GitHub'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+
 
 export default function StudentDetail({ studentData, cohort }) {
   const { studentId } = useParams()
@@ -174,11 +176,11 @@ export default function StudentDetail({ studentData, cohort }) {
                 </Typography>
                 {/* Email y GitHub debajo del nombre, uno debajo del otro */}
                 {studentEmail && (
-                  <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <Button
                       variant="text"
                       size="small"
-                      sx={{ textTransform: 'none', p: 0, minWidth: 0, fontSize: 16, color: 'text.secondary' }}
+                      sx={{ textTransform: 'none', p: 0, minWidth: 0, fontSize: 16, color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}
                       onClick={() => {
                         navigator.clipboard.writeText(studentEmail)
                         setCopied(true)
@@ -187,6 +189,7 @@ export default function StudentDetail({ studentData, cohort }) {
                       title="Copiar correo"
                     >
                       {studentEmail}
+                      <ContentCopyIcon sx={{ fontSize: 16, ml: 0.5 }} />
                     </Button>
                     {copied && (
                       <Typography variant="caption" color="success.main" sx={{ ml: 1 }}>

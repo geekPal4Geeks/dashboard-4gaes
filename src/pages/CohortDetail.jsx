@@ -38,8 +38,9 @@ import {
   getTeamSlackId,
 } from '../utils/cohortHelpers'
 import { updateStudentProperty } from '../services/studentService'
-import { parseStudentData } from '../utils/studentHelpers'
+import { parseStudentData, parseCohortData } from '../utils/studentHelpers'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 
 export default function CohortDetail() {
   const { cohortId } = useParams()
@@ -448,12 +449,27 @@ export default function CohortDetail() {
     )
   }
 
-  // Definir programManagerName y pmSlackId aquí, después de la verificación de cohort
-  const programManagerName =
-    cohort.properties?.['Program Manager']?.select?.name
-  const pmSlackId = programManagerName
-    ? getTeamSlackId(programManagerName)
-    : null
+  // Obtener mentores y TAs usando el mismo helper que StudentDetail
+  let mentors = []
+  let tas = []
+  let pm = null
+  let pmSlackId = null
+  if (cohort) {
+    const mentorsCohortStr = cohort?.properties?.['Mentors in this cohort']?.formula?.string
+    const parsed = parseCohortData(mentorsCohortStr)
+    mentors = parsed.mentors
+    tas = parsed.tas
+    pm = cohort?.properties?.['Program Manager']?.select?.name
+    pmSlackId = pm ? getTeamSlackId(pm) : null
+  }
+
+  // Mapeo de color para el bookmark y el chip de status
+  const statusColorMap = {
+    warning: '#ff9800', // Prework
+    success: '#43a047', // En curso
+    info: '#1976d2',    // Proyecto Final
+    default: '#bdbdbd',
+  }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -479,128 +495,180 @@ export default function CohortDetail() {
             right: 32,
             zIndex: 1,
             fontSize: 80,
-            color: 'primary.main',
+            color: statusColorMap[getStageColor(cohort.properties?.Status?.select?.name)] || statusColorMap.default,
           }}
         />
-        <Typography variant="h4" gutterBottom>
-          {(
-            cohort.properties?.Cohort?.title?.[0]?.plain_text ||
-            'Cohorte sin nombre'
-          )
-            .replaceAll('-', ' ')
-            .toUpperCase()}
-        </Typography>
-
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          <Chip
-            label={getStageLabel(cohort.properties?.Status?.select?.name)}
-            color={getStageColor(cohort.properties?.Status?.select?.name)}
-          />
-          <Chip
-            label={cohort.properties?.Program?.select?.name || 'Sin programa'}
-            color="primary"
-            variant="outlined"
-          />
-          {cohort.properties?.['Projects in review']?.number > 20 && (
-            <Chip
-              label={`${cohort.properties['Projects in review'].number} proyectos pendientes`}
-              color="warning"
-              variant="outlined"
-              icon={<WarningIcon />}
-            />
-          )}
-          {cohort.properties?.Status?.select?.name === 'Final Project' && (
-            <Chip
-              label="Recordar completar la revisión de habilidades antes de finalizar"
-              color="warning"
-              variant="outlined"
-              icon={<WarningIcon />}
-            />
-          )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          {/* Determinar color de status para chips y bookmark */}
+          {(() => {
+            const status = cohort.properties?.Status?.select?.name;
+            const muiColor = getStageColor(status);
+            const color = statusColorMap[muiColor] || statusColorMap.default;
+            return (
+              <>
+                <Typography variant="h4" fontWeight={700} sx={{ color: '#23272f', fontSize: { xs: '1.3rem', md: '1.7rem' }, mb: 0, mr: 2 }} gutterBottom>
+                  {(
+                    cohort.properties?.Cohort?.title?.[0]?.plain_text ||
+                    'Cohorte sin nombre'
+                  )
+                    .replaceAll('-', ' ')
+                    .toUpperCase()}
+                </Typography>
+                <Chip
+                  label={getStageLabel(status)}
+                  sx={{
+                    bgcolor: color,
+                    color: muiColor === 'warning' ? '#fff' : 'white',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    px: 1.5,
+                    py: 0.25,
+                    height: 26,
+                  }}
+                />
+                <Chip
+                  label={cohort.properties?.Program?.select?.name || 'Sin programa'}
+                  sx={{ border: '1px solid #1976d2', color: '#1976d2', fontWeight: 600, fontSize: '0.85rem', px: 1.5, py: 0.25, bgcolor: 'white', height: 26 }}
+                />
+              </>
+            );
+          })()}
         </Box>
 
-        <Grid container spacing={8} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+        {cohort.properties?.Status?.select?.name === 'Final Project' && (
+          <Box sx={{
+            display: 'flex', alignItems: 'center', bgcolor: '#fff3e0', border: '1px solid #ffe0b2', color: '#e65100', px: 1.5, py: 1, borderRadius: 2, mb: 3, mt: 1, fontWeight: 500, fontSize: '0.92rem',
+          }}>
+            <WarningIcon sx={{ mr: 1.2, fontSize: 20 }} />
+            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.92rem' }}>
+              Recordar completar la revisión de habilidades antes de finalizar
+            </Typography>
+          </Box>
+        )}
+
+        <Grid container spacing={0} sx={{ mb: 4, mt: 4, width: '100%', flexWrap: 'nowrap' }}>
+          <Grid item sx={{ display: 'flex', flexDirection: 'column', height: '100%', flexBasis: '30%', maxWidth: '30%', minWidth: 0 }}>
+            <Typography variant="h6" sx={{ color: '#374151', fontWeight: 600, fontSize: '1rem', mb: 1.2 }}>
               Fechas importantes
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography variant="body2">
-                <strong>Inicio prework:</strong>{' '}
-                {formatDate(
-                  cohort.properties?.['Start date (prework)']?.date?.start
-                )}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Inicio contenido:</strong>{' '}
-                {formatDate(
-                  cohort.properties?.['Start Date (content)']?.date?.start
-                )}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Finaliza:</strong>{' '}
-                {formatDate(
-                  cohort.properties?.['End Date (course)']?.date?.start
-                )}
-              </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', mr: 1 }}>Inicio prework:</Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>{formatDate(cohort.properties?.['Start date (prework)']?.date?.start)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', mr: 1 }}>Inicio contenido:</Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>{formatDate(cohort.properties?.['Start Date (content)']?.date?.start)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', mr: 1 }}>Finaliza:</Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>{formatDate(cohort.properties?.['End Date (course)']?.date?.start)}</Typography>
+              </Box>
             </Box>
           </Grid>
 
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              Personal
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography variant="body2">
-                <strong>Program manager:</strong>{' '}
-                {programManagerName ? (
-                  <Tooltip title="Ir a Slack">
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => {
-                        window.open(
-                          `slack://user?team=T0BFXMWMV&id=${pmSlackId}`,
-                          '_blank'
-                        )
-                      }}
-                      sx={{ ml: 1 }}
-                    >
-                      {programManagerName}
-                    </Button>
-                  </Tooltip>
-                ) : (
-                  'No asignado'
-                )}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Mentor:</strong>{' '}
-                {cohort.properties?.Teacher?.relation?.[0]?.name ||
-                  'No asignado'}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Mentor asistente:</strong>{' '}
-                {cohort.properties?.['T.A.']?.relation?.[0]?.name ||
-                  'No asignado'}
-              </Typography>
-            </Box>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          <Grid item sx={{ display: 'flex', flexDirection: 'column', height: '100%', flexBasis: '25%', maxWidth: '25%', minWidth: 0 }}>
+            <Typography variant="h6" sx={{ color: '#374151', fontWeight: 600, fontSize: '1rem', mb: 1.2 }}>
               Estadísticas
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Typography variant="body2">
-                <strong>Estudiantes activos:</strong>{' '}
-                {cohort.properties?.['Active (#)']?.rollup?.number || 0}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Proyectos en revisión:</strong>{' '}
-                {cohort.properties?.['Projects in review']?.number || 0}
-              </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', width: 180, minWidth: 150 }}>Estudiantes activos:</Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 700, fontSize: '1.05rem' }}>{cohort.properties?.['Active (#)']?.rollup?.number || 0}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', width: 180, minWidth: 150 }}>Proyectos en revisión:</Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 700, fontSize: '1.05rem' }}>{cohort.properties?.['Projects in review']?.number || 0}</Typography>
+              </Box>
             </Box>
           </Grid>
+
+          <Grid item sx={{ display: 'flex', flexDirection: 'column', height: '100%', flexBasis: '45%', maxWidth: '45%', minWidth: 0 }}>
+            <Typography variant="h6" sx={{ color: '#374151', fontWeight: 600, fontSize: '1rem', mb: 1.2 }}>
+              Personal
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+              {/* Fila 1: PM, Mentor y TA (si solo hay 1 TA) */}
+              <Box sx={{ display: 'flex', flexDirection: 'row', gap: 4, width: '100%', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                {/* PM */}
+                {pm && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
+                      <FiberManualRecordIcon sx={{ color: '#e3f2fd', fontSize: 16, mr: 0.5 }} /> PM
+                    </Typography>
+                    <Chip
+                      label={pm}
+                      color="primary"
+                      clickable={!!pmSlackId}
+                      component={pmSlackId ? 'a' : undefined}
+                      href={pmSlackId ? `slack://user?team=T0BFXMWMV&id=${pmSlackId}` : undefined}
+                      target={pmSlackId ? '_blank' : undefined}
+                      rel={pmSlackId ? 'noopener noreferrer' : undefined}
+                      sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#e3f2fd', color: '#1976d2' }}
+                    />
+                  </Box>
+                )}
+                {/* Mentor */}
+                {mentors.length > 0 && mentors.map((m, i) => (
+                  <Box key={i}>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
+                      <FiberManualRecordIcon sx={{ color: '#f3e5f5', fontSize: 16, mr: 0.5 }} /> Mentor
+                    </Typography>
+                    <Chip
+                      label={m.firstName}
+                      clickable={!!m.slackId}
+                      component={m.slackId ? 'a' : undefined}
+                      href={m.slackId ? `slack://user?team=T0BFXMWMV&id=${m.slackId}` : undefined}
+                      target={m.slackId ? '_blank' : undefined}
+                      rel={m.slackId ? 'noopener noreferrer' : undefined}
+                      sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#f3e5f5', color: '#7b1fa2' }}
+                    />
+                  </Box>
+                ))}
+                {/* Si hay solo 1 TA, mostrarlo aquí */}
+                {tas.length === 1 && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
+                      <FiberManualRecordIcon sx={{ color: '#ffebee', fontSize: 16, mr: 0.5 }} /> TA
+                    </Typography>
+                    <Chip
+                      label={tas[0].firstName}
+                      clickable={!!tas[0].slackId}
+                      component={tas[0].slackId ? 'a' : undefined}
+                      href={tas[0].slackId ? `slack://user?team=T0BFXMWMV&id=${tas[0].slackId}` : undefined}
+                      target={tas[0].slackId ? '_blank' : undefined}
+                      rel={tas[0].slackId ? 'noopener noreferrer' : undefined}
+                      sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#ffebee', color: '#d32f2f' }}
+                    />
+                  </Box>
+                )}
+              </Box>
+              {/* Si hay más de 1 TA, mostrar los chips de TA en la siguiente línea con wrap */}
+              {tas.length > 1 && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
+                    <FiberManualRecordIcon sx={{ color: '#ffebee', fontSize: 16, mr: 0.5 }} /> TA
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {tas.map((t, i) => (
+                      <Chip
+                        key={i}
+                        label={t.firstName}
+                        clickable={!!t.slackId}
+                        component={t.slackId ? 'a' : undefined}
+                        href={t.slackId ? `slack://user?team=T0BFXMWMV&id=${t.slackId}` : undefined}
+                        target={t.slackId ? '_blank' : undefined}
+                        rel={t.slackId ? 'noopener noreferrer' : undefined}
+                        sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#ffebee', color: '#d32f2f' }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          </Grid>
+
+         
         </Grid>
 
         <Divider sx={{ my: 3 }} />
