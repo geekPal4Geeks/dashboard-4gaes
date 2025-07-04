@@ -61,10 +61,10 @@ export default function Students() {
             fullWidth
           />
           <Button variant="contained" onClick={handleSearch} disabled={loading}>
-            Buscar
+            {loading ? <CircularProgress size={24} /> : 'Buscar'}   
           </Button>
+
         </Box>
-        {loading && <CircularProgress size={24} />}
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       </Paper>
       {student && cohort && (
