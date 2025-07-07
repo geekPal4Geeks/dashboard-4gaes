@@ -34,6 +34,10 @@ function StudentInfoBox({ open, onClose, student, cohortInfo }) {
   }
   // Determinar si la cohorte está finalizada
   const isFinished = cohortInfo?.properties?.['Status']?.select?.name === 'Finished'
+  const isPrework = cohortInfo?.properties?.['Status']?.select?.name === 'Prework'
+  // Prework Advisor
+  const preworkAdvisor = student?.properties?.['Prework Advisor']?.select?.name
+  const preworkAdvisorSlackId = preworkAdvisor ? getTeamSlackId(preworkAdvisor) : null
   // Educational Status
   const educationalStatus = student?.properties?.['Educational Status']?.select?.name
   const isGraduated = educationalStatus === 'Graduated'
@@ -131,7 +135,6 @@ function StudentInfoBox({ open, onClose, student, cohortInfo }) {
                     {pmSlackId && <i className="fab fa-slack" style={{ fontSize: 16, color: '#1976d2', marginLeft: 4 }} />}
                   </span>
                 }
-                color="primary"
                 clickable={!!pmSlackId}
                 component={pmSlackId ? 'a' : undefined}
                 href={pmSlackId ? `slack://user?team=T0BFXMWMV&id=${pmSlackId}` : undefined}
@@ -141,6 +144,29 @@ function StudentInfoBox({ open, onClose, student, cohortInfo }) {
               />
             </Box>
           )}
+          {/* Prework Advisor solo si la cohorte está en prework */}
+          {preworkAdvisor && isPrework && (
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
+                <FiberManualRecordIcon sx={{ color: '#e8f5e9', fontSize: 16, mr: 0.5 }} /> Prework Advisor
+              </Typography>
+              <Chip
+                label={
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {preworkAdvisor}
+                    {preworkAdvisorSlackId && <i className="fab fa-slack" style={{ fontSize: 16, color: '#43a047', marginLeft: 4 }} />}
+                  </span>
+                }
+                clickable={!!preworkAdvisorSlackId}
+                component={preworkAdvisorSlackId ? 'a' : undefined}
+                href={preworkAdvisorSlackId ? `slack://user?team=T0BFXMWMV&id=${preworkAdvisorSlackId}` : undefined}
+                target={preworkAdvisorSlackId ? '_blank' : undefined}
+                rel={preworkAdvisorSlackId ? 'noopener noreferrer' : undefined}
+                sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 1, py: 0.5, bgcolor: '#e8f5e9', color: '#43a047' }}
+              />  
+            </Box>
+          )}
+          {/* Mentores */}
           {!isFinished && mentors.length > 0 && mentors.map((m, i) => (
             <Box key={i}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
@@ -162,6 +188,7 @@ function StudentInfoBox({ open, onClose, student, cohortInfo }) {
               />
             </Box>
           ))}
+          {/* TAs */}
           {!isFinished && tas.length > 0 && (
             <Box>
               <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
