@@ -88,7 +88,7 @@ export default function CohortDetail() {
 
         setStudents((prev) =>
           prev.map((student) =>
-            student.id === studentId
+            student.student.id === studentId
               ? {
                   ...student,
                   basicInfo: {
@@ -167,7 +167,7 @@ export default function CohortDetail() {
     // Actualizar el estado local inmediatamente para reflejar el cambio
     setStudents((prev) =>
       prev.map((student) =>
-        student.id === studentId
+        student.student.id === studentId
           ? {
               ...student,
               basicInfo: {
@@ -408,8 +408,7 @@ export default function CohortDetail() {
 
   const handleStudentClick = (student) => {
     // Pasar el objeto student y cohort por el state de navegación
-    const studentId = student.id || student.basicInfo?.notion_id
-    navigate(`/cohort/${cohortId}/student/${studentId}`, {
+    navigate(`/cohort/${cohortId}/student/${student.student.id || student.basicInfo?.notion_id}`, {
       state: { student, cohort }
     })
   }
@@ -735,7 +734,7 @@ export default function CohortDetail() {
                 if (student.isLoading) {
                   return (
                     <TableRow
-                      key={student.basicInfo?.notion_id || `loading-${index}`}
+                      key={student.student.id || `loading-${index}`}
                       sx={{
                         '&:nth-of-type(odd)': {
                           backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -802,7 +801,7 @@ export default function CohortDetail() {
                 }
                 return (
                   <TableRow
-                    key={student.id}
+                    key={student.student.id}
                     sx={{
                       '&:nth-of-type(odd)': {
                         backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -946,19 +945,19 @@ export default function CohortDetail() {
                           type="number"
                           size="small"
                           value={
-                            editingAbsences[student.id] !== undefined
-                              ? editingAbsences[student.id]
+                            editingAbsences[student.student.id] !== undefined
+                              ? editingAbsences[student.student.id]
                               : student.basicInfo?.absences || 0
                           }
                           onChange={(e) => {
                             e.stopPropagation()
-                            handleAbsencesChange(student.id, e.target.value)
+                            handleAbsencesChange(student.student.id, e.target.value)
                           }}
                           inputProps={{
                             min: 0,
                             style: { width: 60, textAlign: 'center' },
                           }}
-                          disabled={savingAbsences[student.id]}
+                          disabled={savingAbsences[student.student.id]}
                         />
                       ) : (
                         renderNumber(student.basicInfo?.absences || 0)
