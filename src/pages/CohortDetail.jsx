@@ -730,48 +730,19 @@ export default function CohortDetail() {
             </TableHead>
             <TableBody>
               {sortStudentsByPreworkStatus(students).map((student, index) => {
-                // Si el estudiante está cargando, mostrar skeleton
-                if (student.isLoading) {
+                // Safe check: if student.student is missing, render a placeholder row
+                if (!student.student) {
                   return (
                     <TableRow
-                      key={student.student.id || `loading-${index}`}
+                      key={student.basicInfo?.notion_id || `loading-${index}`}
                       sx={{
                         '&:nth-of-type(odd)': {
                           backgroundColor: 'rgba(0, 0, 0, 0.04)',
                         },
                       }}
                     >
-                      <TableCell>
+                      <TableCell colSpan={isPrework ? 6 : 8} align="center">
                         <Skeleton variant="text" width="80%" />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Skeleton variant="rectangular" width={60} height={25} />
-                      </TableCell>
-                      {!isPrework && (
-                        <>
-                          <TableCell align="center">
-                            <Skeleton variant="rectangular" width={40} height={25} />
-                          </TableCell>
-                          <TableCell align="center">
-                            <Skeleton variant="rectangular" width={50} height={25} />
-                          </TableCell>
-                          <TableCell align="center">
-                            <Skeleton variant="rectangular" width={50} height={25} />
-                          </TableCell>
-                        </>
-                      )}
-                      {isPrework && (
-                        <>
-                          <TableCell align="center">
-                            <Skeleton variant="rectangular" width={80} height={25} />
-                          </TableCell>
-                          <TableCell align="center">
-                            <Skeleton variant="rectangular" width={40} height={25} />
-                          </TableCell>
-                        </>
-                      )}
-                      <TableCell align="center">
-                        <Skeleton variant="rectangular" width={60} height={25} />
                       </TableCell>
                     </TableRow>
                   )
@@ -779,8 +750,7 @@ export default function CohortDetail() {
 
                 // Helpers para color de %
                 const percentProjects =
-                  student.student.properties?.['% Projects undelivered']?.formula
-                    ?.number
+                  student.student.properties?.['% Projects undelivered']?.formula?.number
                 let colorProjects = 'default'
                 if (typeof percentProjects === 'number') {
                   if (percentProjects >= 30) colorProjects = 'error'
@@ -801,7 +771,7 @@ export default function CohortDetail() {
                 }
                 return (
                   <TableRow
-                    key={student.student.id}
+                    key={student.student?.id || student.basicInfo?.notion_id || `loading-${index}`}
                     sx={{
                       '&:nth-of-type(odd)': {
                         backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -945,19 +915,19 @@ export default function CohortDetail() {
                           type="number"
                           size="small"
                           value={
-                            editingAbsences[student.student.id] !== undefined
-                              ? editingAbsences[student.student.id]
+                            editingAbsences[student.student?.id || student.basicInfo?.notion_id] !== undefined
+                              ? editingAbsences[student.student?.id || student.basicInfo?.notion_id]
                               : student.basicInfo?.absences || 0
                           }
                           onChange={(e) => {
                             e.stopPropagation()
-                            handleAbsencesChange(student.student.id, e.target.value)
+                            handleAbsencesChange(student.student?.id || student.basicInfo?.notion_id, e.target.value)
                           }}
                           inputProps={{
                             min: 0,
                             style: { width: 60, textAlign: 'center' },
                           }}
-                          disabled={savingAbsences[student.student.id]}
+                          disabled={savingAbsences[student.student?.id || student.basicInfo?.notion_id]}
                         />
                       ) : (
                         renderNumber(student.basicInfo?.absences || 0)
