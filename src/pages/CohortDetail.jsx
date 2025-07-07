@@ -780,7 +780,7 @@ export default function CohortDetail() {
 
                 // Helpers para color de %
                 const percentProjects =
-                  student.properties?.['% Projects undelivered']?.formula
+                  student.student.properties?.['% Projects undelivered']?.formula
                     ?.number
                 let colorProjects = 'default'
                 if (typeof percentProjects === 'number') {
@@ -791,7 +791,7 @@ export default function CohortDetail() {
                   else colorProjects = 'default'
                 }
                 const percentAbsences =
-                  student.properties?.['% Absences']?.formula?.number
+                  student.student.properties?.['% Absences']?.formula?.number
                 let colorAbsences = 'default'
                 if (typeof percentAbsences === 'number') {
                   if (percentAbsences >= 15) colorAbsences = 'error'
@@ -921,11 +921,11 @@ export default function CohortDetail() {
                         <TableCell align="center">
                           <Chip
                             label={
-                              student.properties?.['Prework Status']?.select
+                              student.student.properties?.['Prework Status']?.select
                                 ?.name || 'No definido'
                             }
                             color={getPreworkStatusColor(
-                              student.properties?.['Prework Status']?.select
+                              student.student.properties?.['Prework Status']?.select
                                 ?.name
                             )}
                             size="small"
@@ -933,7 +933,7 @@ export default function CohortDetail() {
                         </TableCell>
                         <TableCell align="center">
                           {renderDaysInPrework(
-                            student.properties?.['Days in prework status']
+                            student.student.properties?.['Days in prework status']
                               ?.formula?.number || 0
                           )}
                         </TableCell>
