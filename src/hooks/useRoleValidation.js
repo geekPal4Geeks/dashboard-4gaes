@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import useGlobalReducer from './useGlobalReducer';
 import { getUserMe } from '../services/authService';
 
-const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager'];
+const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager', 'career_support'];
 
 export function useRoleValidation({ watch = false } = {}) {
   const { store, dispatch } = useGlobalReducer();
