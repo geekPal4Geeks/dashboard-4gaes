@@ -29,7 +29,10 @@ import { getCohortPageById } from '../services/notionService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
-import { parseCohortData, parseCurrentModuleLabel } from '../utils/studentHelpers'
+import {
+  parseCohortData,
+  parseCurrentModuleLabel,
+} from '../utils/studentHelpers'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { getTeamSlackId } from '../utils/cohortHelpers'
@@ -47,6 +50,29 @@ const cancellationReasons = [
   'Otro',
 ]
 
+// Helper functions to format dates
+const formatLocalDateTime = (date) => {
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const formatReadableDateTime = (dateTimeString) => {
+  const date = new Date(dateTimeString)
+  const options = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }
+  return date.toLocaleDateString('es-ES', options)
+}
+
 export default function Mentorships() {
   const { store } = useGlobalReducer()
   const [email, setEmail] = useState('')
@@ -59,16 +85,9 @@ export default function Mentorships() {
   const [mentorshipHeld, setMentorshipHeld] = useState(null)
   const [cancellationReason, setCancellationReason] = useState('')
   const [copied, setCopied] = useState(false)
-
-  // Helper function to format date for datetime-local input
-  const formatLocalDateTime = (date) => {
-    const year = date.getFullYear()
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const day = date.getDate().toString().padStart(2, '0')
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
-  }
+  const [rescheduledDateTime, setRescheduledDateTime] = useState(
+    formatLocalDateTime(new Date())
+  )
 
   const [cancellationDate, setCancellationDate] = useState(
     formatLocalDateTime(new Date())
@@ -111,6 +130,7 @@ export default function Mentorships() {
     setCancellationDate(formatLocalDateTime(new Date())) // Resetear fecha de cancelación
     setOriginalMentorshipDate(formatLocalDateTime(new Date())) // Resetear fecha de mentoría original
     setMockInterviewResult('') // Limpiar resultado de mock interview
+    setRescheduledDateTime(formatLocalDateTime(new Date())) // Limpiar fecha de reprogramación
   }
 
   // Redirección si no hay token
@@ -189,7 +209,13 @@ export default function Mentorships() {
     setSaving(true)
     setError(null)
     try {
-      let commentToSave = feedback
+      let commentToSave
+
+      if (sessionType === 'mentorship') {
+        commentToSave = `Sobre la mentoría:\n${feedback}`
+      } else {
+        commentToSave = feedback
+      }
 
       const propertiesToUpdate = []
 
@@ -323,15 +349,24 @@ export default function Mentorships() {
       return
     }
 
+    if (cancellationReason === 'Reprograma' && !rescheduledDateTime) {
+      setError('Por favor, complete la nueva fecha y hora de la sesión.')
+      return
+    }
+
     setSaving(true)
     setError(null)
     try {
+      const formattedOriginalDate = formatReadableDateTime(
+        originalMentorshipDate
+      )
+
       await cancelStudentMentorship(
         cancellationDate,
         cancellationNotes,
         cancellationReason,
         store.userName,
-        originalMentorshipDate,
+        formattedOriginalDate,
         student.id,
         supliedWithOtherStudent,
         sessionType
@@ -349,7 +384,6 @@ export default function Mentorships() {
         timerProgressBar: true,
       }).then(() => {
         handleBack()
-        setFormPhase('selection')
       })
       return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
@@ -363,7 +397,7 @@ export default function Mentorships() {
         timer: 2500,
         timerProgressBar: true,
       }).then(() => {
-        setFormPhase('selection')
+        handleBack()
       })
     } finally {
       setSaving(false)
@@ -384,12 +418,24 @@ export default function Mentorships() {
       return
     }
 
+    if (cancellationReason === 'Reprograma' && !rescheduledDateTime) {
+      setError('Por favor, complete la nueva fecha y hora de la sesión.')
+      return
+    }
+
     setSaving(true)
     setError(null)
     try {
-      const mockInterviewComment = `Cancelación Mock Interview:
-Motivo: ${cancellationReason}
-Notas: ${cancellationNotes.trim()}`
+      let mockInterviewComment = `Cancelación Mock Interview:\nMotivo: ${cancellationReason}`
+      if (cancellationReason === 'Reprograma') {
+        const formattedRescheduledDate =
+          formatReadableDateTime(rescheduledDateTime)
+        mockInterviewComment += `\nReprogramada para: ${formattedRescheduledDate}`
+      }
+
+      if (cancellationNotes.trim() !== '') {
+        mockInterviewComment += `\nNotas: ${cancellationNotes.trim()}`
+      }
 
       // Determinar el ícono basado en el motivo de cancelación
       const cancellationIcon = cancellationReason === 'Reprograma' ? '🟠' : '🔴'
@@ -439,7 +485,7 @@ Notas: ${cancellationNotes.trim()}`
         timer: 2500,
         timerProgressBar: true,
       }).then(() => {
-        setFormPhase('selection')
+        handleBack()
       })
       return // <-- Evita que siga ejecutando código después del SweetAlert
     } catch (err) {
@@ -453,7 +499,7 @@ Notas: ${cancellationNotes.trim()}`
         timer: 2500,
         timerProgressBar: true,
       }).then(() => {
-        setFormPhase('selection')
+        handleBack()
       })
     } finally {
       setSaving(false)
@@ -463,8 +509,6 @@ Notas: ${cancellationNotes.trim()}`
   const handleMockInterviewResultChange = (event) => {
     setMockInterviewResult(event.target.value)
   }
-
-  console.log(mentorInfo)
 
   return (
     <Container maxWidth="md">
@@ -573,23 +617,27 @@ Notas: ${cancellationNotes.trim()}`
         {/* --- Fase: Búsqueda --- */}
         {(formPhase === 'search' || formPhase === 'detail') && (
           <Paper sx={{ p: 2, width: '100%', mb: 1 }}>
-             <Typography variant="h5" fontWeight={700} gutterBottom>
-          Buscar estudiante
-        </Typography>
-        <Box display="flex" gap={2} alignItems="center" mb={2}>
-          <TextField
-            label="Correo electrónico"
-            variant="outlined"
-            size="small"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            fullWidth
-          />
-          <Button variant="contained" onClick={handleSearch} disabled={loading}>
-            {loading ? <CircularProgress size={24} /> : 'Buscar'}
-          </Button>
-        </Box>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              Buscar estudiante
+            </Typography>
+            <Box display="flex" gap={2} alignItems="center" mb={2}>
+              <TextField
+                label="Correo electrónico"
+                variant="outlined"
+                size="small"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                fullWidth
+              />
+              <Button
+                variant="contained"
+                onClick={handleSearch}
+                disabled={loading}
+              >
+                {loading ? <CircularProgress size={24} /> : 'Buscar'}
+              </Button>
+            </Box>
             {!student && (
               <Alert severity="info" sx={{ mb: 2 }}>
                 Asegúrate de usar el correo registrado en la academia. Si no
@@ -617,7 +665,10 @@ Notas: ${cancellationNotes.trim()}`
                         Dejar Feedback
                       </Typography>
 
-                      <StudentInfoBoxTrigger student={student} cohortInfo={cohortInfo} />
+                      <StudentInfoBoxTrigger
+                        student={student}
+                        cohortInfo={cohortInfo}
+                      />
 
                       <Paper
                         elevation={0}
@@ -721,8 +772,11 @@ Notas: ${cancellationNotes.trim()}`
                   }}
                 >
                   {/* Campo Estudiante (No editable) */}
-                  
-                  <StudentInfoBoxTrigger student={student} cohortInfo={cohortInfo} />
+
+                  <StudentInfoBoxTrigger
+                    student={student}
+                    cohortInfo={cohortInfo}
+                  />
 
                   {/* Campo Fecha y hora de cancelación */}
                   <Box
@@ -811,6 +865,45 @@ Notas: ${cancellationNotes.trim()}`
                     ))}
                   </TextField>
                   {/* Checkbox para suplir hora */}
+                  {cancellationReason === 'Reprograma' && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        mt: 2,
+                      }}
+                    >
+                      <TextField
+                        label="Nueva fecha de la sesión"
+                        type="date"
+                        value={rescheduledDateTime.split('T')[0]}
+                        onChange={(e) =>
+                          setRescheduledDateTime(
+                            e.target.value +
+                              'T' +
+                              rescheduledDateTime.split('T')[1]
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                      <TextField
+                        label="Nueva hora de la sesión"
+                        type="time"
+                        value={rescheduledDateTime.split('T')[1]}
+                        onChange={(e) =>
+                          setRescheduledDateTime(
+                            rescheduledDateTime.split('T')[0] +
+                              'T' +
+                              e.target.value
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    </Box>
+                  )}
                   <FormControlLabel
                     control={
                       <Checkbox
@@ -869,7 +962,10 @@ Notas: ${cancellationNotes.trim()}`
                     }}
                   >
                     {/* Información del estudiante */}
-                    <StudentInfoBoxTrigger student={student} cohortInfo={cohortInfo} />
+                    <StudentInfoBoxTrigger
+                      student={student}
+                      cohortInfo={cohortInfo}
+                    />
 
                     {/* Resultado de la Mock Interview */}
                     <TextField
@@ -930,7 +1026,10 @@ Notas: ${cancellationNotes.trim()}`
                     }}
                   >
                     {/* Campo Estudiante (No editable) */}
-                    <StudentInfoBoxTrigger student={student} cohortInfo={cohortInfo} />
+                    <StudentInfoBoxTrigger
+                      student={student}
+                      cohortInfo={cohortInfo}
+                    />
 
                     {/* Campo Fecha y hora de cancelación */}
                     <Box
@@ -1022,6 +1121,46 @@ Notas: ${cancellationNotes.trim()}`
                         </MenuItem>
                       ))}
                     </TextField>
+                    {/* Campo para la fecha y hora de reprogramación */}
+                    {cancellationReason === 'Reprograma' && (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          gap: 2,
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          mt: 2,
+                        }}
+                      >
+                        <TextField
+                          label="Nueva fecha de la sesión"
+                          type="date"
+                          value={rescheduledDateTime.split('T')[0]}
+                          onChange={(e) =>
+                            setRescheduledDateTime(
+                              e.target.value +
+                                'T' +
+                                rescheduledDateTime.split('T')[1]
+                            )
+                          }
+                          InputLabelProps={{ shrink: true }}
+                          fullWidth
+                        />
+                        <TextField
+                          label="Nueva hora de la sesión"
+                          type="time"
+                          value={rescheduledDateTime.split('T')[1]}
+                          onChange={(e) =>
+                            setRescheduledDateTime(
+                              rescheduledDateTime.split('T')[0] +
+                                'T' +
+                                e.target.value
+                            )
+                          }
+                          InputLabelProps={{ shrink: true }}
+                          fullWidth
+                        />
+                      </Box>
+                    )}
                     {/* Campo Notas de Cancelación */}
                     <TextField
                       label="Notas sobre la cancelación de Mock Interview"

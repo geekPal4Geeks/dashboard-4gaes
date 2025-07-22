@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useGlobalReducer from './useGlobalReducer';
 import { getUserMe } from '../services/authService';
 
-const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager'];
+const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager', 'career_support'];
 
 export function useFetchAndSetUser() {
   const { dispatch } = useGlobalReducer();
