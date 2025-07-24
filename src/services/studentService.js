@@ -106,21 +106,62 @@ export const cancelStudentMentorship = async (
   mentorshipType
 ) => {
   try {
-    const token = localStorage.getItem('token');
-    const response = await axios.post(`${API_URL}/cancel-mentorship`, {
-      cancellationDate,
-      cancellationNotes,
-      cancellationReason,
-      mentorName,
-      originalMentorshipDate,
-      studentId,
-      supliedWithOtherStudent,
-      mentorshipType,
-    }, {
-      headers: {
-        'Authorization': `Token ${token}`,
+    const token = localStorage.getItem('token')
+    const parseSpanishDateToISO = (dateStr) => {
+      const meses = {
+        enero: '01',
+        febrero: '02',
+        marzo: '03',
+        abril: '04',
+        mayo: '05',
+        junio: '06',
+        julio: '07',
+        agosto: '08',
+        septiembre: '09',
+        octubre: '10',
+        noviembre: '11',
+        diciembre: '12',
+      }
+      const regex = /(\d{1,2}) de (\w+) de (\d{4}), (\d{2}):(\d{2})/
+      const match = dateStr.match(regex)
+      if (!match) return dateStr // Si ya es ISO, lo retorna igual
+      const [, dia, mes, anio, hora, minuto] = match
+      const mesNum = meses[mes.toLowerCase()]
+      return `${anio}-${mesNum}-${dia.padStart(
+        2,
+        '0'
+      )}T${hora}:${minuto}:00.000Z`
+    }
+
+    // Antes de enviar:
+    const cancellationDateISO =
+      typeof cancellationDate === 'string' && !cancellationDate.includes('T')
+        ? parseSpanishDateToISO(cancellationDate)
+        : new Date(cancellationDate).toISOString()
+
+    const originalMentorshipDateISO = parseSpanishDateToISO(
+      originalMentorshipDate
+    )
+
+    // Llama al servicio:
+    const response = await axios.post(
+      `${API_URL}/cancel-mentorship`,
+      {
+        cancellationDate: cancellationDateISO,
+        cancellationNotes,
+        cancellationReason,
+        mentorName,
+        originalMentorshipDate: originalMentorshipDateISO,
+        studentId,
+        supliedWithOtherStudent,
+        mentorshipType,
       },
-    })
+      {
+        headers: {
+          Authorization: `Token ${token}`,
+        },
+      }
+    )
 
     return response.data
   } catch (error) {
