@@ -7,7 +7,6 @@ import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import logo from '../assets/logo-4geeks.ico'
 
-
 export const Navbar = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -75,6 +74,14 @@ export const Navbar = () => {
             sx={buttonStyles('/students')}
           >
             Estudiantes
+          </Button>
+          <Button
+            color="inherit"
+            component={RouterLink}
+            to="/mentor-nps"
+            sx={buttonStyles('/mentor-nps')}
+          >
+            NPS Mentores
           </Button>
           {canSeeManagement && (
             <Button
