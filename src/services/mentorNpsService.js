@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { mockNpsData } from './mockNpsData'
 
 const API_BASE_URL = 'http://localhost:5000'
 
@@ -40,24 +39,19 @@ export const getMentorNpsData = async (mentorId) => {
 }
 
 /**
- * Obtiene los datos NPS del mentor actual usando el token almacenado
- * @param {string} mentorId - ID del mentor (opcional, se puede obtener del token)
+ * Obtiene los datos NPS del mentor actual usando solo el token (el backend resuelve el mentor)
  * @returns {Promise<Object>} Datos NPS del mentor
  */
-export const getCurrentMentorNpsData = async (mentorId = null) => {
+export const getCurrentMentorNpsData = async () => {
   try {
-    // Si no se proporciona mentorId, intentar obtenerlo del token o usar el ID por defecto
-    const targetMentorId = mentorId || '31a57e7b-db0f-421f-aea0-bf985e00de58'
-
-    const response = await apiClient.post('/api/mentor-nps', {
-      mentorId: targetMentorId,
-    })
+    // El backend resuelve el mentor a partir del token. No enviamos ningún ID.
+    const response = await apiClient.post('/api/mentor-nps', {})
     return response.data
   } catch (error) {
     console.error('Error al obtener datos NPS del mentor actual:', error)
-    console.log('Usando datos de prueba...')
-    // Retornar datos de prueba si el backend no está disponible
-    return mockNpsData
+    throw new Error(
+      error.response?.data?.message || 'Error al obtener datos NPS del mentor'
+    )
   }
 }
 
@@ -165,4 +159,26 @@ export const getCohortStatusColor = (status) => {
     Finished: '#9e9e9e',
   }
   return colorMap[status] || '#9e9e9e'
+}
+
+/**
+ * Actualiza el estado "visto" de una evaluación NPS
+ * @param {string} evaluationId - ID de la evaluación
+ * @param {boolean} seen - Estado de visto (true/false)
+ * @returns {Promise<Object>} Respuesta del servidor
+ */
+export const updateNpsEvaluationSeen = async (evaluationId, seen) => {
+  try {
+    const response = await apiClient.put('/api/mentor-nps/evaluation-seen', {
+      evaluationId,
+      seen,
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error al actualizar estado visto de evaluación NPS:', error)
+    throw new Error(
+      error.response?.data?.message ||
+        'Error al actualizar el estado de la evaluación'
+    )
+  }
 }

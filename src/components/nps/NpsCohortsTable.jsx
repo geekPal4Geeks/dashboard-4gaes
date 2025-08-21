@@ -77,9 +77,6 @@ export default function NpsCohortsTable({ cohorts }) {
             <TableCell sx={{ fontWeight: 'bold' }} align="center">
               Comparación
             </TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }} align="center">
-              Acciones
-            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -195,13 +192,6 @@ export default function NpsCohortsTable({ cohorts }) {
                   </Tooltip>
                 </TableCell>
 
-                <TableCell align="center">
-                  <Tooltip title="Ver detalles">
-                    <IconButton size="small" color="primary">
-                      <Visibility />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
               </TableRow>
             )
           })}

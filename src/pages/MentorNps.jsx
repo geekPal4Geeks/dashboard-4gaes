@@ -12,24 +12,10 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Card,
-  CardContent,
   IconButton,
   Tooltip,
-  Switch,
-  FormControlLabel,
 } from '@mui/material'
-import {
-  TrendingUp,
-  People,
-  Assessment,
-  Timeline,
-  FilterList,
-  Download,
-  LightMode,
-  DarkMode,
-  Refresh,
-} from '@mui/icons-material'
+import { FilterList, Download, Refresh } from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { getCurrentMentorNpsData } from '../services/mentorNpsService'
@@ -209,6 +195,38 @@ export default function MentorNps() {
     { value: 'Finished', label: 'Finalizadas' },
   ]
 
+  // Función para manejar actualizaciones de evaluaciones
+  const handleEvaluationUpdate = (evaluationId, newSeenValue) => {
+    // Actualizar el estado local de los datos NPS
+    setNpsData((prevData) => {
+      if (!prevData?.visualizationData?.tables?.recentEvaluations) {
+        return prevData
+      }
+
+      const updatedEvaluations =
+        prevData.visualizationData.tables.recentEvaluations.map(
+          (evaluation) => {
+            // Buscar por npsId que es el campo que estás usando
+            if (evaluation.npsId === evaluationId) {
+              return { ...evaluation, visto: newSeenValue }
+            }
+            return evaluation
+          }
+        )
+
+      return {
+        ...prevData,
+        visualizationData: {
+          ...prevData.visualizationData,
+          tables: {
+            ...prevData.visualizationData.tables,
+            recentEvaluations: updatedEvaluations,
+          },
+        },
+      }
+    })
+  }
+
   if (loading) {
     return (
       <Container maxWidth="xl">
@@ -245,11 +263,6 @@ export default function MentorNps() {
   }
 
   const filteredCohorts = getTimeFilteredCohorts()
-
-  // Debug log solo si hay datos
-  if (npsData) {
-    console.log('primero', npsData?.visualizationData?.tables)
-  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -353,13 +366,6 @@ export default function MentorNps() {
                 </Select>
               </FormControl>
             </Box>
-
-            <Chip
-              icon={<FilterList />}
-              label={`${filteredCohorts.length} cohortes mostradas`}
-              color="primary"
-              variant="outlined"
-            />
           </Box>
         </Paper>
       </Box>
@@ -397,6 +403,17 @@ export default function MentorNps() {
         spacing={3}
         sx={{ display: 'flex', flexDirection: 'column' }}
       >
+              <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Evaluaciones Recientes
+            </Typography>
+            <NpsRecentEvaluationsTable
+              evaluations={npsData.visualizationData.tables.recentEvaluations}
+              onEvaluationUpdate={handleEvaluationUpdate}
+            />
+          </Paper>
+        </Grid>
         <Grid item xs={12} md={8} sx={{ width: '100%' }}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -405,16 +422,7 @@ export default function MentorNps() {
             <NpsCohortsTable cohorts={filteredCohorts} />
           </Paper>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Evaluaciones Recientes
-            </Typography>
-            <NpsRecentEvaluationsTable
-              evaluations={npsData.visualizationData.tables.recentEvaluations}
-            />
-          </Paper>
-        </Grid>
+
       </Grid>
     </Container>
   )

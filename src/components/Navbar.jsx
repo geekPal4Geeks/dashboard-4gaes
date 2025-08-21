@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import logo from '../assets/logo-4geeks.ico'
+import AccountCircle from '@mui/icons-material/AccountCircle'
 
 export const Navbar = () => {
   const navigate = useNavigate()
@@ -75,14 +76,6 @@ export const Navbar = () => {
           >
             Estudiantes
           </Button>
-          <Button
-            color="inherit"
-            component={RouterLink}
-            to="/mentor-nps"
-            sx={buttonStyles('/mentor-nps')}
-          >
-            NPS Mentores
-          </Button>
           {canSeeManagement && (
             <Button
               color="inherit"
@@ -93,6 +86,15 @@ export const Navbar = () => {
               Gestión de cursos
             </Button>
           )}
+          <Button
+            color="inherit"
+            startIcon={<AccountCircle />}
+            component={RouterLink}
+            to="/mentor-nps"
+            sx={buttonStyles('/mentor-nps')}
+          >
+            Mi perfil
+          </Button>
           <Button
             color="error"
             variant="outlined"
