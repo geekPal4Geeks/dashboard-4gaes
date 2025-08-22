@@ -1,5 +1,6 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+
 import {
   Box,
   Typography,
@@ -34,6 +35,8 @@ import {
 import GitHubIcon from '@mui/icons-material/GitHub'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import StudentHeaderBox from '../components/StudentHeaderBox'
+import LatePaymentAlert from '../components/LatePaymentAlert'
+import LatePaymentVisualAlert from '../components/LatePaymentVisualAlert'
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props
@@ -247,6 +250,10 @@ export default function StudentDetail({ studentData, cohort }) {
             student={student}
             cohortInfo={localCohort || cohort}
           />
+
+          {/* Alerta de pago pendiente (respaldo visual) */}
+          <LatePaymentVisualAlert student={student} />
+
           <Box
             sx={{
               display: 'flex',
@@ -442,6 +449,9 @@ export default function StudentDetail({ studentData, cohort }) {
           </Box>
         </Box>
       </Paper>
+
+      {/* Componente para mostrar alerta de pagos pendientes */}
+      <LatePaymentAlert student={student} isVisible={true} />
     </Box>
   )
 }

@@ -28,7 +28,7 @@ import {
 import { getCohortPageById } from '../services/notionService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { useNavigate } from 'react-router-dom'
-import Swal from 'sweetalert2'
+
 import {
   parseCohortData,
   parseCurrentModuleLabel,
@@ -38,6 +38,8 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import { getTeamSlackId } from '../utils/cohortHelpers'
 import GitHubIcon from '@mui/icons-material/GitHub'
 import { StudentInfoBoxTrigger } from '../components/StudentInfoBox'
+import LatePaymentAlert from '../components/LatePaymentAlert'
+import LatePaymentVisualAlert from '../components/LatePaymentVisualAlert'
 
 // Motivos de reprogramación
 const cancellationReasons = [
@@ -665,6 +667,9 @@ export default function Mentorships() {
                         cohortInfo={cohortInfo}
                       />
 
+                      {/* Alerta de pago pendiente */}
+                      <LatePaymentVisualAlert student={student} />
+
                       <Paper
                         elevation={0}
                         sx={{
@@ -772,6 +777,9 @@ export default function Mentorships() {
                     student={student}
                     cohortInfo={cohortInfo}
                   />
+
+                  {/* Alerta de pago pendiente */}
+                  <LatePaymentVisualAlert student={student} />
 
                   {/* Campo Fecha y hora de cancelación */}
                   <Box
@@ -962,6 +970,9 @@ export default function Mentorships() {
                       cohortInfo={cohortInfo}
                     />
 
+                    {/* Alerta de pago pendiente */}
+                    <LatePaymentVisualAlert student={student} />
+
                     {/* Resultado de la Mock Interview */}
                     <TextField
                       select
@@ -1023,6 +1034,10 @@ export default function Mentorships() {
                       student={student}
                       cohortInfo={cohortInfo}
                     />
+
+                    {/* Alerta de pago pendiente */}
+                    <LatePaymentVisualAlert student={student} />
+
                     {/* Fecha y hora de cancelación */}
                     <Box
                       sx={{
@@ -1356,6 +1371,9 @@ export default function Mentorships() {
           </>
         )}
       </Box>
+
+      {/* Componente para mostrar alerta de pagos pendientes */}
+      <LatePaymentAlert student={student} isVisible={formPhase === 'detail'} />
     </Container>
   )
 }
