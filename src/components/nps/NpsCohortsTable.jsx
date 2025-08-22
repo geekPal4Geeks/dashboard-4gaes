@@ -24,7 +24,7 @@ import {
   getCohortStatusColor,
 } from '../../services/mentorNpsService'
 
-export default function NpsCohortsTable({ cohorts }) {
+export default function NpsCohortsTable({ cohorts, roleTitle = 'Profesor' }) {
   if (!cohorts || cohorts.length === 0) {
     return (
       <Box
@@ -63,7 +63,7 @@ export default function NpsCohortsTable({ cohorts }) {
             <TableCell sx={{ fontWeight: 'bold' }}>Cohorte</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }}>Estado</TableCell>
             <TableCell sx={{ fontWeight: 'bold' }} align="center">
-              Promedio Profesor
+              Promedio {roleTitle}
             </TableCell>
             <TableCell sx={{ fontWeight: 'bold' }} align="center">
               Promedio Cohorte
@@ -81,7 +81,11 @@ export default function NpsCohortsTable({ cohorts }) {
         </TableHead>
         <TableBody>
           {cohorts.map((cohort) => {
-            const teacherScore = cohort.metrics.teacher.average
+            // Usar taScores para asistentes, teacher.average para otros roles
+            const teacherScore =
+              roleTitle === 'Asistente'
+                ? cohort.metrics.tas?.average || 0
+                : cohort.metrics.teacher.average || 0
             const cohortScore = cohort.metrics.cohort.average
             const participation = cohort.metrics.participation.average * 100
             const totalEvaluations = cohort.totalEvaluations
@@ -176,11 +180,11 @@ export default function NpsCohortsTable({ cohorts }) {
                   <Tooltip
                     title={
                       teacherScore > cohortScore
-                        ? `El profesor supera a la cohorte por ${(
+                        ? `El ${roleTitle.toLowerCase()} supera a la cohorte por ${(
                             teacherScore - cohortScore
                           ).toFixed(1)} puntos`
                         : teacherScore < cohortScore
-                        ? `La cohorte supera al profesor por ${(
+                        ? `La cohorte supera al ${roleTitle.toLowerCase()} por ${(
                             cohortScore - teacherScore
                           ).toFixed(1)} puntos`
                         : 'Puntuaciones similares'
@@ -191,7 +195,6 @@ export default function NpsCohortsTable({ cohorts }) {
                     </Box>
                   </Tooltip>
                 </TableCell>
-
               </TableRow>
             )
           })}

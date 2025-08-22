@@ -26,11 +26,17 @@ import CommentModal from './CommentModal'
 export default function NpsRecentEvaluationsTable({
   evaluations,
   onEvaluationUpdate,
+  roleTitle = 'Profesor',
 }) {
   const [updatingSeen, setUpdatingSeen] = useState({})
   const [localSeenState, setLocalSeenState] = useState({})
   const [selectedEvaluation, setSelectedEvaluation] = useState(null)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
+
+  // Función para determinar si mostrar la columna "Visto"
+  const shouldShowSeenColumn = () => {
+    return roleTitle !== 'Asistente'
+  }
 
   // Inicializar el estado local con los datos de las evaluaciones
   useEffect(() => {
@@ -173,14 +179,20 @@ export default function NpsRecentEvaluationsTable({
               <TableCell sx={{ fontWeight: 'bold' }} align="center">
                 Reporte
               </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="center">
-                Visto
-              </TableCell>
+              {shouldShowSeenColumn() && (
+                <TableCell sx={{ fontWeight: 'bold' }} align="center">
+                  Visto
+                </TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
             {recentEvaluations.map((evaluation, index) => {
-              const score = evaluation.teacherScore || 0
+              // Usar taScore para asistentes, teacherScore para otros roles
+              const score =
+                roleTitle === 'Asistente'
+                  ? evaluation.taScores || 0
+                  : evaluation.teacherScore || 0
               const date = evaluation.date
                 ? formatEvaluationDate(evaluation.date)
                 : 'N/A'
@@ -189,6 +201,7 @@ export default function NpsRecentEvaluationsTable({
               const status = evaluation.status || 'Completada'
               const evaluationId = evaluation.npsId
               const seen = getCurrentSeenState(evaluation)
+              console.log(evaluation)
 
               return (
                 <TableRow key={index} hover>
@@ -268,24 +281,26 @@ export default function NpsRecentEvaluationsTable({
                     )}
                   </TableCell>
 
-                  <TableCell align="center">
-                    {updatingSeen[evaluationId] ? (
-                      <CircularProgress size={20} />
-                    ) : (
-                      <Checkbox
-                        checked={seen}
-                        onChange={(e) =>
-                          handleSeenChange(evaluationId, e.target.checked)
-                        }
-                        sx={{
-                          color: seen ? '#4caf50' : 'gray',
-                          '&.Mui-checked': {
-                            color: '#4caf50',
-                          },
-                        }}
-                      />
-                    )}
-                  </TableCell>
+                  {shouldShowSeenColumn() && (
+                    <TableCell align="center">
+                      {updatingSeen[evaluationId] ? (
+                        <CircularProgress size={20} />
+                      ) : (
+                        <Checkbox
+                          checked={seen}
+                          onChange={(e) =>
+                            handleSeenChange(evaluationId, e.target.checked)
+                          }
+                          sx={{
+                            color: seen ? '#4caf50' : 'gray',
+                            '&.Mui-checked': {
+                              color: '#4caf50',
+                            },
+                          }}
+                        />
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               )
             })}

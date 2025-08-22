@@ -15,7 +15,13 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material'
-import { FilterList, Download, Refresh } from '@mui/icons-material'
+import {
+  FilterList,
+  Download,
+  Refresh,
+  Info,
+  AccountCircle,
+} from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { getCurrentMentorNpsData } from '../services/mentorNpsService'
@@ -24,7 +30,7 @@ import NpsProgressionCharts from '../components/nps/NpsProgressionCharts'
 import NpsCohortsTable from '../components/nps/NpsCohortsTable'
 import NpsRecentEvaluationsTable from '../components/nps/NpsRecentEvaluationsTable'
 
-export default function MentorNps() {
+export default function Profile() {
   const { store } = useGlobalReducer()
   const theme = useTheme()
 
@@ -38,6 +44,19 @@ export default function MentorNps() {
   const [selectedCohort, setSelectedCohort] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [timeFilter, setTimeFilter] = useState('1year') // 1year, 6months, all
+
+  // Función para obtener el título según el rol del usuario
+  const getRoleTitle = () => {
+    const role = store.userRole
+    switch (role) {
+      case 'assistant':
+        return 'Asistente'
+      case 'teacher':
+        return 'Mentor'
+      default:
+        return 'Profesor'
+    }
+  }
 
   // Cargar datos NPS del mentor
   const loadNpsData = async () => {
@@ -87,10 +106,11 @@ export default function MentorNps() {
 
   // Función para generar datos CSV
   const generateCsvData = (data) => {
+    const roleTitle = getRoleTitle()
     const headers = [
       'Cohorte',
       'Estado',
-      'Promedio Profesor',
+      `Promedio ${roleTitle}`,
       'Promedio Cohorte',
       'Participación',
       'Total Evaluaciones',
@@ -274,9 +294,30 @@ export default function MentorNps() {
           alignItems="center"
           mb={2}
         >
-          <Typography variant="h4" component="h1" fontWeight="bold">
-            Dashboard NPS - {npsData.mentorName}
-          </Typography>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography
+              variant="h4"
+              component="h1"
+              fontWeight="bold"
+              display="flex"
+              alignItems="center"
+            >
+              <AccountCircle
+                fontSize="large"
+                sx={{ color: 'primary', mr: 1 }}
+              />
+              {npsData.mentorName}
+            </Typography>
+            <Tooltip
+              title="Aquí encontrarás toda la información de las encuestas de satisfacción realizadas a tus alumnos, scores, reportes y feedback."
+              placement="right"
+              arrow
+            >
+              <IconButton size="small" sx={{ color: 'primary.main' }}>
+                <Info fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
           <Box display="flex" gap={1}>
             {/* <Tooltip title="Cambiar tema">
               <IconButton onClick={() => setDarkMode(!darkMode)}>
@@ -371,7 +412,10 @@ export default function MentorNps() {
       </Box>
 
       {/* KPIs Cards */}
-      <NpsKpiCards kpis={npsData.visualizationData.kpis} />
+      <NpsKpiCards
+        kpis={npsData.visualizationData.kpis}
+        roleTitle={getRoleTitle()}
+      />
 
       {/* Gráficos de progresión */}
 
@@ -387,12 +431,20 @@ export default function MentorNps() {
       >
         <Grid item xs={12} md={8} sx={{ width: '100%' }}>
           <Paper sx={{ p: 3, height: 400 }}>
-            <NpsProgressionCharts cohorts={filteredCohorts} type="teacher" />
+            <NpsProgressionCharts
+              cohorts={filteredCohorts}
+              type="teacher"
+              roleTitle={getRoleTitle()}
+            />
           </Paper>
         </Grid>
         <Grid item xs={12} md={4} sx={{ width: '100%' }}>
           <Paper sx={{ p: 3, height: 400 }}>
-            <NpsProgressionCharts cohorts={filteredCohorts} type="cohort" />
+            <NpsProgressionCharts
+              cohorts={filteredCohorts}
+              type="cohort"
+              roleTitle={getRoleTitle()}
+            />
           </Paper>
         </Grid>
       </Grid>
@@ -403,7 +455,7 @@ export default function MentorNps() {
         spacing={3}
         sx={{ display: 'flex', flexDirection: 'column' }}
       >
-              <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Evaluaciones Recientes
@@ -411,6 +463,7 @@ export default function MentorNps() {
             <NpsRecentEvaluationsTable
               evaluations={npsData.visualizationData.tables.recentEvaluations}
               onEvaluationUpdate={handleEvaluationUpdate}
+              roleTitle={getRoleTitle()}
             />
           </Paper>
         </Grid>
@@ -419,10 +472,12 @@ export default function MentorNps() {
             <Typography variant="h6" gutterBottom>
               Tabla de Cohortes
             </Typography>
-            <NpsCohortsTable cohorts={filteredCohorts} />
+            <NpsCohortsTable
+              cohorts={filteredCohorts}
+              roleTitle={getRoleTitle()}
+            />
           </Paper>
         </Grid>
-
       </Grid>
     </Container>
   )

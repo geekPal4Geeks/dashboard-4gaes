@@ -14,7 +14,11 @@ import {
   getScoreColor,
 } from '../../services/mentorNpsService'
 
-export default function NpsProgressionCharts({ cohorts, type = 'teacher' }) {
+export default function NpsProgressionCharts({
+  cohorts,
+  type = 'teacher',
+  roleTitle = 'Profesor',
+}) {
   if (!cohorts || cohorts.length === 0) {
     return (
       <Box
@@ -34,7 +38,10 @@ export default function NpsProgressionCharts({ cohorts, type = 'teacher' }) {
   const allProgressionData = []
 
   cohorts.forEach((cohort) => {
-    const progression = cohort.progression[type] || []
+    // Para asistentes, usar taScores en lugar de teacher
+    const progressionType =
+      roleTitle === 'Asistente' && type === 'teacher' ? 'tas' : type
+    const progression = cohort.progression[progressionType] || []
 
     progression.forEach((point) => {
       allProgressionData.push({
@@ -138,7 +145,7 @@ export default function NpsProgressionCharts({ cohorts, type = 'teacher' }) {
       >
         <Typography variant="h6" fontWeight="bold">
           {type === 'teacher'
-            ? 'Progresión del Profesor (Último Año)'
+            ? `Progresión del ${roleTitle} (Último Año)`
             : 'Progresión de la Cohorte (Último Año)'}
         </Typography>
         <Box display="flex" gap={2}>
@@ -180,7 +187,7 @@ export default function NpsProgressionCharts({ cohorts, type = 'teacher' }) {
               label={{
                 value:
                   type === 'teacher'
-                    ? 'Puntuación Profesor'
+                    ? `Puntuación ${roleTitle}`
                     : 'Puntuación Cohorte',
                 angle: -90,
                 position: 'insideLeft',

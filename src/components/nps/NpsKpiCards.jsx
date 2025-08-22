@@ -76,7 +76,7 @@ const KpiCard = ({ title, value, subtitle, icon, color, trend }) => {
             {React.cloneElement(icon, {
               sx: {
                 fontSize: '1.2rem',
-                ...icon.props.sx, 
+                ...icon.props.sx,
               },
             })}
           </Box>
@@ -86,16 +86,22 @@ const KpiCard = ({ title, value, subtitle, icon, color, trend }) => {
   )
 }
 
-export default function NpsKpiCards({ kpis }) {
+export default function NpsKpiCards({ kpis, roleTitle = 'Profesor' }) {
   if (!kpis) return null
+
+  // Usar el campo correcto según el rol
+  const averageScore =
+    roleTitle === 'Asistente'
+      ? kpis.overallTaAverage || kpis.overallTeacherAverage
+      : kpis.overallTeacherAverage
 
   const kpiData = [
     {
-      title: 'Promedio General Profesor',
-      value: kpis.overallTeacherAverage?.toFixed(1) || '0.0',
+      title: `Promedio General ${roleTitle}`,
+      value: averageScore?.toFixed(1) || '0.0',
       subtitle: 'Puntuación promedio en todas las evaluaciones',
-      icon: <Star sx={{ color: getScoreColor(kpis.overallTeacherAverage) }} />,
-      color: getScoreColor(kpis.overallTeacherAverage),
+      icon: <Star sx={{ color: getScoreColor(averageScore) }} />,
+      color: getScoreColor(averageScore),
       trend: null,
     },
     {

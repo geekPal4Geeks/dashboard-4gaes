@@ -90,8 +90,8 @@ export const Navbar = () => {
             color="inherit"
             startIcon={<AccountCircle />}
             component={RouterLink}
-            to="/mentor-nps"
-            sx={buttonStyles('/mentor-nps')}
+            to="/profile"
+            sx={buttonStyles('/profile')}
           >
             Mi perfil
           </Button>
