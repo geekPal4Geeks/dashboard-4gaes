@@ -17,6 +17,8 @@ export const Navbar = () => {
   const canSeeManagement =
     role === 'academy_coordinator' || role === 'country_manager'
 
+  const canSeeProfile = role === 'teacher' || role === 'assistant'
+
   const handleLogout = () => {
     localStorage.clear()
     dispatch({ type: 'logout' })
@@ -86,15 +88,17 @@ export const Navbar = () => {
               Gestión de cursos
             </Button>
           )}
-          <Button
-            color="inherit"
-            startIcon={<AccountCircle />}
-            component={RouterLink}
-            to="/profile"
-            sx={buttonStyles('/profile')}
-          >
-            Mi perfil
-          </Button>
+          {canSeeProfile && (
+            <Button
+              color="inherit"
+              startIcon={<AccountCircle />}
+              component={RouterLink}
+              to="/profile"
+              sx={buttonStyles('/profile')}
+            >
+              Mi perfil
+            </Button>
+          )}
           <Button
             color="error"
             variant="outlined"

@@ -6,12 +6,14 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from 'react-router-dom';
 import GuideCard from '../components/GuideCard'
 import Masonry from '@mui/lab/Masonry'
+import { AccountCircle } from '@mui/icons-material';
 
 function Home() {
     const { store } = useGlobalReducer();
     const navigate = useNavigate();
     const role = store.userRole;
     const canSeeManagement = role === 'academy_coordinator' || role === 'country_manager';
+    const canSeeProfile = role === 'teacher' || role === 'assistant';
     return (
         <Container maxWidth="lg">
             <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -95,6 +97,21 @@ function Home() {
                             </CardActions>
                         </Card>
                     )}
+                    {canSeeProfile && (
+                    <Card sx={{ width: 350, minHeight: 175, boxShadow: 3, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <CardContent sx={{ pb: 0, flexGrow: 1, flexShrink: 1, flexBasis: 'auto' }}>
+                            <Box display="flex" alignItems="center" mb={1}>
+                                <AccountCircle color="secondary" sx={{ fontSize: 36, mr: 1 }} />
+                                <Typography variant="h6" fontWeight={700}>Mi perfil</Typography>
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" mb={1}>
+                                Accede a tus valoraciones tras las encuestas de satisfacción de tus alumnos.
+                            </Typography>
+                        </CardContent>
+                        <CardActions sx={{ pt: 0, mt: '10px' }}>
+                            <Button onClick={() => navigate('/profile')} color="secondary">Ver tu perfil &rarr;</Button>
+                        </CardActions>
+                    </Card>)}
                 </Masonry>
             </Box>
         </Container>
