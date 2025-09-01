@@ -1,13 +1,10 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:5000'
+const API_URL = import.meta.env.VITE_BACKEND_URL
 
-// Configuración base de axios
+// Configuración base de axios SIN baseURL
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 30000, // 30 segundos máximo
 })
 
 // Interceptor para agregar el token de autorización
@@ -20,18 +17,16 @@ apiClient.interceptors.request.use((config) => {
 })
 
 /**
- * Obtiene los datos NPS de un mentor específico
- * @param {string} mentorId - ID del mentor
+ * Obtiene los datos NPS del mentor actual usando solo el token (el backend resuelve el mentor)
  * @returns {Promise<Object>} Datos NPS del mentor
  */
-export const getMentorNpsData = async (mentorId) => {
+export const getCurrentMentorNpsData = async () => {
   try {
-    const response = await apiClient.post('/api/mentor-nps', {
-      mentorId,
-    })
+    console.log('🔄 Enviando petición a:', `${API_URL}/mentor-nps`)
+    const response = await apiClient.post(`${API_URL}/mentor-nps`, {})
     return response.data
   } catch (error) {
-    console.error('Error al obtener datos NPS del mentor:', error)
+    console.error('Error al obtener datos NPS del mentor actual:', error)
     throw new Error(
       error.response?.data?.message || 'Error al obtener datos NPS del mentor'
     )
@@ -39,16 +34,18 @@ export const getMentorNpsData = async (mentorId) => {
 }
 
 /**
- * Obtiene los datos NPS del mentor actual usando solo el token (el backend resuelve el mentor)
+ * Obtiene los datos NPS de un mentor específico
+ * @param {string} mentorId - ID del mentor
  * @returns {Promise<Object>} Datos NPS del mentor
  */
-export const getCurrentMentorNpsData = async () => {
+export const getMentorNpsData = async (mentorId) => {
   try {
-    // El backend resuelve el mentor a partir del token. No enviamos ningún ID.
-    const response = await apiClient.post('/api/mentor-nps', {})
+    const response = await apiClient.post(`${API_URL}/mentor-nps`, {
+      mentorId,
+    })
     return response.data
   } catch (error) {
-    console.error('Error al obtener datos NPS del mentor actual:', error)
+    console.error('Error al obtener datos NPS del mentor:', error)
     throw new Error(
       error.response?.data?.message || 'Error al obtener datos NPS del mentor'
     )
@@ -169,10 +166,13 @@ export const getCohortStatusColor = (status) => {
  */
 export const updateNpsEvaluationSeen = async (evaluationId, seen) => {
   try {
-    const response = await apiClient.put('/api/mentor-nps/evaluation-seen', {
-      evaluationId,
-      seen,
-    })
+    const response = await apiClient.put(
+      `${API_URL}/mentor-nps/evaluation-seen`,
+      {
+        evaluationId,
+        seen,
+      }
+    )
     return response.data
   } catch (error) {
     console.error('Error al actualizar estado visto de evaluación NPS:', error)

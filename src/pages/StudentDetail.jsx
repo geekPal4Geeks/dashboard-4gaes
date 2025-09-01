@@ -63,6 +63,7 @@ export default function StudentDetail({ studentData, cohort }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { store } = useGlobalReducer()
+
   // Permitir recibir { student, cohort } como studentData o desde location.state
   const locationStudent = location.state?.student
   const locationCohort = location.state?.cohort
@@ -72,6 +73,7 @@ export default function StudentDetail({ studentData, cohort }) {
   const initialCohort =
     locationCohort ||
     (studentData && studentData.cohort ? studentData.cohort : cohort)
+
   const [student, setStudent] = useState(initialStudent || null)
   const [localCohort, setLocalCohort] = useState(initialCohort || null)
   const [loading, setLoading] = useState(initialStudent ? false : true)
@@ -83,6 +85,9 @@ export default function StudentDetail({ studentData, cohort }) {
   const [studentComments, setStudentComments] = useState([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [authors, setAuthors] = useState({})
+
+  // Obtener el ID del estudiante de la fuente más confiable
+  const effectiveStudentId = student?.id || studentId
 
   useEffect(() => {
     // Si studentData es el nuevo formato { student, cohort }
@@ -108,7 +113,7 @@ export default function StudentDetail({ studentData, cohort }) {
     async function fetchStudent() {
       setLoading(true)
       try {
-        const data = await getStudentInfo(studentId)
+        const data = await getStudentInfo(effectiveStudentId)
         // Si el endpoint retorna { student, cohort }
         if (data && data.student && data.cohort) {
           setStudent(data.student)
@@ -128,25 +133,29 @@ export default function StudentDetail({ studentData, cohort }) {
         setLoading(false)
       }
     }
-    if (studentId) fetchStudent()
-  }, [studentId, studentData])
+    if (effectiveStudentId) fetchStudent()
+  }, [effectiveStudentId, studentData])
 
   useEffect(() => {
     const fetchComments = async () => {
-      if (studentId) {
+      if (effectiveStudentId) {
+        console.log('🔄 Fetching comments for student:', effectiveStudentId)
         setCommentsLoading(true)
         try {
-          const commentsData = await getStudentComments(studentId)
+          const commentsData = await getStudentComments(effectiveStudentId)
           setStudentComments(commentsData || [])
         } catch (err) {
-          console.error('Error fetching comments:', err)
+          console.error('❌ Error fetching comments:', err)
+          setStudentComments([])
         } finally {
           setCommentsLoading(false)
         }
+      } else {
+        console.log('⚠️ No StudentId available for fetching comments')
       }
     }
     fetchComments()
-  }, [studentId])
+  }, [effectiveStudentId])
 
   useEffect(() => {
     const fetchAuthors = async () => {
@@ -156,7 +165,6 @@ export default function StudentDetail({ studentData, cohort }) {
         ]
         const authorPromises = authorIds.map((id) => getNotionUser(id))
         const authorResults = await Promise.all(authorPromises)
-
         const authorsMap = authorResults.reduce((acc, author) => {
           if (author) {
             acc[author.id] = author.name
