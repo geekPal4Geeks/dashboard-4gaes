@@ -31,12 +31,24 @@ export default function Courses() {
           navigate('/', { replace: true })
           return
         }
-        
+
+        // Limpiar estados al inicio
+        setCohorts([])
+        setLoadingCohorts([])
+        setLoading(true)
+        setError(null)
+
         // Usar el nuevo servicio optimizado que nos notifica progresivamente
         const activeCohorts = await getActiveCohorts(token, {
           onProgress: (newCohorts, pendingCohorts) => {
-            // Actualizar cohorts completados
-            setCohorts(prev => [...prev, ...newCohorts])
+            // Actualizar cohorts completados evitando duplicados
+            setCohorts((prev) => {
+              const existingIds = new Set(prev.map((c) => c.cohort?.id))
+              const uniqueNewCohorts = newCohorts.filter(
+                (c) => !existingIds.has(c.cohort?.id)
+              )
+              return [...prev, ...uniqueNewCohorts]
+            })
             // Actualizar cohorts que están cargando
             setLoadingCohorts(pendingCohorts)
             // Ya no estamos en loading inicial si tenemos al menos uno
@@ -44,11 +56,10 @@ export default function Courses() {
               setLoading(false)
               setLoadingMoreCohorts(pendingCohorts.length > 0)
             }
-          }
+          },
         })
-        
-        // Actualizar con resultado final
-        setCohorts(activeCohorts)
+
+        // Limpiar estados de carga al final
         setLoadingCohorts([])
         setLoadingMoreCohorts(false)
       } catch (err) {
@@ -61,8 +72,6 @@ export default function Courses() {
 
     fetchCohorts()
   }, [navigate])
-
-
 
   return (
     <Container maxWidth="lg">
@@ -88,20 +97,37 @@ export default function Courses() {
             <Grid container spacing={3}>
               {/* Mostrar cohorts completados */}
               {cohorts.map((cohort) => (
-                <Grid item xs={12} sm={6} md={4} key={cohort.cohort?.id}>
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  md={4}
+                  key={`completed-${cohort.cohort?.id}`}
+                >
                   <CourseCard cohort={cohort} />
                 </Grid>
               ))}
               {/* Mostrar placeholders para cohorts que están cargando */}
               {loadingCohorts.map((cohort, index) => (
-                <Grid item xs={12} sm={6} md={4} key={`loading-${cohort.cohort?.id || index}`}>
-                  <CourseCard cohort={{...cohort, isLoading: true}} />
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  md={4}
+                  key={`loading-${cohort.cohort?.id || `index-${index}`}`}
+                >
+                  <CourseCard cohort={{ ...cohort, isLoading: true }} />
                 </Grid>
               ))}
             </Grid>
-            
+
             {loadingMoreCohorts && (
-              <Box display="flex" justifyContent="center" alignItems="center" mt={3}>
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                mt={3}
+              >
                 <CircularProgress size={20} sx={{ mr: 1 }} />
                 <Typography variant="body2" color="text.secondary">
                   Cargando más cohortes...

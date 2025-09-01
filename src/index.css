@@ -23,4 +23,76 @@ body {
 #root {
   width: 100%;
   min-height: 100vh;
-} 
+}
+
+/* Estilos personalizados para SweetAlert2 de pago pendiente */
+.swal2-late-payment {
+  border: 3px solid #d32f2f !important;
+  border-radius: 15px !important;
+  box-shadow: 0 0 30px rgba(211, 47, 47, 0.5) !important;
+  animation: pulse-warning 2s infinite !important;
+}
+
+.swal2-late-payment-title {
+  color: #d32f2f !important;
+  font-size: 28px !important;
+  font-weight: bold !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+.swal2-late-payment-content {
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+}
+
+@keyframes pulse-warning {
+  0% {
+    box-shadow: 0 0 30px rgba(211, 47, 47, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(211, 47, 47, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 30px rgba(211, 47, 47, 0.5);
+  }
+}
+
+/* Estilos para el backdrop de la alerta */
+.swal2-backdrop-show {
+  background: linear-gradient(
+    45deg,
+    rgba(211, 47, 47, 0.1),
+    rgba(255, 193, 7, 0.1)
+  ) !important;
+}
+
+/* Estilos para el botón de cerrar */
+.swal2-late-payment-close {
+  color: #d32f2f !important;
+  font-size: 28px !important;
+  font-weight: bold !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  z-index: 1000 !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  border-radius: 50% !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 2px solid #d32f2f !important;
+}
+
+.swal2-late-payment-close:hover {
+  color: #b71c1c !important;
+  transform: scale(1.1) !important;
+  background-color: rgba(211, 47, 47, 0.1) !important;
+  border-color: #b71c1c !important;
+  box-shadow: 0 0 10px rgba(211, 47, 47, 0.3) !important;
+}
+
+/* Asegurar que el botón de cerrar sea visible */
+.swal2-close {
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  z-index: 1001 !important;
+}

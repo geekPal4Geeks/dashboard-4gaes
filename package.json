@@ -26,7 +26,7 @@
     "react-notion-x": "^7.3.0",
     "react-router-dom": "^7.5.1",
     "recharts": "^3.1.2",
-    "sweetalert2": "^11.22.1"
+    "sweetalert2": "^11.22.4"
   },
   "devDependencies": {
     "@types/react": "^19.1.2",
