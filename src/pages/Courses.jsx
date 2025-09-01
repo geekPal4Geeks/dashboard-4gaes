@@ -62,7 +62,7 @@ export default function Courses() {
     fetchCohorts()
   }, [navigate])
 
-  // console.log(cohorts)
+
 
   return (
     <Container maxWidth="lg">

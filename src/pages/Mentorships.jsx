@@ -578,26 +578,21 @@ export default function Mentorships() {
                 <ToggleButtonGroup
                   value={sessionType}
                   exclusive
-                  onChange={(_, newType) => {
-                    if (newType !== null) {
-                      setSessionType(newType)
-                    }
-                  }}
+                  onChange={(e, value) => value && setSessionType(value)}
+                  sx={{ mb: 2 }}
                 >
-                  <ToggleButton
-                    value="mentorship"
-                    disabled={!sessionStatus}
-                    color="info"
-                  >
+                  <ToggleButton value="mentorship" color="primary">
                     Mentoría
                   </ToggleButton>
-                  <ToggleButton
-                    value="mock_interview"
-                    disabled={!sessionStatus}
-                    color="warning"
-                  >
+                  <ToggleButton value="mock_interview" color="secondary">
                     Mock Interview
                   </ToggleButton>
+                  {/* Botón GeekFORCE solo para career_support */}
+                  {store.userRole === 'career_support' && (
+                    <ToggleButton value="geekForce" color="warning">
+                      GeekFORCE
+                    </ToggleButton>
+                  )}
                 </ToggleButtonGroup>
               </Box>
               {sessionStatus && sessionType && (
@@ -1016,7 +1011,6 @@ export default function Mentorships() {
                   <Typography variant="h6" gutterBottom>
                     Registrar Mock Interview Cancelada
                   </Typography>
-
                   <Box
                     sx={{
                       display: 'flex',
@@ -1025,13 +1019,11 @@ export default function Mentorships() {
                       mb: 2,
                     }}
                   >
-                    {/* Campo Estudiante (No editable) */}
                     <StudentInfoBoxTrigger
                       student={student}
                       cohortInfo={cohortInfo}
                     />
-
-                    {/* Campo Fecha y hora de cancelación */}
+                    {/* Fecha y hora de cancelación */}
                     <Box
                       sx={{
                         display: 'flex',
@@ -1069,7 +1061,7 @@ export default function Mentorships() {
                         fullWidth
                       />
                     </Box>
-                    {/* Campo Fecha y hora de mentoría */}
+                    {/* Fecha y hora de mentoría original */}
                     <Box
                       sx={{
                         display: 'flex',
@@ -1107,7 +1099,7 @@ export default function Mentorships() {
                         fullWidth
                       />
                     </Box>
-                    {/* Campo Motivo de reprogramación */}
+                    {/* Motivo de cancelación */}
                     <TextField
                       select
                       label="Motivo de cancelación"
@@ -1121,7 +1113,7 @@ export default function Mentorships() {
                         </MenuItem>
                       ))}
                     </TextField>
-                    {/* Campo para la fecha y hora de reprogramación */}
+                    {/* Reprogramación */}
                     {cancellationReason === 'Reprograma' && (
                       <Box
                         sx={{
@@ -1161,9 +1153,17 @@ export default function Mentorships() {
                         />
                       </Box>
                     )}
-                    {/* Campo Notas de Cancelación */}
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={supliedWithOtherStudent}
+                          onChange={handleSupliedWithOtherStudentChange}
+                        />
+                      }
+                      label="¿Ha suplido con otro alumno la hora de sesión?"
+                    />
                     <TextField
-                      label="Notas sobre la cancelación de Mock Interview"
+                      label="Notas sobre la cancelación"
                       variant="outlined"
                       fullWidth
                       multiline
@@ -1172,27 +1172,187 @@ export default function Mentorships() {
                       onChange={handleCancellationNotesChange}
                       sx={{ mb: 2 }}
                     />
-                    {/* Campo Mentor (Autocompletado) */}
-                    {/*<Typography variant="body1">
-                      <strong>Mentor:</strong> {store.userName || 'Cargando...'}{' '}
-                    </Typography>*/}
                   </Box>
-
-                  {/* Botón para registrar cancelación */}
                   <Button
                     variant="contained"
                     color="error"
-                    onClick={handleCancelMockInterview}
+                    onClick={handleCancelMentorship}
                     disabled={saving}
                   >
                     {saving ? (
                       <CircularProgress size={24} />
                     ) : (
-                      'Registrar Cancelación de Mock Interview'
+                      'Registrar Cancelación'
                     )}
                   </Button>
                 </Paper>
               )}
+
+            {sessionStatus === 'cancelada' && sessionType === 'geekForce' && (
+              <Paper sx={{ p: 3, width: '100%', mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Registrar Mentoría GeekFORCE Cancelada
+                </Typography>
+                {/* El mismo formulario que para mentoría cancelada */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 2,
+                    mb: 2,
+                  }}
+                >
+                  <StudentInfoBoxTrigger
+                    student={student}
+                    cohortInfo={cohortInfo}
+                  />
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      mb: 2,
+                    }}
+                  >
+                    <TextField
+                      label="Fecha de cancelación"
+                      type="date"
+                      value={cancellationDate.split('T')[0]}
+                      onChange={(e) =>
+                        setCancellationDate(
+                          e.target.value + 'T' + cancellationDate.split('T')[1]
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Hora de cancelación"
+                      type="time"
+                      value={cancellationDate.split('T')[1]}
+                      onChange={(e) =>
+                        setCancellationDate(
+                          cancellationDate.split('T')[0] + 'T' + e.target.value
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 2,
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      mb: 2,
+                    }}
+                  >
+                    <TextField
+                      label="Fecha de sesión original"
+                      type="date"
+                      value={originalMentorshipDate.split('T')[0]}
+                      onChange={(e) =>
+                        setOriginalMentorshipDate(
+                          e.target.value +
+                            'T' +
+                            originalMentorshipDate.split('T')[1]
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Hora de sesión original"
+                      type="time"
+                      value={originalMentorshipDate.split('T')[1]}
+                      onChange={(e) =>
+                        setOriginalMentorshipDate(
+                          originalMentorshipDate.split('T')[0] +
+                            'T' +
+                            e.target.value
+                        )
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
+                  <TextField
+                    select
+                    label="Motivo de cancelación"
+                    fullWidth
+                    value={cancellationReason}
+                    onChange={handleCancellationReasonChange}
+                  >
+                    {cancellationReasons.map((reason) => (
+                      <MenuItem key={reason} value={reason}>
+                        {reason}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  {cancellationReason === 'Reprograma' && (
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        mt: 2,
+                      }}
+                    >
+                      <TextField
+                        label="Nueva fecha de la sesión"
+                        type="date"
+                        value={rescheduledDateTime.split('T')[0]}
+                        onChange={(e) =>
+                          setRescheduledDateTime(
+                            e.target.value +
+                              'T' +
+                              rescheduledDateTime.split('T')[1]
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                      <TextField
+                        label="Nueva hora de la sesión"
+                        type="time"
+                        value={rescheduledDateTime.split('T')[1]}
+                        onChange={(e) =>
+                          setRescheduledDateTime(
+                            rescheduledDateTime.split('T')[0] +
+                              'T' +
+                              e.target.value
+                          )
+                        }
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    </Box>
+                  )}
+                  <TextField
+                    label="Notas sobre la cancelación"
+                    variant="outlined"
+                    fullWidth
+                    multiline
+                    rows={3}
+                    value={cancellationNotes}
+                    onChange={handleCancellationNotesChange}
+                    sx={{ mb: 2 }}
+                  />
+                </Box>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleCancelMentorship}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    'Registrar Cancelación'
+                  )}
+                </Button>
+              </Paper>
+            )}
           </>
         )}
       </Box>

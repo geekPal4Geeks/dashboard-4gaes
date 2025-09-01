@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import logo from '../assets/logo-4geeks.ico'
-
+import AccountCircle from '@mui/icons-material/AccountCircle'
 
 export const Navbar = () => {
   const navigate = useNavigate()
@@ -16,6 +16,8 @@ export const Navbar = () => {
 
   const canSeeManagement =
     role === 'academy_coordinator' || role === 'country_manager'
+
+  const canSeeProfile = role === 'teacher' || role === 'assistant'
 
   const handleLogout = () => {
     localStorage.clear()
@@ -84,6 +86,17 @@ export const Navbar = () => {
               sx={buttonStyles('/courses-management')}
             >
               Gestión de cursos
+            </Button>
+          )}
+          {canSeeProfile && (
+            <Button
+              color="inherit"
+              startIcon={<AccountCircle />}
+              component={RouterLink}
+              to="/profile"
+              sx={buttonStyles('/profile')}
+            >
+              Mi perfil
             </Button>
           )}
           <Button
