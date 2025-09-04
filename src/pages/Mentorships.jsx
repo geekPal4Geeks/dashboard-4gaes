@@ -19,6 +19,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Swal from 'sweetalert2'
 import {
   findStudentByEmail,
   updateStudentComment,
@@ -445,13 +446,26 @@ export default function Mentorships() {
       // Prepend el ícono al comentario
       const finalMockInterviewComment = `${cancellationIcon} ${mockInterviewComment}`
 
-      // Solo enviar notificación si el motivo no es "Reprogramo"
-      const shouldNotify = cancellationReason !== 'Reprograma'
+      // Solo enviar notificación si el motivo no es "Reprograma" y hay slackId
+      const shouldNotify = cancellationReason !== 'Reprograma' && 
+        student.properties?.['Slack ID']?.rich_text?.[0]?.plain_text
       const slackId =
         student.properties?.['Slack ID']?.rich_text?.[0]?.plain_text || ''
       const coachName =
         student.properties?.['GeekFORCE Coach']?.select?.name ||
         'Coach de Carreras'
+
+      console.log('Debug Mock Interview Cancellation:', {
+        cancellationReason,
+        slackId,
+        coachName,
+        shouldNotify,
+        notificationData: shouldNotify ? {
+          slackId,
+          coachName,
+          type: 'mock_interview_cancellation',
+        } : null
+      })
 
       await updateStudentComment(
         student.id,
@@ -1191,7 +1205,7 @@ export default function Mentorships() {
                   <Button
                     variant="contained"
                     color="error"
-                    onClick={handleCancelMentorship}
+                    onClick={handleCancelMockInterview}
                     disabled={saving}
                   >
                     {saving ? (
