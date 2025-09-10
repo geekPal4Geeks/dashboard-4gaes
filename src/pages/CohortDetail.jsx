@@ -23,7 +23,10 @@ import {
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import BookmarkIcon from '@mui/icons-material/Bookmark'
-import { getCohortNotionInfo, getMultipleStudentsInfo } from '../services/notionService'
+import {
+  getCohortNotionInfo,
+  getMultipleStudentsInfo,
+} from '../services/notionService'
 import WarningIcon from '@mui/icons-material/Warning'
 import {
   notionToMuiColor,
@@ -59,13 +62,22 @@ export default function CohortDetail() {
   const isPrework = cohort?.properties?.Status?.select?.name === 'Prework'
 
   const sortStudentsByPreworkStatus = (students) => {
-    return [...students].sort((a, b) => {
-      const statusA = a.properties?.['Prework Status']?.select?.name || ''
-      const statusB = b.properties?.['Prework Status']?.select?.name || ''
+    // Solo ordenar por estado de prework cuando la cohorte está en prework
+    if (!isPrework) return students
 
-      // Si alguno es "Prework Done", va al final
-      if (statusA === 'Prework Done') return 1
-      if (statusB === 'Prework Done') return -1
+    return [...students].sort((a, b) => {
+      const statusA =
+        a.student?.properties?.['Prework Status']?.select?.name ||
+        a.properties?.['Prework Status']?.select?.name ||
+        ''
+      const statusB =
+        b.student?.properties?.['Prework Status']?.select?.name ||
+        b.properties?.['Prework Status']?.select?.name ||
+        ''
+
+      // "Prework Done" siempre al final
+      if (statusA === 'Prework Done' && statusB !== 'Prework Done') return 1
+      if (statusB === 'Prework Done' && statusA !== 'Prework Done') return -1
 
       const colorA = getPreworkStatusColor(statusA)
       const colorB = getPreworkStatusColor(statusB)
@@ -208,12 +220,12 @@ export default function CohortDetail() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const BATCH_SIZE = 8; // Cargar primeros 8 estudiantes inmediatamente
-      
+      const BATCH_SIZE = 8 // Cargar primeros 8 estudiantes inmediatamente
+
       try {
         // === FASE INICIAL: Mostrar información básica inmediatamente ===
         const cohortData = await getCohortNotionInfo(cohortId)
-        
+
         // Mostrar información básica de la cohorte inmediatamente
         setCohort(cohortData)
         setInitialDataLoaded(true)
@@ -234,14 +246,14 @@ export default function CohortDetail() {
         const allStudentPlaceholders = studentsData.map((basicStudent) => ({
           basicInfo: basicStudent,
           properties: null,
-          isLoading: true
+          isLoading: true,
         }))
         setStudents(allStudentPlaceholders)
 
         // Preparar IDs para peticiones en paralelo
         const studentIds = studentsData
-          .map(student => student.notion_id)
-          .filter(id => id !== null && id !== undefined)
+          .map((student) => student.notion_id)
+          .filter((id) => id !== null && id !== undefined)
 
         const teacherId = cohortData.properties?.Teacher?.relation?.[0]?.id
         const taIds =
@@ -250,36 +262,47 @@ export default function CohortDetail() {
         // === PROGRESSIVE LOADING: PRIMERA FASE ===
         // Cargar primer lote de estudiantes + profesores inmediatamente
         const firstBatchIds = studentIds.slice(0, BATCH_SIZE)
-        const teacherAndTaIds = [
-          ...(teacherId ? [teacherId] : []),
-          ...taIds
-        ]
+        const teacherAndTaIds = [...(teacherId ? [teacherId] : []), ...taIds]
 
         const firstBatchResults = await getMultipleStudentsInfo([
           ...firstBatchIds,
-          ...teacherAndTaIds
+          ...teacherAndTaIds,
         ])
 
         // Separar resultados del primer lote
-        const firstBatchStudentsInfo = firstBatchResults.slice(0, firstBatchIds.length)
-        const teacherInfo = teacherId ? firstBatchResults[firstBatchIds.length] : null
-        const taInfos = taIds.length > 0 ? firstBatchResults.slice(firstBatchIds.length + (teacherId ? 1 : 0)) : []
+        const firstBatchStudentsInfo = firstBatchResults.slice(
+          0,
+          firstBatchIds.length
+        )
+        const teacherInfo = teacherId
+          ? firstBatchResults[firstBatchIds.length]
+          : null
+        const taInfos =
+          taIds.length > 0
+            ? firstBatchResults.slice(
+                firstBatchIds.length + (teacherId ? 1 : 0)
+              )
+            : []
 
         // Crear estudiantes del primer lote completados
-        const firstBatchStudents = studentsData.slice(0, BATCH_SIZE).map((basicStudent, index) => {
-          const detailedInfo = firstBatchStudentsInfo[index]
-          return {
-            ...(detailedInfo || {}),
-            basicInfo: basicStudent,
-          }
-        })
+        const firstBatchStudents = studentsData
+          .slice(0, BATCH_SIZE)
+          .map((basicStudent, index) => {
+            const detailedInfo = firstBatchStudentsInfo[index]
+            return {
+              ...(detailedInfo || {}),
+              basicInfo: basicStudent,
+            }
+          })
 
         // Crear placeholders para estudiantes restantes
-        const remainingPlaceholders = studentsData.slice(BATCH_SIZE).map((basicStudent) => ({
-          basicInfo: basicStudent,
-          properties: null,
-          isLoading: true
-        }))
+        const remainingPlaceholders = studentsData
+          .slice(BATCH_SIZE)
+          .map((basicStudent) => ({
+            basicInfo: basicStudent,
+            properties: null,
+            isLoading: true,
+          }))
 
         // Actualizar la información de los profesores en la cohorte
         const updatedCohort = {
@@ -321,17 +344,19 @@ export default function CohortDetail() {
         const remainingIds = studentIds.slice(BATCH_SIZE)
         if (remainingIds.length > 0) {
           setLoadingMoreStudents(true)
-          
+
           try {
             const remainingResults = await getMultipleStudentsInfo(remainingIds)
-            
-            const remainingStudents = studentsData.slice(BATCH_SIZE).map((basicStudent, index) => {
-              const detailedInfo = remainingResults[index]
-              return {
-                ...(detailedInfo || {}),
-                basicInfo: basicStudent,
-              }
-            })
+
+            const remainingStudents = studentsData
+              .slice(BATCH_SIZE)
+              .map((basicStudent, index) => {
+                const detailedInfo = remainingResults[index]
+                return {
+                  ...(detailedInfo || {}),
+                  basicInfo: basicStudent,
+                }
+              })
 
             // Actualizar con todos los estudiantes completos
             setStudents([...firstBatchStudents, ...remainingStudents])
@@ -342,7 +367,6 @@ export default function CohortDetail() {
             setLoadingMoreStudents(false)
           }
         }
-
       } catch (err) {
         setError('Error al cargar la información')
         console.error('Error completo:', err)
@@ -408,9 +432,14 @@ export default function CohortDetail() {
 
   const handleStudentClick = (student) => {
     // Pasar el objeto student y cohort por el state de navegación
-    navigate(`/cohort/${cohortId}/student/${student.student.id || student.basicInfo?.notion_id}`, {
-      state: { student, cohort }
-    })
+    navigate(
+      `/cohort/${cohortId}/student/${
+        student.student.id || student.basicInfo?.notion_id
+      }`,
+      {
+        state: { student, cohort },
+      }
+    )
   }
 
   const handleSkillReviewClick = () => {
@@ -454,7 +483,8 @@ export default function CohortDetail() {
   let pm = null
   let pmSlackId = null
   if (cohort) {
-    const mentorsCohortStr = cohort?.properties?.['Mentors in this cohort']?.formula?.string
+    const mentorsCohortStr =
+      cohort?.properties?.['Mentors in this cohort']?.formula?.string
     const parsed = parseCohortData(mentorsCohortStr)
     mentors = parsed.mentors
     tas = parsed.tas
@@ -466,7 +496,7 @@ export default function CohortDetail() {
   const statusColorMap = {
     warning: '#ff9800', // Prework
     success: '#43a047', // En curso
-    info: '#1976d2',    // Proyecto Final
+    info: '#1976d2', // Proyecto Final
     default: '#bdbdbd',
   }
 
@@ -494,18 +524,39 @@ export default function CohortDetail() {
             right: 32,
             zIndex: 1,
             fontSize: 80,
-            color: statusColorMap[getStageColor(cohort.properties?.Status?.select?.name)] || statusColorMap.default,
+            color:
+              statusColorMap[
+                getStageColor(cohort.properties?.Status?.select?.name)
+              ] || statusColorMap.default,
           }}
         />
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            mb: 2,
+            flexWrap: 'wrap',
+          }}
+        >
           {/* Determinar color de status para chips y bookmark */}
           {(() => {
-            const status = cohort.properties?.Status?.select?.name;
-            const muiColor = getStageColor(status);
-            const color = statusColorMap[muiColor] || statusColorMap.default;
+            const status = cohort.properties?.Status?.select?.name
+            const muiColor = getStageColor(status)
+            const color = statusColorMap[muiColor] || statusColorMap.default
             return (
               <>
-                <Typography variant="h4" fontWeight={700} sx={{ color: '#23272f', fontSize: { xs: '1.3rem', md: '1.7rem' }, mb: 0, mr: 2 }} gutterBottom>
+                <Typography
+                  variant="h4"
+                  fontWeight={700}
+                  sx={{
+                    color: '#23272f',
+                    fontSize: { xs: '1.3rem', md: '1.7rem' },
+                    mb: 0,
+                    mr: 2,
+                  }}
+                  gutterBottom
+                >
                   {(
                     cohort.properties?.Cohort?.title?.[0]?.plain_text ||
                     'Cohorte sin nombre'
@@ -526,118 +577,385 @@ export default function CohortDetail() {
                   }}
                 />
                 <Chip
-                  label={cohort.properties?.Program?.select?.name || 'Sin programa'}
-                  sx={{ border: '1px solid #1976d2', color: '#1976d2', fontWeight: 600, fontSize: '0.85rem', px: 1.5, py: 0.25, bgcolor: 'white', height: 26 }}
+                  label={
+                    cohort.properties?.Program?.select?.name || 'Sin programa'
+                  }
+                  sx={{
+                    border: '1px solid #1976d2',
+                    color: '#1976d2',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    px: 1.5,
+                    py: 0.25,
+                    bgcolor: 'white',
+                    height: 26,
+                  }}
                 />
               </>
-            );
+            )
           })()}
         </Box>
 
         {cohort.properties?.Status?.select?.name === 'Final Project' && (
-          <Box sx={{
-            display: 'flex', alignItems: 'center', bgcolor: '#fff3e0', border: '1px solid #ffe0b2', color: '#e65100', px: 1.5, py: 1, borderRadius: 2, mb: 3, mt: 1, fontWeight: 500, fontSize: '0.92rem',
-          }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              bgcolor: '#fff3e0',
+              border: '1px solid #ffe0b2',
+              color: '#e65100',
+              px: 1.5,
+              py: 1,
+              borderRadius: 2,
+              mb: 3,
+              mt: 1,
+              fontWeight: 500,
+              fontSize: '0.92rem',
+            }}
+          >
             <WarningIcon sx={{ mr: 1.2, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '0.92rem' }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 500, fontSize: '0.92rem' }}
+            >
               Recordar completar la revisión de habilidades antes de finalizar
             </Typography>
           </Box>
         )}
 
-        <Grid container spacing={0} sx={{ mb: 4, mt: 4, width: '100%', flexWrap: 'nowrap' }}>
-          <Grid item sx={{ display: 'flex', flexDirection: 'column', height: '100%', flexBasis: '30%', maxWidth: '30%', minWidth: 0 }}>
-            <Typography variant="h6" sx={{ color: '#374151', fontWeight: 600, fontSize: '1rem', mb: 1.2 }}>
+        <Grid
+          container
+          spacing={0}
+          sx={{ mb: 4, mt: 4, width: '100%', flexWrap: 'nowrap' }}
+        >
+          <Grid
+            item
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              flexBasis: '30%',
+              maxWidth: '30%',
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#374151',
+                fontWeight: 600,
+                fontSize: '1rem',
+                mb: 1.2,
+              }}
+            >
               Fechas importantes
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                width: '100%',
+              }}
+            >
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', mr: 1 }}>Inicio prework:</Typography>
-                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>{formatDate(cohort.properties?.['Start date (prework)']?.date?.start)}</Typography>
+                <Typography
+                  sx={{
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    fontSize: '0.97rem',
+                    mr: 1,
+                  }}
+                >
+                  Inicio prework:
+                </Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>
+                  {formatDate(
+                    cohort.properties?.['Start date (prework)']?.date?.start
+                  )}
+                </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', mr: 1 }}>Inicio contenido:</Typography>
-                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>{formatDate(cohort.properties?.['Start Date (content)']?.date?.start)}</Typography>
+                <Typography
+                  sx={{
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    fontSize: '0.97rem',
+                    mr: 1,
+                  }}
+                >
+                  Inicio contenido:
+                </Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>
+                  {formatDate(
+                    cohort.properties?.['Start Date (content)']?.date?.start
+                  )}
+                </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', mr: 1 }}>Finaliza:</Typography>
-                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>{formatDate(cohort.properties?.['End Date (course)']?.date?.start)}</Typography>
+                <Typography
+                  sx={{
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    fontSize: '0.97rem',
+                    mr: 1,
+                  }}
+                >
+                  Finaliza:
+                </Typography>
+                <Typography sx={{ color: '#23272f', fontWeight: 600 }}>
+                  {formatDate(
+                    cohort.properties?.['End Date (course)']?.date?.start
+                  )}
+                </Typography>
               </Box>
             </Box>
           </Grid>
 
-          <Grid item sx={{ display: 'flex', flexDirection: 'column', height: '100%', flexBasis: '25%', maxWidth: '25%', minWidth: 0 }}>
-            <Typography variant="h6" sx={{ color: '#374151', fontWeight: 600, fontSize: '1rem', mb: 1.2 }}>
+          <Grid
+            item
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              flexBasis: '25%',
+              maxWidth: '25%',
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#374151',
+                fontWeight: 600,
+                fontSize: '1rem',
+                mb: 1.2,
+              }}
+            >
               Estadísticas
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', width: 180, minWidth: 150 }}>Estudiantes activos:</Typography>
-                <Typography sx={{ color: '#23272f', fontWeight: 700, fontSize: '1.05rem' }}>{cohort.properties?.['Active (#)']?.rollup?.number || 0}</Typography>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                width: '100%',
+              }}
+            >
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
+              >
+                <Typography
+                  sx={{
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    fontSize: '0.97rem',
+                    width: 180,
+                    minWidth: 150,
+                  }}
+                >
+                  Estudiantes activos:
+                </Typography>
+                <Typography
+                  sx={{
+                    color: '#23272f',
+                    fontWeight: 700,
+                    fontSize: '1.05rem',
+                  }}
+                >
+                  {cohort.properties?.['Active (#)']?.rollup?.number || 0}
+                </Typography>
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                <Typography sx={{ color: '#6b7280', fontWeight: 500, fontSize: '0.97rem', width: 180, minWidth: 150 }}>Proyectos en revisión:</Typography>
-                <Typography sx={{ color: '#23272f', fontWeight: 700, fontSize: '1.05rem' }}>{cohort.properties?.['Projects in review']?.number || 0}</Typography>
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', width: '100%' }}
+              >
+                <Typography
+                  sx={{
+                    color: '#6b7280',
+                    fontWeight: 500,
+                    fontSize: '0.97rem',
+                    width: 180,
+                    minWidth: 150,
+                  }}
+                >
+                  Proyectos en revisión:
+                </Typography>
+                <Typography
+                  sx={{
+                    color: '#23272f',
+                    fontWeight: 700,
+                    fontSize: '1.05rem',
+                  }}
+                >
+                  {cohort.properties?.['Projects in review']?.number || 0}
+                </Typography>
               </Box>
             </Box>
           </Grid>
 
-          <Grid item sx={{ display: 'flex', flexDirection: 'column', height: '100%', flexBasis: '45%', maxWidth: '45%', minWidth: 0 }}>
-            <Typography variant="h6" sx={{ color: '#374151', fontWeight: 600, fontSize: '1rem', mb: 1.2 }}>
+          <Grid
+            item
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              flexBasis: '45%',
+              maxWidth: '45%',
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{
+                color: '#374151',
+                fontWeight: 600,
+                fontSize: '1rem',
+                mb: 1.2,
+              }}
+            >
               Personal
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                width: '100%',
+              }}
+            >
               {/* Fila 1: PM, Mentor y TA (si solo hay 1 TA) */}
-              <Box sx={{ display: 'flex', flexDirection: 'row', gap: 4, width: '100%', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: 4,
+                  width: '100%',
+                  flexWrap: 'wrap',
+                  alignItems: 'flex-start',
+                }}
+              >
                 {/* PM */}
                 {pm && (
                   <Box>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
-                      <FiberManualRecordIcon sx={{ color: '#e3f2fd', fontSize: 16, mr: 0.5 }} /> PM
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '0.7rem',
+                        mb: 0.5,
+                      }}
+                    >
+                      <FiberManualRecordIcon
+                        sx={{ color: '#e3f2fd', fontSize: 16, mr: 0.5 }}
+                      />{' '}
+                      PM
                     </Typography>
                     <Chip
                       label={pm}
                       color="primary"
                       clickable={!!pmSlackId}
                       component={pmSlackId ? 'a' : undefined}
-                      href={pmSlackId ? `slack://user?team=T0BFXMWMV&id=${pmSlackId}` : undefined}
+                      href={
+                        pmSlackId
+                          ? `slack://user?team=T0BFXMWMV&id=${pmSlackId}`
+                          : undefined
+                      }
                       target={pmSlackId ? '_blank' : undefined}
                       rel={pmSlackId ? 'noopener noreferrer' : undefined}
-                      sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#e3f2fd', color: '#1976d2' }}
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        mb: 1,
+                        px: 2,
+                        py: 0.5,
+                        bgcolor: '#e3f2fd',
+                        color: '#1976d2',
+                      }}
                     />
                   </Box>
                 )}
                 {/* Mentor */}
-                {mentors.length > 0 && mentors.map((m, i) => (
-                  <Box key={i}>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
-                      <FiberManualRecordIcon sx={{ color: '#f3e5f5', fontSize: 16, mr: 0.5 }} /> Mentor
-                    </Typography>
-                    <Chip
-                      label={m.firstName}
-                      clickable={!!m.slackId}
-                      component={m.slackId ? 'a' : undefined}
-                      href={m.slackId ? `slack://user?team=T0BFXMWMV&id=${m.slackId}` : undefined}
-                      target={m.slackId ? '_blank' : undefined}
-                      rel={m.slackId ? 'noopener noreferrer' : undefined}
-                      sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#f3e5f5', color: '#7b1fa2' }}
-                    />
-                  </Box>
-                ))}
+                {mentors.length > 0 &&
+                  mentors.map((m, i) => (
+                    <Box key={i}>
+                      <Typography
+                        variant="subtitle2"
+                        color="text.secondary"
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          fontSize: '0.7rem',
+                          mb: 0.5,
+                        }}
+                      >
+                        <FiberManualRecordIcon
+                          sx={{ color: '#f3e5f5', fontSize: 16, mr: 0.5 }}
+                        />{' '}
+                        Mentor
+                      </Typography>
+                      <Chip
+                        label={m.firstName}
+                        clickable={!!m.slackId}
+                        component={m.slackId ? 'a' : undefined}
+                        href={
+                          m.slackId
+                            ? `slack://user?team=T0BFXMWMV&id=${m.slackId}`
+                            : undefined
+                        }
+                        target={m.slackId ? '_blank' : undefined}
+                        rel={m.slackId ? 'noopener noreferrer' : undefined}
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: '0.9rem',
+                          mb: 1,
+                          px: 2,
+                          py: 0.5,
+                          bgcolor: '#f3e5f5',
+                          color: '#7b1fa2',
+                        }}
+                      />
+                    </Box>
+                  ))}
                 {/* Si hay solo 1 TA, mostrarlo aquí */}
                 {tas.length === 1 && (
                   <Box>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
-                      <FiberManualRecordIcon sx={{ color: '#ffebee', fontSize: 16, mr: 0.5 }} /> TA
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '0.7rem',
+                        mb: 0.5,
+                      }}
+                    >
+                      <FiberManualRecordIcon
+                        sx={{ color: '#ffebee', fontSize: 16, mr: 0.5 }}
+                      />{' '}
+                      TA
                     </Typography>
                     <Chip
                       label={tas[0].firstName}
                       clickable={!!tas[0].slackId}
                       component={tas[0].slackId ? 'a' : undefined}
-                      href={tas[0].slackId ? `slack://user?team=T0BFXMWMV&id=${tas[0].slackId}` : undefined}
+                      href={
+                        tas[0].slackId
+                          ? `slack://user?team=T0BFXMWMV&id=${tas[0].slackId}`
+                          : undefined
+                      }
                       target={tas[0].slackId ? '_blank' : undefined}
                       rel={tas[0].slackId ? 'noopener noreferrer' : undefined}
-                      sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#ffebee', color: '#d32f2f' }}
+                      sx={{
+                        fontWeight: 500,
+                        fontSize: '0.9rem',
+                        mb: 1,
+                        px: 2,
+                        py: 0.5,
+                        bgcolor: '#ffebee',
+                        color: '#d32f2f',
+                      }}
                     />
                   </Box>
                 )}
@@ -645,8 +963,20 @@ export default function CohortDetail() {
               {/* Si hay más de 1 TA, mostrar los chips de TA en la siguiente línea con wrap */}
               {tas.length > 1 && (
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem', mb: 0.5 }}>
-                    <FiberManualRecordIcon sx={{ color: '#ffebee', fontSize: 16, mr: 0.5 }} /> TA
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '0.7rem',
+                      mb: 0.5,
+                    }}
+                  >
+                    <FiberManualRecordIcon
+                      sx={{ color: '#ffebee', fontSize: 16, mr: 0.5 }}
+                    />{' '}
+                    TA
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {tas.map((t, i) => (
@@ -655,10 +985,22 @@ export default function CohortDetail() {
                         label={t.firstName}
                         clickable={!!t.slackId}
                         component={t.slackId ? 'a' : undefined}
-                        href={t.slackId ? `slack://user?team=T0BFXMWMV&id=${t.slackId}` : undefined}
+                        href={
+                          t.slackId
+                            ? `slack://user?team=T0BFXMWMV&id=${t.slackId}`
+                            : undefined
+                        }
                         target={t.slackId ? '_blank' : undefined}
                         rel={t.slackId ? 'noopener noreferrer' : undefined}
-                        sx={{ fontWeight: 500, fontSize: '0.9rem', mb: 1, px: 2, py: 0.5, bgcolor: '#ffebee', color: '#d32f2f' }}
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: '0.9rem',
+                          mb: 1,
+                          px: 2,
+                          py: 0.5,
+                          bgcolor: '#ffebee',
+                          color: '#d32f2f',
+                        }}
                       />
                     ))}
                   </Box>
@@ -666,8 +1008,6 @@ export default function CohortDetail() {
               )}
             </Box>
           </Grid>
-
-         
         </Grid>
 
         <Divider sx={{ my: 3 }} />
@@ -750,7 +1090,8 @@ export default function CohortDetail() {
 
                 // Helpers para color de %
                 const percentProjects =
-                  student.student.properties?.['% Projects undelivered']?.formula?.number
+                  student.student.properties?.['% Projects undelivered']
+                    ?.formula?.number
                 let colorProjects = 'default'
                 if (typeof percentProjects === 'number') {
                   if (percentProjects >= 30) colorProjects = 'error'
@@ -771,7 +1112,11 @@ export default function CohortDetail() {
                 }
                 return (
                   <TableRow
-                    key={student.student?.id || student.basicInfo?.notion_id || `loading-${index}`}
+                    key={
+                      student.student?.id ||
+                      student.basicInfo?.notion_id ||
+                      `loading-${index}`
+                    }
                     sx={{
                       '&:nth-of-type(odd)': {
                         backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -890,20 +1235,21 @@ export default function CohortDetail() {
                         <TableCell align="center">
                           <Chip
                             label={
-                              student.student.properties?.['Prework Status']?.select
-                                ?.name || 'No definido'
+                              student.student.properties?.['Prework Status']
+                                ?.select?.name || 'No definido'
                             }
                             color={getPreworkStatusColor(
-                              student.student.properties?.['Prework Status']?.select
-                                ?.name
+                              student.student.properties?.['Prework Status']
+                                ?.select?.name
                             )}
                             size="small"
                           />
                         </TableCell>
                         <TableCell align="center">
                           {renderDaysInPrework(
-                            student.student.properties?.['Days in prework status']
-                              ?.formula?.number || 0
+                            student.student.properties?.[
+                              'Days in prework status'
+                            ]?.formula?.number || 0
                           )}
                         </TableCell>
                       </>
@@ -915,19 +1261,34 @@ export default function CohortDetail() {
                           type="number"
                           size="small"
                           value={
-                            editingAbsences[student.student?.id || student.basicInfo?.notion_id] !== undefined
-                              ? editingAbsences[student.student?.id || student.basicInfo?.notion_id]
+                            editingAbsences[
+                              student.student?.id ||
+                                student.basicInfo?.notion_id
+                            ] !== undefined
+                              ? editingAbsences[
+                                  student.student?.id ||
+                                    student.basicInfo?.notion_id
+                                ]
                               : student.basicInfo?.absences || 0
                           }
                           onChange={(e) => {
                             e.stopPropagation()
-                            handleAbsencesChange(student.student?.id || student.basicInfo?.notion_id, e.target.value)
+                            handleAbsencesChange(
+                              student.student?.id ||
+                                student.basicInfo?.notion_id,
+                              e.target.value
+                            )
                           }}
                           inputProps={{
                             min: 0,
                             style: { width: 60, textAlign: 'center' },
                           }}
-                          disabled={savingAbsences[student.student?.id || student.basicInfo?.notion_id]}
+                          disabled={
+                            savingAbsences[
+                              student.student?.id ||
+                                student.basicInfo?.notion_id
+                            ]
+                          }
                         />
                       ) : (
                         renderNumber(student.basicInfo?.absences || 0)
@@ -939,9 +1300,14 @@ export default function CohortDetail() {
             </TableBody>
           </Table>
         </TableContainer>
-        
+
         {loadingMoreStudents && (
-          <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            mt={2}
+          >
             <CircularProgress size={20} sx={{ mr: 1 }} />
             <Typography variant="body2" color="text.secondary">
               Cargando más estudiantes...
