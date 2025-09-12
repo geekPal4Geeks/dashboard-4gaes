@@ -11,7 +11,8 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    // El backend espera formato "Token <token>" (consistente con otros servicios)
+    config.headers.Authorization = `Token ${token}`
   }
   return config
 })
@@ -28,7 +29,7 @@ export const getCurrentMentorNpsData = async () => {
   } catch (error) {
     console.error('Error al obtener datos NPS del mentor actual:', error)
     throw new Error(
-      error.response?.data?.message || 'Error al obtener datos NPS del mentor'
+      error.response?.data?.error || error.message || 'Error al obtener datos NPS del mentor'
     )
   }
 }
@@ -47,7 +48,7 @@ export const getMentorNpsData = async (mentorId) => {
   } catch (error) {
     console.error('Error al obtener datos NPS del mentor:', error)
     throw new Error(
-      error.response?.data?.message || 'Error al obtener datos NPS del mentor'
+      error.response?.data?.error || error.message || 'Error al obtener datos NPS del mentor'
     )
   }
 }
@@ -177,8 +178,7 @@ export const updateNpsEvaluationSeen = async (evaluationId, seen) => {
   } catch (error) {
     console.error('Error al actualizar estado visto de evaluación NPS:', error)
     throw new Error(
-      error.response?.data?.message ||
-        'Error al actualizar el estado de la evaluación'
+      error.response?.data?.error || error.message || 'Error al actualizar el estado de la evaluación'
     )
   }
 }
