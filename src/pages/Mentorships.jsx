@@ -360,16 +360,12 @@ export default function Mentorships() {
     setSaving(true)
     setError(null)
     try {
-      const formattedOriginalDate = formatReadableDateTime(
-        originalMentorshipDate
-      )
-
       await cancelStudentMentorship(
         cancellationDate,
         cancellationNotes,
         cancellationReason,
         store.userName,
-        formattedOriginalDate,
+        originalMentorshipDate,
         student.id,
         supliedWithOtherStudent,
         sessionType
@@ -447,7 +443,8 @@ export default function Mentorships() {
       const finalMockInterviewComment = `${cancellationIcon} ${mockInterviewComment}`
 
       // Solo enviar notificación si el motivo no es "Reprograma" y hay slackId
-      const shouldNotify = cancellationReason !== 'Reprograma' && 
+      const shouldNotify =
+        cancellationReason !== 'Reprograma' &&
         student.properties?.['Slack ID']?.rich_text?.[0]?.plain_text
       const slackId =
         student.properties?.['Slack ID']?.rich_text?.[0]?.plain_text || ''
@@ -460,11 +457,13 @@ export default function Mentorships() {
         slackId,
         coachName,
         shouldNotify,
-        notificationData: shouldNotify ? {
-          slackId,
-          coachName,
-          type: 'mock_interview_cancellation',
-        } : null
+        notificationData: shouldNotify
+          ? {
+              slackId,
+              coachName,
+              type: 'mock_interview_cancellation',
+            }
+          : null,
       })
 
       await updateStudentComment(
