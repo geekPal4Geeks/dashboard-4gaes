@@ -44,6 +44,7 @@ import { updateStudentProperty } from '../services/studentService'
 import { parseStudentData, parseCohortData } from '../utils/studentHelpers'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
+import KeepPrivateVisualAlert from '../components/KeepPrivateVisualAlert'
 
 export default function CohortDetail() {
   const { cohortId } = useParams()
@@ -1135,16 +1136,19 @@ export default function CohortDetail() {
                     }}
                   >
                     <TableCell>
-                      <Typography
-                        sx={{
-                          color: 'primary.main',
-                          '&:hover': {
-                            textDecoration: 'underline',
-                          },
-                        }}
-                      >
-                        {student.basicInfo?.full_name || 'Sin nombre'}
-                      </Typography>
+                      <Box>
+                        <Typography
+                          sx={{
+                            color: 'primary.main',
+                            '&:hover': {
+                              textDecoration: 'underline',
+                            },
+                          }}
+                        >
+                          {student.basicInfo?.full_name || 'Sin nombre'}
+                        </Typography>
+                        <KeepPrivateVisualAlert student={student} />
+                      </Box>
                     </TableCell>
                     <TableCell align="center">
                       {student.basicInfo?.slack_id ? (

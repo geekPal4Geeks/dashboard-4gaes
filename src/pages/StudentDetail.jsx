@@ -37,6 +37,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import StudentHeaderBox from '../components/StudentHeaderBox'
 import LatePaymentAlert from '../components/LatePaymentAlert'
 import LatePaymentVisualAlert from '../components/LatePaymentVisualAlert'
+import KeepPrivateVisualAlert from '../components/KeepPrivateVisualAlert'
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props
@@ -51,7 +52,7 @@ function TabPanel(props) {
     >
       {value === index && (
         <Box sx={{ p: 3 }}>
-          <Typography>{children}</Typography>
+          {children}
         </Box>
       )}
     </div>
@@ -261,6 +262,9 @@ export default function StudentDetail({ studentData, cohort }) {
 
           {/* Alerta de pago pendiente (respaldo visual) */}
           <LatePaymentVisualAlert student={student} />
+
+          {/* Alerta de derechos de imagen */}
+          <KeepPrivateVisualAlert student={student} />
 
           <Box
             sx={{
