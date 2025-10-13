@@ -1,10 +1,11 @@
 export const parseStudentData = (zapierData) => {
   if (!zapierData) return []
 
-  // Dividir por cada estudiante (separados por coma)
-  const studentsData = zapierData.split(',').filter(Boolean)
+  // Dividir por cada estudiante (separados por coma) - método más robusto
+  // El problema es que hay comas dentro de los valores, necesitamos dividir por "notion_id:" que es único
+  const studentsData = zapierData.split(/,(?=notion_id:)/).filter(Boolean)
 
-  return studentsData
+  const result = studentsData
     .map((studentStr) => {
       // Dividir cada propiedad del estudiante (separadas por |)
       const properties = studentStr.split('|').reduce((acc, prop) => {
@@ -13,6 +14,18 @@ export const parseStudentData = (zapierData) => {
         return acc
       }, {})
 
+
+      // Función helper para parsear valores booleanos de manera más robusta
+      const parseBoolean = (value) => {
+        if (value === undefined || value === null) return false
+        if (typeof value === 'boolean') return value
+        if (typeof value === 'string') {
+          const lowerValue = value.toLowerCase().trim()
+          return lowerValue === 'true' || lowerValue === '1' || lowerValue === 'yes'
+        }
+        return false
+      }
+
       return {
         notion_id: properties.notion_id,
         full_name: properties.full_name,
@@ -20,7 +33,8 @@ export const parseStudentData = (zapierData) => {
         slack_id: properties.slack_id,
         absences: parseInt(properties.absences) || 0,
         pending_projects: parseInt(properties.pending_projects) || 0,
-        is_in_academic_recovery: properties.is_in_academic_recovery === 'true',
+        is_in_academic_recovery: parseBoolean(properties.is_in_academic_recovery),
+        keep_private: parseBoolean(properties.keep_private),
       }
     })
     .filter(
