@@ -1,11 +1,12 @@
 export const parseStudentData = (zapierData) => {
-  if (!zapierData) return []
+  try {
+    if (!zapierData) return []
 
-  // Dividir por cada estudiante (separados por coma) - método más robusto
-  // El problema es que hay comas dentro de los valores, necesitamos dividir por "notion_id:" que es único
-  const studentsData = zapierData.split(/,(?=notion_id:)/).filter(Boolean)
+    // Dividir por cada estudiante (separados por coma) - método más robusto
+    // El problema es que hay comas dentro de los valores, necesitamos dividir por "notion_id:" que es único
+    const studentsData = zapierData.split(/,(?=notion_id:)/).filter(Boolean)
 
-  const result = studentsData
+    const result = studentsData
     .map((studentStr) => {
       // Dividir cada propiedad del estudiante (separadas por |)
       const properties = studentStr.split('|').reduce((acc, prop) => {
@@ -44,6 +45,12 @@ export const parseStudentData = (zapierData) => {
         student.full_name.trim() !== '' &&
         student.full_name !== 'Sin nombre'
     )
+    
+    return result
+  } catch (error) {
+    console.error('Error in parseStudentData:', error)
+    return []
+  }
 }
 
 // Helper para generar la clave interna consistente
