@@ -2,15 +2,9 @@ export const parseStudentData = (zapierData) => {
   try {
     if (!zapierData) return []
 
-    // Debug temporal para ver qué está pasando
-    console.log('parseStudentData called with:', zapierData?.substring(0, 100) + '...')
-
     // Dividir por cada estudiante (separados por coma) - método más robusto
     // El problema es que hay comas dentro de los valores, necesitamos dividir por "notion_id:" que es único
     const studentsData = zapierData.split(/,(?=notion_id:)/).filter(Boolean)
-    
-    console.log('studentsData length:', studentsData.length)
-    console.log('first student:', studentsData[0]?.substring(0, 50) + '...')
 
     const result = studentsData
     .map((studentStr) => {
@@ -52,11 +46,9 @@ export const parseStudentData = (zapierData) => {
         student.full_name !== 'Sin nombre'
     )
     
-    console.log('parseStudentData result length:', result.length)
     return result
   } catch (error) {
     console.error('Error in parseStudentData:', error)
-    console.error('zapierData:', zapierData)
     return []
   }
 }
