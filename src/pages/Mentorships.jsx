@@ -639,6 +639,7 @@ export default function Mentorships() {
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 fullWidth
+                required
               />
               <Button
                 variant="contained"
@@ -752,6 +753,7 @@ export default function Mentorships() {
                         onChange={(e) => setFeedback(e.target.value)}
                         disabled={saving}
                         sx={{ mb: 2 }}
+                        required
                       />
                       <Button
                         variant="contained"
@@ -814,6 +816,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                     <TextField
                       label="Hora de cancelación"
@@ -826,6 +829,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                   </Box>
                   {/* Campo Fecha y hora de mentoría */}
@@ -850,6 +854,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                     <TextField
                       label="Hora de sesión original"
@@ -864,6 +869,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                   </Box>
                   {/* Campo Motivo de reprogramación */}
@@ -873,6 +879,7 @@ export default function Mentorships() {
                     fullWidth
                     value={cancellationReason}
                     onChange={handleCancellationReasonChange}
+                    required
                   >
                     {cancellationReasons.map((reason) => (
                       <MenuItem key={reason} value={reason}>
@@ -903,6 +910,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                       <TextField
                         label="Nueva hora de la sesión"
@@ -917,6 +925,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                     </Box>
                   )}
@@ -1010,6 +1019,7 @@ export default function Mentorships() {
                       onChange={(e) => setFeedback(e.target.value)}
                       disabled={saving}
                       sx={{ mb: 2 }}
+                      required
                     />
 
                     {/* Botón para guardar */}
@@ -1073,6 +1083,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                       <TextField
                         label="Hora de cancelación"
@@ -1087,6 +1098,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                     </Box>
                     {/* Fecha y hora de mentoría original */}
@@ -1111,6 +1123,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                       <TextField
                         label="Hora de sesión original"
@@ -1125,6 +1138,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                     </Box>
                     {/* Motivo de cancelación */}
@@ -1134,6 +1148,7 @@ export default function Mentorships() {
                       fullWidth
                       value={cancellationReason}
                       onChange={handleCancellationReasonChange}
+                      required
                     >
                       {cancellationReasons.map((reason) => (
                         <MenuItem key={reason} value={reason}>
@@ -1164,6 +1179,7 @@ export default function Mentorships() {
                           }
                           InputLabelProps={{ shrink: true }}
                           fullWidth
+                          required
                         />
                         <TextField
                           label="Nueva hora de la sesión"
@@ -1178,6 +1194,7 @@ export default function Mentorships() {
                           }
                           InputLabelProps={{ shrink: true }}
                           fullWidth
+                          required
                         />
                       </Box>
                     )}
@@ -1253,6 +1270,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                     <TextField
                       label="Hora de cancelación"
@@ -1265,6 +1283,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                   </Box>
                   <Box
@@ -1288,6 +1307,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                     <TextField
                       label="Hora de sesión original"
@@ -1302,6 +1322,7 @@ export default function Mentorships() {
                       }
                       InputLabelProps={{ shrink: true }}
                       fullWidth
+                      required
                     />
                   </Box>
                   <TextField
@@ -1310,6 +1331,7 @@ export default function Mentorships() {
                     fullWidth
                     value={cancellationReason}
                     onChange={handleCancellationReasonChange}
+                    required
                   >
                     {cancellationReasons.map((reason) => (
                       <MenuItem key={reason} value={reason}>
@@ -1339,6 +1361,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                       <TextField
                         label="Nueva hora de la sesión"
@@ -1353,6 +1376,7 @@ export default function Mentorships() {
                         }
                         InputLabelProps={{ shrink: true }}
                         fullWidth
+                        required
                       />
                     </Box>
                   )}
