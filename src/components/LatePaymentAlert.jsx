@@ -86,11 +86,9 @@ const LatePaymentAlert = ({ student, isVisible = false }) => {
       },
     })
       .then((result) => {
-        console.log('Alerta cerrada:', result)
         // Force close si el modal sigue visible
         setTimeout(() => {
           if (Swal.isVisible()) {
-            console.log('Forzando cierre del modal...')
             Swal.close()
             const swalContainer = document.querySelector('.swal2-container')
             if (swalContainer) {
@@ -113,12 +111,9 @@ const LatePaymentAlert = ({ student, isVisible = false }) => {
 
           // Forzar un reflow
           document.body.offsetHeight
-
-          console.log('Scroll restaurado forzadamente')
         }, 200)
       })
       .catch((error) => {
-        console.error('Error al mostrar la alerta:', error)
         setIsAlertShown(false)
       })
   }

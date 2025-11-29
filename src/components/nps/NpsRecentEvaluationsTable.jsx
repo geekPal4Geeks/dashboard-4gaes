@@ -85,8 +85,6 @@ export default function NpsRecentEvaluationsTable({
         onEvaluationUpdate(evaluationId, newSeenValue)
       }
     } catch (error) {
-      console.error('Error al actualizar estado visto:', error)
-
       // Revertir el cambio si falla
       setLocalSeenState((prev) => ({
         ...prev,
@@ -201,7 +199,6 @@ export default function NpsRecentEvaluationsTable({
               const status = evaluation.status || 'Completada'
               const evaluationId = evaluation.npsId
               const seen = getCurrentSeenState(evaluation)
-              console.log(evaluation)
 
               return (
                 <TableRow key={index} hover>
