@@ -948,6 +948,7 @@ export default function Mentorships() {
                     value={cancellationNotes}
                     onChange={handleCancellationNotesChange}
                     sx={{ mb: 2 }}
+                    required
                   />
                   {/* Campo Mentor (Autocompletado) */}
                   {/*<Typography variant="body1">
@@ -1216,6 +1217,7 @@ export default function Mentorships() {
                       value={cancellationNotes}
                       onChange={handleCancellationNotesChange}
                       sx={{ mb: 2 }}
+                      required
                     />
                   </Box>
                   <Button
@@ -1389,6 +1391,7 @@ export default function Mentorships() {
                     value={cancellationNotes}
                     onChange={handleCancellationNotesChange}
                     sx={{ mb: 2 }}
+                    required
                   />
                 </Box>
                 <Button
