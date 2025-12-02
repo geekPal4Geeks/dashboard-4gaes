@@ -25,7 +25,7 @@ import {
   requestMentorshipReview,
 } from '../../services/mentorMentorshipsService'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
-import CloseIcon from '@mui/icons-material/Close'
+// import CloseIcon from '@mui/icons-material/Close'
 import Swal from 'sweetalert2'
 
 export default function MentorshipsList({ mentorships, selectedMonth }) {
@@ -190,9 +190,9 @@ export default function MentorshipsList({ mentorships, selectedMonth }) {
               </TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Duración total</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Estado</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="center">
+              {/* <TableCell sx={{ fontWeight: 'bold' }} align="center">
                 Solicitud de revisión
-              </TableCell>
+              </TableCell> */}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -211,7 +211,7 @@ export default function MentorshipsList({ mentorships, selectedMonth }) {
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       {mentorship.student}
-                      {isCancelled && (
+                      {/* {isCancelled && (
                         <Tooltip
                           title="Mentoría cancelada o reprogramada"
                           arrow
@@ -229,7 +229,7 @@ export default function MentorshipsList({ mentorships, selectedMonth }) {
                             <CloseIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                      )}
+                      )} */}
                     </Box>
                   </TableCell>
                   <TableCell>
@@ -269,14 +269,16 @@ export default function MentorshipsList({ mentorships, selectedMonth }) {
                           fontWeight: 'bold',
                         }}
                       />
-                      <Tooltip title={tooltipText} arrow>
-                        <IconButton size="small" sx={{ p: 0.5 }}>
-                          <HelpOutlineIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {isCancelled && (
+                        <Tooltip title={tooltipText} arrow>
+                          <IconButton size="small" sx={{ p: 0.5 }}>
+                            <HelpOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </Box>
                   </TableCell>
-                  <TableCell align="center">
+                  {/* <TableCell align="center">
                     {reviewableStatuses.includes(mentorship.status) &&
                       mentorship.canRequestReview && (
                         <Box
@@ -305,7 +307,7 @@ export default function MentorshipsList({ mentorships, selectedMonth }) {
                           )}
                         </Box>
                       )}
-                  </TableCell>
+                  </TableCell> */}
                 </TableRow>
               )
             })}

@@ -701,7 +701,7 @@ export default function Profile() {
         <Paper sx={{ p: 2, mb: 3 }}>
           <Box display="flex" alignItems="center" gap={2}>
             <Typography variant="body1" fontWeight="medium">
-              Tipo de plazo:
+              Tipo de período:
             </Typography>
             <FormControl size="small">
               <RadioGroup
@@ -712,60 +712,44 @@ export default function Profile() {
                 <FormControlLabel
                   value="academic"
                   control={<Radio size="small" />}
-                  label="Plazo Académico"
+                  label={
+                    <Box display="flex" alignItems="center" gap={0.5}>
+                      Período Académico
+                      <Tooltip
+                        title={
+                          <Box>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                              La semana de corte de mes del mes anterior hasta
+                              la semana de corte del mes en curso
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontStyle: 'italic' }}
+                            >
+                              Corresponde para quienes cobran por nómina.
+                            </Typography>
+                          </Box>
+                        }
+                        arrow
+                        placement="right"
+                      >
+                        <IconButton
+                          size="small"
+                          sx={{ color: 'primary.main', p: 0.25 }}
+                        >
+                          <Info fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  }
                 />
                 <FormControlLabel
                   value="monthly"
                   control={<Radio size="small" />}
-                  label="Plazo Mensual"
+                  label="Mes calendario"
                 />
               </RadioGroup>
             </FormControl>
-            <Tooltip
-              title={
-                <Box>
-                  <Typography variant="body2" fontWeight="bold" gutterBottom>
-                    Plazo Académico:
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    Del lunes anterior al último viernes del mes anterior hasta
-                    el lunes anterior al último viernes del mes actual.
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ mb: 2, fontStyle: 'italic' }}
-                  >
-                    Corresponde para quienes cobran por nómina.
-                  </Typography>
-                  <Typography variant="body2" fontWeight="bold" gutterBottom>
-                    Plazo Mensual:
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    Del primer día al último día del mes calendario (del 1 al
-                    último día del mes).
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ mb: 2, fontStyle: 'italic' }}
-                  >
-                    Corresponde para quienes facturan o generan recibos.
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{ mt: 1, fontStyle: 'italic' }}
-                  >
-                    Cualquier duda consulta con administración cual es el plazo
-                    que debes revisar.
-                  </Typography>
-                </Box>
-              }
-              arrow
-              placement="right"
-            >
-              <IconButton size="small" sx={{ color: 'primary.main' }}>
-                <Info fontSize="small" />
-              </IconButton>
-            </Tooltip>
           </Box>
         </Paper>
 
