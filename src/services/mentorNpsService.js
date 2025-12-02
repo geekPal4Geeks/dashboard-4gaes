@@ -23,11 +23,9 @@ apiClient.interceptors.request.use((config) => {
  */
 export const getCurrentMentorNpsData = async () => {
   try {
-    console.log('🔄 Enviando petición a:', `${API_URL}/mentor-nps`)
     const response = await apiClient.post(`${API_URL}/mentor-nps`, {})
     return response.data
   } catch (error) {
-    console.error('Error al obtener datos NPS del mentor actual:', error)
     throw new Error(
       error.response?.data?.error || error.message || 'Error al obtener datos NPS del mentor'
     )
@@ -46,7 +44,6 @@ export const getMentorNpsData = async (mentorId) => {
     })
     return response.data
   } catch (error) {
-    console.error('Error al obtener datos NPS del mentor:', error)
     throw new Error(
       error.response?.data?.error || error.message || 'Error al obtener datos NPS del mentor'
     )
@@ -176,7 +173,6 @@ export const updateNpsEvaluationSeen = async (evaluationId, seen) => {
     )
     return response.data
   } catch (error) {
-    console.error('Error al actualizar estado visto de evaluación NPS:', error)
     throw new Error(
       error.response?.data?.error || error.message || 'Error al actualizar el estado de la evaluación'
     )
