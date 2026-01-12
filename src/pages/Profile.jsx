@@ -144,14 +144,6 @@ export default function Profile() {
       // Obtener el nombre del mentor de las mentorías realizadas (fuente confiable)
       const currentMentorName = mentorshipsData.mentorName
 
-      // Validar que las canceladas pertenezcan al mentor actual
-      // Solo incluir canceladas si el mentorName coincide con el mentor actual
-      const isValidCancelledData =
-        cancelledData?.mentorName &&
-        currentMentorName &&
-        cancelledData.mentorName.trim().toLowerCase() ===
-          currentMentorName.trim().toLowerCase()
-
       // Normalizar servicio de canceladas (Mock interview -> Mock Interview)
       const normalizeService = (service) => {
         if (!service) return service
@@ -161,9 +153,21 @@ export default function Profile() {
         return service
       }
 
-      // Mapear canceladas a formato compatible SOLO si pertenecen al mentor actual
+      // VALIDACIÓN PRINCIPAL: Solo incluir canceladas si el mentorName del objeto cancelledData
+      // coincide EXACTAMENTE con el mentor actual. Esto previene mostrar canceladas de otros mentores
+      // cuando el backend no filtra correctamente.
+      const cancelledDataMentorName = cancelledData?.mentorName
+      const isValidCancelledData =
+        currentMentorName &&
+        cancelledDataMentorName &&
+        cancelledDataMentorName.trim().toLowerCase() ===
+          currentMentorName.trim().toLowerCase()
+
+      // Si el mentorName no coincide, no incluir ninguna cancelada (por seguridad)
+      // Esto es especialmente importante cuando un mentor no tiene canceladas propias
+      // pero el backend devuelve canceladas de otros mentores
       const mappedCancelled = isValidCancelledData
-        ? cancelledData.cancelledMentorships?.map((cancelled) => ({
+        ? (cancelledData.cancelledMentorships || []).map((cancelled) => ({
             id: cancelled.id,
             student: cancelled.student,
             service: normalizeService(cancelled.service),
@@ -177,19 +181,21 @@ export default function Profile() {
             cancellationDate: cancelled.cancellationDate,
             cancellationReason: cancelled.cancellationReason,
             notes: cancelled.notes,
-          })) || []
+          }))
         : []
 
-      // Si hay canceladas pero no pertenecen al mentor, loguear advertencia
+      // Log de advertencia si se detectan canceladas que no pertenecen al mentor
       if (
         cancelledData?.cancelledMentorships?.length > 0 &&
         !isValidCancelledData
       ) {
         console.warn(
-          `Se encontraron ${cancelledData.cancelledMentorships.length} mentorías canceladas, pero no pertenecen al mentor actual.`,
+          `⚠️ Se detectaron ${cancelledData.cancelledMentorships.length} mentorías canceladas que no pertenecen al mentor actual. No se incluirán en la lista.`,
           {
             currentMentor: currentMentorName,
-            cancelledDataMentor: cancelledData?.mentorName,
+            cancelledDataMentor: cancelledDataMentorName,
+            motivo:
+              'El mentorName del objeto cancelledData no coincide con el mentor actual',
           }
         )
       }
