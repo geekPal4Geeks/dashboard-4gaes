@@ -425,7 +425,8 @@ export default function Mentorships() {
     setSaving(true)
     setError(null)
     try {
-      let finalMockInterviewComment
+      const cancellationIcon = cancellationReason === 'Reprograma' ? '🟠' : '🔴'
+      let finalMockInterviewComment = `${cancellationIcon} Cancelación Mock Interview:\nMotivo: ${cancellationReason}`
 
       if (cancellationReason === 'Reprograma') {
         const formattedCancellationDate =
@@ -435,19 +436,11 @@ export default function Mentorships() {
         const formattedOriginalDate =
           formatReadableDateTime(originalMentorshipDate)
 
-        finalMockInterviewComment = `🟠 Motivo: Reprograma (${formattedCancellationDate})\nNueva fecha: ${formattedRescheduledDate}\nAnterior: ${formattedOriginalDate}`
+        finalMockInterviewComment += ` (${formattedCancellationDate})\nNueva fecha: ${formattedRescheduledDate}\nAnterior: ${formattedOriginalDate}`
+      }
 
-        if (cancellationNotes.trim() !== '') {
-          finalMockInterviewComment += `\nNotas: ${cancellationNotes.trim()}`
-        }
-      } else {
-        let mockInterviewComment = `Cancelación Mock Interview:\nMotivo: ${cancellationReason}`
-
-        if (cancellationNotes.trim() !== '') {
-          mockInterviewComment += `\nNotas: ${cancellationNotes.trim()}`
-        }
-
-        finalMockInterviewComment = `🔴 ${mockInterviewComment}`
+      if (cancellationNotes.trim() !== '') {
+        finalMockInterviewComment += `\nNotas: ${cancellationNotes.trim()}`
       }
 
       // Solo enviar notificación si el motivo no es "Reprograma" y hay slackId
