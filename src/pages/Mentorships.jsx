@@ -451,32 +451,19 @@ export default function Mentorships() {
       const coachName =
         student.properties?.['GeekFORCE Coach']?.select?.name ||
         'Coach de Carreras'
-
-      console.log('Debug Mock Interview Cancellation:', {
-        cancellationReason,
-        slackId,
-        coachName,
-        shouldNotify,
-        notificationData: shouldNotify
-          ? {
-              slackId,
-              coachName,
-              type: 'mock_interview_cancellation',
-            }
-          : null,
-      })
+      const notificationData = shouldNotify
+        ? {
+            slackId,
+            coachName,
+            type: 'mock_interview_cancellation',
+          }
+        : null
 
       await updateStudentComment(
         student.id,
         finalMockInterviewComment,
         store.userName,
-        shouldNotify
-          ? {
-              slackId,
-              coachName,
-              type: 'mock_interview_cancellation',
-            }
-          : null
+        notificationData
       )
 
       // Llamar a cancelStudentMentorship para registrar la cancelación en la base de datos
