@@ -23,7 +23,11 @@ export default function Courses() {
   const [error, setError] = useState(null)
   const navigate = useNavigate()
 
+  const activeAcademyId = store.activeAcademy?.id
+
   useEffect(() => {
+    if (!activeAcademyId) return
+
     const fetchCohorts = async () => {
       try {
         const token = localStorage.getItem('token')
@@ -32,16 +36,14 @@ export default function Courses() {
           return
         }
 
-        // Limpiar estados al inicio
         setCohorts([])
         setLoadingCohorts([])
         setLoading(true)
         setError(null)
 
-        // Usar el nuevo servicio optimizado que nos notifica progresivamente
         const activeCohorts = await getActiveCohorts(token, {
+          academyId: activeAcademyId,
           onProgress: (newCohorts, pendingCohorts) => {
-            // Actualizar cohorts completados evitando duplicados
             setCohorts((prev) => {
               const existingIds = new Set(prev.map((c) => c.cohort?.id))
               const uniqueNewCohorts = newCohorts.filter(
@@ -49,9 +51,7 @@ export default function Courses() {
               )
               return [...prev, ...uniqueNewCohorts]
             })
-            // Actualizar cohorts que están cargando
             setLoadingCohorts(pendingCohorts)
-            // Ya no estamos en loading inicial si tenemos al menos uno
             if (newCohorts.length > 0) {
               setLoading(false)
               setLoadingMoreCohorts(pendingCohorts.length > 0)
@@ -59,7 +59,6 @@ export default function Courses() {
           },
         })
 
-        // Limpiar estados de carga al final
         setLoadingCohorts([])
         setLoadingMoreCohorts(false)
       } catch (err) {
@@ -71,7 +70,7 @@ export default function Courses() {
     }
 
     fetchCohorts()
-  }, [navigate])
+  }, [navigate, activeAcademyId])
 
   return (
     <Container maxWidth="lg">

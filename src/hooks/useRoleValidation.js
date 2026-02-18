@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import useGlobalReducer from './useGlobalReducer';
 import { getUserMe } from '../services/authService';
+import { ALLOWED_ACADEMIES } from '../store';
 
 const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager', 'career_support'];
 
@@ -9,7 +10,6 @@ export function useRoleValidation({ watch = false } = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Función para validar el rol en tiempo real
   const validateRole = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -23,7 +23,7 @@ export function useRoleValidation({ watch = false } = {}) {
     try {
       const user = await getUserMe(token);
       const roleObj = user.roles.find(
-        r => r.academy && r.academy.id === 6 && allowedRoles.includes(r.role)
+        r => r.academy && ALLOWED_ACADEMIES.includes(r.academy.id) && allowedRoles.includes(r.role)
       );
       const role = roleObj ? roleObj.role : 'spy';
       const userName = user.first_name + ' ' + user.last_name;
@@ -48,7 +48,6 @@ export function useRoleValidation({ watch = false } = {}) {
     }
   }, [dispatch]);
 
-  // Watch: si el rol cambia, vuelve a validar
   useEffect(() => {
     if (watch && store.userRole) {
       validateRole();

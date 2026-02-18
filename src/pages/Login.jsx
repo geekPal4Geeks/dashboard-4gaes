@@ -172,7 +172,7 @@ export default function Login() {
                     rel="noopener"
                     sx={{ color: '#fff', textDecoration: 'underline', fontWeight: 500 }}
                 >
-                    4Geeks Academy Spain
+                    4Geeks Academy Iberoamérica
                 </Link>
             </Box>
         </Box>
