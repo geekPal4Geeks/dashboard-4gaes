@@ -5,8 +5,16 @@ import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
+import FormControl from '@mui/material/FormControl'
 import logo from '../assets/logo-4geeks.ico'
 import AccountCircle from '@mui/icons-material/AccountCircle'
+
+const ACADEMY_LABELS = {
+  6: 'Spain',
+  7: 'Latam',
+}
 
 export const Navbar = () => {
   const navigate = useNavigate()
@@ -18,6 +26,15 @@ export const Navbar = () => {
     role === 'academy_coordinator' || role === 'country_manager'
 
   const canSeeProfile = role === 'teacher' || role === 'assistant'
+
+  const hasMultipleAcademies = store.userAcademies?.length > 1
+
+  const handleAcademyChange = (e) => {
+    const selected = store.userAcademies.find(a => a.id === e.target.value)
+    if (selected) {
+      dispatch({ type: 'set_active_academy', payload: selected })
+    }
+  }
 
   const handleLogout = () => {
     localStorage.clear()
@@ -50,8 +67,24 @@ export const Navbar = () => {
             to="/home"
             sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 700 }}
           >
-            4Geeks Spain Dashboard
+            4Geeks Iberoamérica
           </Typography>
+          {hasMultipleAcademies && store.activeAcademy && (
+            <FormControl size="small" sx={{ ml: 2, minWidth: 120 }}>
+              <Select
+                value={store.activeAcademy.id}
+                onChange={handleAcademyChange}
+                variant="outlined"
+                sx={{ fontSize: 14, fontWeight: 500 }}
+              >
+                {store.userAcademies.map((academy) => (
+                  <MenuItem key={academy.id} value={academy.id}>
+                    {ACADEMY_LABELS[academy.id] || academy.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </Box>
         <Box>
           <Button

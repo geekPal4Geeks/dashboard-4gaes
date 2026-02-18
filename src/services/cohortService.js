@@ -8,7 +8,7 @@ const EXCLUDED_COHORTS = [
 const API_URL = import.meta.env.VITE_4GEEKS_API_URL
 
 export async function getActiveCohorts(token, options = {}) {
-  const { onProgress } = options;
+  const { onProgress, academyId } = options;
   
   const resp = await fetch(
     `${API_URL}/admissions/user/me`,
@@ -32,7 +32,7 @@ export async function getActiveCohorts(token, options = {}) {
     (cohort) =>
       activeStages.includes(cohort.cohort.stage) &&
       allowedRoles.includes(cohort.role) 
-      && cohort.cohort?.academy?.id === 6
+      && cohort.cohort?.academy?.id === academyId
   )
 
   // Luego filtramos las cohortes excluidas
