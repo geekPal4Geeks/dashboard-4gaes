@@ -23,13 +23,15 @@ apiClient.interceptors.request.use((config) => {
  * @returns {Promise<Object>} Datos de mentorías del mentor
  */
 export const getCurrentMentorMentorshipsData = async (
-  periodType = 'academic'
+  periodType = 'academic',
+  { signal } = {}
 ) => {
   try {
     const response = await apiClient.get(`${API_URL}/mentor/my-mentorships`, {
       params: {
         periodType,
       },
+      signal,
     })
     return response.data
   } catch (error) {
@@ -69,7 +71,8 @@ export const getMentorMentorshipsData = async (mentorId) => {
  * @returns {Promise<Object>} Datos de mentorías canceladas del mentor
  */
 export const getCurrentMentorCancelledMentorshipsData = async (
-  periodType = 'academic'
+  periodType = 'academic',
+  { signal } = {}
 ) => {
   try {
     const token = localStorage.getItem('token')
@@ -85,6 +88,7 @@ export const getCurrentMentorCancelledMentorshipsData = async (
           Authorization: `Bearer ${token}`,
         },
         timeout: 30000,
+        signal,
       }
     )
 

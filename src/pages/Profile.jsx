@@ -116,7 +116,7 @@ export default function Profile() {
   }
 
   // Cargar datos de mentorías
-  const loadMentorshipsData = async () => {
+  const loadMentorshipsData = async (signal) => {
     try {
       setMentorshipsLoading(true)
       setMentorshipsError(null)
@@ -126,12 +126,13 @@ export default function Profile() {
 
       // Cargar ambos endpoints en paralelo con el mismo periodType
       const [mentorshipsData, cancelledData] = await Promise.all([
-        getCurrentMentorMentorshipsData(periodType).catch((err) => {
+        getCurrentMentorMentorshipsData(periodType, { signal }).catch((err) => {
+          if (err.name === 'CanceledError' || signal?.aborted) throw err
           console.warn('Error al cargar mentorías realizadas:', err)
           return null
         }),
-        getCurrentMentorCancelledMentorshipsData(periodType).catch((err) => {
-          // Retornar estructura vacía en lugar de null
+        getCurrentMentorCancelledMentorshipsData(periodType, { signal }).catch((err) => {
+          if (err.name === 'CanceledError' || signal?.aborted) throw err
           return { mentorName: null, cancelledMentorships: [] }
         }),
       ])
@@ -200,11 +201,21 @@ export default function Profile() {
         )
       }
 
-      // Combinar mentorías realizadas y canceladas (solo las válidas)
+      // Combinar mentorías realizadas y canceladas, deduplicando por id.
+      // Si un id aparece en ambas listas, la versión cancelada (última) prevalece.
       const allMentorships = [
         ...(mentorshipsData.mentorships || []),
         ...mappedCancelled,
       ]
+      const uniqueMentorships = [
+        ...new Map(allMentorships.map((m) => [m.id, m])).values(),
+      ]
+
+      if (uniqueMentorships.length < allMentorships.length) {
+        console.warn(
+          `⚠️ Se eliminaron ${allMentorships.length - uniqueMentorships.length} mentorías duplicadas (por id).`
+        )
+      }
 
       // Actualizar resúmenes mensuales con canceladas
       const updatedSummaries =
@@ -236,18 +247,21 @@ export default function Profile() {
       const combinedData = {
         // Siempre usar el mentorName de las mentorías realizadas (fuente confiable)
         mentorName: currentMentorName || 'Mentor',
-        mentorships: allMentorships,
+        mentorships: uniqueMentorships,
         monthlySummaries: updatedSummaries,
       }
 
       setMentorshipsData(combinedData)
     } catch (err) {
+      if (err.name === 'CanceledError' || signal?.aborted) return
       console.error('Error al cargar datos de mentorías:', err)
       setMentorshipsError(
         err.message || 'Error al cargar los datos de mentorías'
       )
     } finally {
-      setMentorshipsLoading(false)
+      if (!signal?.aborted) {
+        setMentorshipsLoading(false)
+      }
     }
   }
 
@@ -258,9 +272,12 @@ export default function Profile() {
 
   // Cargar datos de mentorías cuando se cambia al tab o al tipo de periodo
   useEffect(() => {
-    if (tabValue === 1) {
-      loadMentorshipsData()
-    }
+    if (tabValue !== 1) return
+
+    const abortController = new AbortController()
+    loadMentorshipsData(abortController.signal)
+
+    return () => abortController.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabValue, periodType])
 
