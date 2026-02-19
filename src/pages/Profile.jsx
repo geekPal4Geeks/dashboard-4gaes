@@ -217,30 +217,43 @@ export default function Profile() {
         )
       }
 
-      // Actualizar resúmenes mensuales con canceladas
+      // Recalcular resúmenes mensuales desde uniqueMentorships para evitar
+      // conteos duplicados que pueda traer el API.
       const updatedSummaries =
         mentorshipsData.monthlySummaries?.map((summary) => {
-          const period = summary.month
+          if (!summary.period?.start || !summary.period?.end) {
+            return summary
+          }
 
-          // Contar canceladas para este período
-          const cancelledAPagar = mappedCancelled.filter(
-            (c) => c.period === period && c.status === 'A pagar'
+          const periodStart = new Date(summary.period.start)
+          const periodEnd = new Date(summary.period.end)
+          periodEnd.setHours(23, 59, 59, 999)
+
+          const periodMentorships = uniqueMentorships.filter((m) => {
+            const date = new Date(m.startTime)
+            return m.startTime && date >= periodStart && date <= periodEnd
+          })
+
+          const realizadasAPagar = periodMentorships.filter(
+            (m) => !m.isCancelled && m.status === 'A pagar'
           ).length
 
-          const cancelledNoCorresponden = mappedCancelled.filter(
-            (c) => c.period === period && c.status === 'No corresponde'
+          const noRealizadasAPagar = periodMentorships.filter(
+            (m) =>
+              (m.isCancelled && m.status === 'A pagar') ||
+              (!m.isCancelled && m.status === 'No realizada a pagar')
+          ).length
+
+          const noCorresponden = periodMentorships.filter(
+            (m) => m.status === 'No corresponde'
           ).length
 
           return {
             ...summary,
-            noRealizadasAPagar:
-              (summary.noRealizadasAPagar || 0) + cancelledAPagar,
-            noCorresponden:
-              (summary.noCorresponden || 0) + cancelledNoCorresponden,
-            total:
-              (summary.realizadasAPagar || 0) +
-              (summary.noRealizadasAPagar || 0) +
-              cancelledAPagar,
+            realizadasAPagar,
+            noRealizadasAPagar,
+            noCorresponden,
+            total: realizadasAPagar + noRealizadasAPagar,
           }
         }) || []
 
