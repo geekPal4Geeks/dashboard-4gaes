@@ -391,9 +391,14 @@ export default function StudentDetail({ studentData, cohort }) {
                   )
                 }
 
+                const validAuthors = [
+                  '4Geeks Academy Iberoamérica',
+                  '4Geeks Academy Spain',
+                ]
+
                 const filteredComments = studentComments.filter(
                   (comment) =>
-                    authors[comment.created_by.id] === '4Geeks Academy Iberoamérica'
+                    validAuthors.includes(authors[comment.created_by.id])
                 )
 
                 if (filteredComments.length > 0) {
@@ -446,7 +451,7 @@ export default function StudentDetail({ studentData, cohort }) {
 
                 return (
                   <Typography>
-                    No se han encontrado comentarios de 4Geeks Academy Iberoamérica.
+                    No se han encontrado comentarios.
                   </Typography>
                 )
               })()}
