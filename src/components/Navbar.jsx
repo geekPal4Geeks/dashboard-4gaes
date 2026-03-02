@@ -23,7 +23,9 @@ export const Navbar = () => {
   const role = store.userRole
 
   const canSeeManagement =
-    role === 'academy_coordinator' || role === 'country_manager'
+    role === 'academy_coordinator' ||
+    role === 'country_manager' ||
+    role === 'admin'
 
   const canSeeProfile = role === 'teacher' || role === 'assistant'
 

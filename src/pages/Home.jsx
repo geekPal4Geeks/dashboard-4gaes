@@ -12,7 +12,8 @@ function Home() {
     const { store } = useGlobalReducer();
     const navigate = useNavigate();
     const role = store.userRole;
-    const canSeeManagement = role === 'academy_coordinator' || role === 'country_manager';
+    const canSeeManagement =
+        role === 'academy_coordinator' || role === 'country_manager' || role === 'admin';
     const canSeeProfile = role === 'teacher' || role === 'assistant';
     return (
         <Container maxWidth="lg">

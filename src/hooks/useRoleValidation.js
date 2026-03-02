@@ -3,7 +3,7 @@ import useGlobalReducer from './useGlobalReducer';
 import { getUserMe } from '../services/authService';
 import { ALLOWED_ACADEMIES } from '../store';
 
-const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager', 'career_support'];
+const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager', 'career_support', 'admin'];
 
 export function useRoleValidation({ watch = false } = {}) {
   const { store, dispatch } = useGlobalReducer();
