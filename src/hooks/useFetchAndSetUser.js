@@ -4,7 +4,7 @@ import useGlobalReducer from './useGlobalReducer';
 import { getUserMe } from '../services/authService';
 import { ALLOWED_ACADEMIES } from '../store';
 
-const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager', 'career_support'];
+const allowedRoles = ['teacher', 'assistant', 'academy_coordinator', 'country_manager', 'career_support', 'admin'];
 
 function extractUserAcademies(roles) {
   const seen = new Set();

@@ -110,7 +110,11 @@ export const router = createBrowserRouter(
           element={
             <RequireAuth>
               <ProtectedRoute
-                allowedRoles={['academy_coordinator', 'country_manager']}
+                allowedRoles={[
+                  'academy_coordinator',
+                  'country_manager',
+                  'admin',
+                ]}
               >
                 <LazyRoute Component={CoursesManagement} />
               </ProtectedRoute>
