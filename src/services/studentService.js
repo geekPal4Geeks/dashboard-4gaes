@@ -1,30 +1,37 @@
 import axios from 'axios'
 import Swal from 'sweetalert2'
-
-const API_URL = import.meta.env.VITE_BACKEND_URL
+import { API_URL, getAuthHeaders } from './apiClient'
 
 export const updateStudentComment = async (
   studentId,
   comment,
   userName,
-  notificationData = null
+  notificationData = null,
+  attachments = []
 ) => {
-  const token = localStorage.getItem('token')
   try {
     const commentWithSignature = `${comment}\n\n- ${userName}`
-    const response = await axios.post(
-      `${API_URL}/create-student-comment`,
-      {
-        studentId,
-        comment: commentWithSignature,
-        notificationData,
-      },
-      {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
+    const hasAttachments = Array.isArray(attachments) && attachments.length > 0
+    const payload = hasAttachments
+      ? new FormData()
+      : {
+          studentId,
+          comment: commentWithSignature,
+          notificationData,
+        }
+
+    if (hasAttachments) {
+      payload.append('studentId', studentId)
+      payload.append('comment', commentWithSignature)
+      if (notificationData) {
+        payload.append('notificationData', JSON.stringify(notificationData))
       }
-    )
+      attachments.forEach((file) => payload.append('attachments', file))
+    }
+
+    const response = await axios.post(`${API_URL}/create-student-comment`, payload, {
+      headers: getAuthHeaders(),
+    })
     return response.data
   } catch (error) {
     if (error.response && error.response.status === 403) {
@@ -52,7 +59,6 @@ export const updateStudentProperty = async (
   try {
     // Si propertyNameOrProperties es un string, es una sola propiedad
     // Si es un array, son múltiples propiedades
-    const token = localStorage.getItem('token')
     const properties =
       typeof propertyNameOrProperties === 'string'
         ? [{ propertyName: propertyNameOrProperties, propertyValue }]
@@ -65,9 +71,7 @@ export const updateStudentProperty = async (
         properties,
       },
       {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     )
     return response.data
@@ -90,7 +94,6 @@ export const updateStudentProperty = async (
 }
 
 export const findStudentByEmail = async (email) => {
-  const token = localStorage.getItem('token')
   try {
     const response = await axios.post(
       `${API_URL}/search-student-by-email`,
@@ -98,10 +101,9 @@ export const findStudentByEmail = async (email) => {
         email: email,
       },
       {
-        headers: {
+        headers: getAuthHeaders({
           'Content-Type': 'application/json',
-          Authorization: `Token ${token}`,
-        },
+        }),
       }
     )
     return response.data
@@ -138,7 +140,6 @@ export const cancelStudentMentorship = async (
   mentorshipType
 ) => {
   try {
-    const token = localStorage.getItem('token')
     const parseSpanishDateToISO = (dateStr) => {
       const meses = {
         enero: '01',
@@ -202,9 +203,7 @@ export const cancelStudentMentorship = async (
         mentorshipType,
       },
       {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     )
 

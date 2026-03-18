@@ -27,16 +27,16 @@ export default function StudentDetailModal({
   const [comment, setComment] = useState(
     student?.properties?.Comments?.rich_text?.[0]?.plain_text || ''
   )
+  const [attachments, setAttachments] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Limpiar el campo de comentario cuando cambie el estudiante o se abra/cierre el modal
   useEffect(() => {
     setComment(student?.properties?.Comments?.rich_text?.[0]?.plain_text || '')
+    setAttachments([])
     setError(null)
   }, [student, open])
 
-  // Obtener el nombre y Slack ID del Asesor de Prework fuera del JSX
   const preworkAdvisorName =
     student?.properties?.['Prework Advisor']?.select?.name
   const advisorSlackId = preworkAdvisorName
@@ -44,19 +44,19 @@ export default function StudentDetailModal({
     : null
 
   const handleSaveComment = async () => {
-    // Validación: No permitir guardar comentarios vacíos o solo con espacios
-    if (comment.trim() === '') {
-      setError('El comentario no puede estar vacío.')
+    if (comment.trim() === '' && attachments.length === 0) {
+      setError('Debes agregar un comentario o al menos una imagen.')
       return
     }
 
     try {
       setLoading(true)
       setError(null)
-      await updateStudentComment(student.id, comment, store.userName)
-      setComment('') // Limpiar el campo tras guardar
+      await updateStudentComment(student.id, comment, store.userName, null, attachments)
+      setComment('')
+      setAttachments([])
       onClose()
-    } catch (err) {
+    } catch {
       setError('Error al guardar el comentario')
     } finally {
       setLoading(false)
@@ -118,8 +118,8 @@ export default function StudentDetailModal({
             Información del alumno
           </Typography>
           <Typography variant="subtitle1">
-            {student?.properties?.['Información para Dashboard']?.rich_textl ||
-              'No hay información disponible'}
+            {student?.properties?.['Información para Dashboard']?.rich_text?.[0]
+              ?.plain_text || 'No hay información disponible'}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Deja comentarios
@@ -132,6 +132,21 @@ export default function StudentDetailModal({
             placeholder="Agregar un comentario sobre el estudiante..."
             fullWidth
           />
+          <Button component="label" variant="outlined">
+            Adjuntar imágenes
+            <input
+              hidden
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => setAttachments(Array.from(e.target.files || []))}
+            />
+          </Button>
+          {attachments.length > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              {attachments.length} imagen(es) seleccionada(s)
+            </Typography>
+          )}
           {error && (
             <Alert severity="error" sx={{ mt: 1 }}>
               {error}
@@ -147,7 +162,7 @@ export default function StudentDetailModal({
           onClick={handleSaveComment}
           variant="contained"
           color="primary"
-          disabled={loading || comment.trim() === ''}
+          disabled={loading || (comment.trim() === '' && attachments.length === 0)}
         >
           {loading ? <CircularProgress size={24} /> : 'Guardar'}
         </Button>

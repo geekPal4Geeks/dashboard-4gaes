@@ -18,6 +18,7 @@ import {
 import { Star, Visibility } from '@mui/icons-material'
 import {
   formatEvaluationDate,
+  getNpsComments,
   getScoreColor,
   updateNpsEvaluationSeen,
 } from '../../services/mentorNpsService'
@@ -27,49 +28,32 @@ export default function NpsRecentEvaluationsTable({
   evaluations,
   onEvaluationUpdate,
   roleTitle = 'Profesor',
+  readOnly = false,
 }) {
   const [updatingSeen, setUpdatingSeen] = useState({})
   const [localSeenState, setLocalSeenState] = useState({})
   const [selectedEvaluation, setSelectedEvaluation] = useState(null)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
+  const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsByEvaluation, setCommentsByEvaluation] = useState({})
 
-  // Función para determinar si mostrar la columna "Visto"
-  const shouldShowSeenColumn = () => {
-    return roleTitle !== 'Asistente'
-  }
+  const shouldShowSeenColumn = () => roleTitle !== 'Asistente'
 
-  // Inicializar el estado local con los datos de las evaluaciones
   useEffect(() => {
-    if (evaluations && evaluations.length > 0) {
-      const initialSeenState = {}
-      let hasChanges = false
+    if (!evaluations || evaluations.length === 0) return
 
-      evaluations.forEach((evaluation) => {
-        if (evaluation.npsId) {
-          const vistoValue = evaluation.visto ?? false
-
-          // Solo actualizar si el valor es diferente al actual
-          if (localSeenState[evaluation.npsId] !== vistoValue) {
-            initialSeenState[evaluation.npsId] = vistoValue
-            hasChanges = true
-          } else {
-            // Mantener el valor actual si no ha cambiado
-            initialSeenState[evaluation.npsId] =
-              localSeenState[evaluation.npsId]
-          }
-        }
-      })
-
-      // Solo actualizar el estado si hay cambios reales
-      if (hasChanges) {
-        setLocalSeenState(initialSeenState)
+    const initialSeenState = {}
+    evaluations.forEach((evaluation) => {
+      if (evaluation.npsId) {
+        initialSeenState[evaluation.npsId] = evaluation.visto ?? false
       }
-    }
-  }, [evaluations, localSeenState])
+    })
+    setLocalSeenState((prev) => ({ ...initialSeenState, ...prev }))
+  }, [evaluations])
 
-  // Función para manejar el cambio del checkbox con optimistic updates
   const handleSeenChange = async (evaluationId, newSeenValue) => {
-    // Optimistic update - actualizar inmediatamente la UI
+    if (readOnly) return
+
     setLocalSeenState((prev) => ({
       ...prev,
       [evaluationId]: newSeenValue,
@@ -77,53 +61,59 @@ export default function NpsRecentEvaluationsTable({
 
     try {
       setUpdatingSeen((prev) => ({ ...prev, [evaluationId]: true }))
-
       await updateNpsEvaluationSeen(evaluationId, newSeenValue)
-
-      // Notificar al componente padre sobre el cambio exitoso
       if (onEvaluationUpdate) {
         onEvaluationUpdate(evaluationId, newSeenValue)
       }
-    } catch (error) {
-      // Revertir el cambio si falla
+    } catch {
       setLocalSeenState((prev) => ({
         ...prev,
         [evaluationId]: !newSeenValue,
       }))
-
-      // Aquí podrías mostrar un toast o alert de error
     } finally {
       setUpdatingSeen((prev) => ({ ...prev, [evaluationId]: false }))
     }
   }
 
-  // Función para obtener el estado actual del checkbox
   const getCurrentSeenState = (evaluation) => {
     const evaluationId = evaluation.npsId
-
-    // Si hay un estado local, usarlo (para optimistic updates)
     if (localSeenState[evaluationId] !== undefined) {
       return localSeenState[evaluationId]
     }
-
-    // Si no, usar el estado del prop con fallback a false
-    const resultado = evaluation.visto ?? false
-    return resultado
+    return evaluation.visto ?? false
   }
 
-  // Función para abrir el modal de comentarios
-  const handleOpenCommentModal = (evaluation) => {
+  const handleOpenCommentModal = async (evaluation) => {
     setSelectedEvaluation(evaluation)
     setIsCommentModalOpen(true)
+
+    if (commentsByEvaluation[evaluation.npsId]) {
+      return
+    }
+
+    try {
+      setCommentsLoading(true)
+      const comments = await getNpsComments(evaluation.npsId)
+      setCommentsByEvaluation((prev) => ({
+        ...prev,
+        [evaluation.npsId]: comments,
+      }))
+    } catch {
+      setCommentsByEvaluation((prev) => ({
+        ...prev,
+        [evaluation.npsId]: [],
+      }))
+    } finally {
+      setCommentsLoading(false)
+    }
   }
 
-  // Función para cerrar el modal de comentarios
   const handleCloseCommentModal = () => {
     setIsCommentModalOpen(false)
     setSelectedEvaluation(null)
+    setCommentsLoading(false)
   }
 
-  // Función para manejar el cambio de estado visto desde el modal
   const handleSeenChangeFromModal = async (evaluationId, newSeenValue) => {
     await handleSeenChange(evaluationId, newSeenValue)
   }
@@ -136,24 +126,19 @@ export default function NpsRecentEvaluationsTable({
         alignItems="center"
         height="200px"
       >
-        <Typography color="textSecondary">
-          No hay evaluaciones recientes
-        </Typography>
+        <Typography color="text.secondary">No hay evaluaciones recientes</Typography>
       </Box>
     )
   }
 
-  // Limitar a las últimas 10 evaluaciones
   const recentEvaluations = evaluations.slice(0, 10)
 
-  // Función para obtener el color del score
   const getScoreBackgroundColor = (score) => {
     if (score >= 9) return '#4caf5020'
     if (score >= 7) return '#ff980020'
     return '#f4433620'
   }
 
-  // Función para obtener el texto del score
   const getScoreText = (score) => {
     if (score >= 9) return 'Excelente'
     if (score >= 7) return 'Bueno'
@@ -186,7 +171,6 @@ export default function NpsRecentEvaluationsTable({
           </TableHead>
           <TableBody>
             {recentEvaluations.map((evaluation, index) => {
-              // Usar taScore para asistentes, teacherScore para otros roles
               const score =
                 roleTitle === 'Asistente'
                   ? evaluation.taScores || 0
@@ -196,14 +180,13 @@ export default function NpsRecentEvaluationsTable({
                 : 'N/A'
               const cohortName =
                 evaluation.cohortName || evaluation.cohort || 'N/A'
-              const status = evaluation.status || 'Completada'
               const evaluationId = evaluation.npsId
               const seen = getCurrentSeenState(evaluation)
 
               return (
-                <TableRow key={index} hover>
+                <TableRow key={evaluationId || index} hover>
                   <TableCell>
-                    <Typography variant="body2" color="textSecondary">
+                    <Typography variant="body2" color="text.secondary">
                       {date}
                     </Typography>
                   </TableCell>
@@ -256,26 +239,20 @@ export default function NpsRecentEvaluationsTable({
                   </TableCell>
 
                   <TableCell align="center">
-                    {evaluation.comments && evaluation.comments.length > 0 ? (
-                      <Tooltip title="Ver comentarios">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleOpenCommentModal(evaluation)}
-                          sx={{
-                            color: '#1976d2',
-                            '&:hover': {
-                              backgroundColor: '#1976d220',
-                            },
-                          }}
-                        >
-                          <Visibility />
-                        </IconButton>
-                      </Tooltip>
-                    ) : (
-                      <Typography variant="body2" color="textSecondary">
-                        Sin comentarios
-                      </Typography>
-                    )}
+                    <Tooltip title="Ver comentarios">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenCommentModal(evaluation)}
+                        sx={{
+                          color: '#1976d2',
+                          '&:hover': {
+                            backgroundColor: '#1976d220',
+                          },
+                        }}
+                      >
+                        <Visibility />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
 
                   {shouldShowSeenColumn() && (
@@ -285,6 +262,7 @@ export default function NpsRecentEvaluationsTable({
                       ) : (
                         <Checkbox
                           checked={seen}
+                          disabled={readOnly}
                           onChange={(e) =>
                             handleSeenChange(evaluationId, e.target.checked)
                           }
@@ -305,11 +283,15 @@ export default function NpsRecentEvaluationsTable({
         </Table>
       </TableContainer>
 
-      {/* Modal de comentarios */}
       <CommentModal
         open={isCommentModalOpen}
         onClose={handleCloseCommentModal}
         evaluation={selectedEvaluation}
+        comments={
+          selectedEvaluation ? commentsByEvaluation[selectedEvaluation.npsId] || [] : []
+        }
+        loading={commentsLoading}
+        readOnly={readOnly}
         onSeenChange={handleSeenChangeFromModal}
         getCurrentSeenState={getCurrentSeenState}
       />

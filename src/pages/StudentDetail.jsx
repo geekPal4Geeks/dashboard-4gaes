@@ -1,19 +1,14 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-
+import { useEffect, useMemo, useState } from 'react'
 import {
   Box,
   Typography,
   Divider,
-  Link,
   Alert,
   CircularProgress,
   Button,
   TextField,
-  Container,
   Paper,
-  Tooltip,
-  Chip,
   Tabs,
   Tab,
 } from '@mui/material'
@@ -26,18 +21,12 @@ import {
   getNotionUser,
 } from '../services/notionService'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord'
-import {
-  parseCohortData,
-  parseCurrentModuleLabel,
-} from '../utils/studentHelpers'
-import GitHubIcon from '@mui/icons-material/GitHub'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import { parseCohortData, parseCurrentModuleLabel } from '../utils/studentHelpers'
 import StudentHeaderBox from '../components/StudentHeaderBox'
 import LatePaymentAlert from '../components/LatePaymentAlert'
 import LatePaymentVisualAlert from '../components/LatePaymentVisualAlert'
 import KeepPrivateVisualAlert from '../components/KeepPrivateVisualAlert'
+import { canViewCommentImages } from '../constants/permissions'
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props
@@ -50,11 +39,7 @@ function TabPanel(props) {
       aria-labelledby={`simple-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
     </div>
   )
 }
@@ -65,7 +50,6 @@ export default function StudentDetail({ studentData, cohort }) {
   const location = useLocation()
   const { store } = useGlobalReducer()
 
-  // Permitir recibir { student, cohort } como studentData o desde location.state
   const locationStudent = location.state?.student
   const locationCohort = location.state?.cohort
   const initialStudent =
@@ -79,80 +63,67 @@ export default function StudentDetail({ studentData, cohort }) {
   const [localCohort, setLocalCohort] = useState(initialCohort || null)
   const [loading, setLoading] = useState(initialStudent ? false : true)
   const [comment, setComment] = useState('')
+  const [commentImages, setCommentImages] = useState([])
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [tabValue, setTabValue] = useState(0)
   const [studentComments, setStudentComments] = useState([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [authors, setAuthors] = useState({})
 
-  // Obtener el ID del estudiante de la fuente más confiable
   const effectiveStudentId = student?.id || studentId
+  const canSeeImages = canViewCommentImages(store.userRole)
 
   useEffect(() => {
-    // Si studentData es el nuevo formato { student, cohort }
     if (studentData && studentData.student && studentData.cohort) {
       setStudent(studentData.student)
       setLocalCohort(studentData.cohort)
       setLoading(false)
       setComment(
-        studentData.student?.properties?.Comments?.rich_text?.[0]?.plain_text ||
-          ''
+        studentData.student?.properties?.Comments?.rich_text?.[0]?.plain_text || ''
       )
       return
     }
-    // Si es el formato anterior
     if (studentData) {
       setStudent(studentData)
       setLoading(false)
-      setComment(
-        studentData?.properties?.Comments?.rich_text?.[0]?.plain_text || ''
-      )
+      setComment(studentData?.properties?.Comments?.rich_text?.[0]?.plain_text || '')
       return
     }
+
     async function fetchStudent() {
       setLoading(true)
       try {
         const data = await getStudentInfo(effectiveStudentId)
-        // Si el endpoint retorna { student, cohort }
         if (data && data.student && data.cohort) {
           setStudent(data.student)
           setLocalCohort(data.cohort)
-          setComment(
-            data.student?.properties?.Comments?.rich_text?.[0]?.plain_text || ''
-          )
+          setComment(data.student?.properties?.Comments?.rich_text?.[0]?.plain_text || '')
         } else {
           setStudent(data)
-          setComment(
-            data?.properties?.Comments?.rich_text?.[0]?.plain_text || ''
-          )
+          setComment(data?.properties?.Comments?.rich_text?.[0]?.plain_text || '')
         }
-      } catch (err) {
+      } catch {
         setError('No se pudo cargar la información del alumno.')
       } finally {
         setLoading(false)
       }
     }
+
     if (effectiveStudentId) fetchStudent()
   }, [effectiveStudentId, studentData])
 
   useEffect(() => {
     const fetchComments = async () => {
-      if (effectiveStudentId) {
-        console.log('🔄 Fetching comments for student:', effectiveStudentId)
-        setCommentsLoading(true)
-        try {
-          const commentsData = await getStudentComments(effectiveStudentId)
-          setStudentComments(commentsData || [])
-        } catch (err) {
-          console.error('❌ Error fetching comments:', err)
-          setStudentComments([])
-        } finally {
-          setCommentsLoading(false)
-        }
-      } else {
-        console.log('⚠️ No StudentId available for fetching comments')
+      if (!effectiveStudentId) return
+      setCommentsLoading(true)
+      try {
+        const commentsData = await getStudentComments(effectiveStudentId)
+        setStudentComments(commentsData || [])
+      } catch {
+        setStudentComments([])
+      } finally {
+        setCommentsLoading(false)
       }
     }
     fetchComments()
@@ -160,20 +131,17 @@ export default function StudentDetail({ studentData, cohort }) {
 
   useEffect(() => {
     const fetchAuthors = async () => {
-      if (studentComments.length > 0) {
-        const authorIds = [
-          ...new Set(studentComments.map((c) => c.created_by.id)),
-        ]
-        const authorPromises = authorIds.map((id) => getNotionUser(id))
-        const authorResults = await Promise.all(authorPromises)
-        const authorsMap = authorResults.reduce((acc, author) => {
-          if (author) {
-            acc[author.id] = author.name
-          }
-          return acc
-        }, {})
-        setAuthors(authorsMap)
-      }
+      if (studentComments.length === 0) return
+      const authorIds = [...new Set(studentComments.map((c) => c.created_by.id))]
+      const authorPromises = authorIds.map((id) => getNotionUser(id))
+      const authorResults = await Promise.all(authorPromises)
+      const authorsMap = authorResults.reduce((acc, author) => {
+        if (author) {
+          acc[author.id] = author.name
+        }
+        return acc
+      }, {})
+      setAuthors(authorsMap)
     }
     fetchAuthors()
   }, [studentComments])
@@ -204,24 +172,39 @@ export default function StudentDetail({ studentData, cohort }) {
   }
 
   const handleSaveComment = async () => {
-    if (comment.trim() === '') {
-      setError('El comentario no puede estar vacío.')
+    if (comment.trim() === '' && commentImages.length === 0) {
+      setError('Debes agregar un comentario o al menos una imagen.')
       return
     }
     try {
       setSaving(true)
       setError(null)
-      await updateStudentComment(student.id, comment, store.userName)
+      await updateStudentComment(
+        student.id,
+        comment,
+        store.userName,
+        null,
+        commentImages
+      )
       setComment('')
-      navigate(-1) // Vuelve a la página anterior
-    } catch (err) {
+      setCommentImages([])
+      const commentsData = await getStudentComments(student.id)
+      setStudentComments(commentsData || [])
+    } catch {
       setError('Error al guardar el comentario')
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading)
+  const filteredComments = useMemo(() => {
+    return studentComments.filter(
+      (commentItem) =>
+        authors[commentItem.created_by.id] === '4Geeks Academy Iberoamérica'
+    )
+  }, [authors, studentComments])
+
+  if (loading) {
     return (
       <Box
         display="flex"
@@ -232,12 +215,12 @@ export default function StudentDetail({ studentData, cohort }) {
         <CircularProgress />
       </Box>
     )
-  if (!student) return <Alert severity="error">No se encontró el alumno.</Alert>
+  }
 
-  const studentEmail = student?.properties?.Email?.email
-  const github = student?.properties?.['Github profile']?.url
+  if (!student) {
+    return <Alert severity="error">No se encontró el alumno.</Alert>
+  }
 
-  // Obtener módulo actual de la cohorte usando util
   const currentModuleArr =
     student?.properties?.['Cohort current module']?.rollup?.array
   const currentModuleLabel = parseCurrentModuleLabel(currentModuleArr)
@@ -258,12 +241,15 @@ export default function StudentDetail({ studentData, cohort }) {
           <StudentHeaderBox
             student={student}
             cohortInfo={localCohort || cohort}
+            mentors={mentors}
+            tas={tas}
+            pm={pm}
+            pmSlackId={pmSlackId}
+            advisorSlackId={advisorSlackId}
+            currentModuleLabel={currentModuleLabel}
           />
 
-          {/* Alerta de pago pendiente (respaldo visual) */}
           <LatePaymentVisualAlert student={student} />
-
-          {/* Alerta de derechos de imagen */}
           <KeepPrivateVisualAlert student={student} />
 
           <Box
@@ -275,23 +261,15 @@ export default function StudentDetail({ studentData, cohort }) {
             }}
           >
             <Divider />
-            <Typography
-              variant="subtitle2"
-              color="text.secondary"
-              sx={{ mt: 2 }}
-            >
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 2 }}>
               Información del alumno
             </Typography>
             <Typography variant="body1" sx={{ mb: 2 }}>
-              {student?.properties?.['Información para Dashboard']
-                ?.rich_text?.[0]?.text?.content ||
+              {student?.properties?.['Información para Dashboard']?.rich_text?.[0]
+                ?.plain_text ||
                 'No hay información disponible de ser necesario contacta al PM'}
             </Typography>
-            <Typography
-              variant="subtitle2"
-              color="text.secondary"
-              sx={{ marginTop: 2 }}
-            >
+            <Typography variant="subtitle2" color="text.secondary" sx={{ marginTop: 2 }}>
               Deja comentarios
             </Typography>
             <TextField
@@ -302,22 +280,36 @@ export default function StudentDetail({ studentData, cohort }) {
               placeholder="Agregar un comentario sobre el estudiante..."
               fullWidth
             />
+            <Button component="label" variant="outlined" sx={{ alignSelf: 'flex-start' }}>
+              Adjuntar imágenes
+              <input
+                hidden
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => setCommentImages(Array.from(e.target.files || []))}
+              />
+            </Button>
+            {commentImages.length > 0 && (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {commentImages.map((file) => (
+                  <Typography key={`${file.name}-${file.size}`} variant="body2" color="text.secondary">
+                    {file.name}
+                  </Typography>
+                ))}
+              </Box>
+            )}
             {error && (
               <Alert severity="error" sx={{ mt: 1 }}>
                 {error}
               </Alert>
             )}
-            <Box
-              display="flex"
-              justifyContent="flex-end"
-              gap={2}
-              sx={{ mb: 2 }}
-            >
+            <Box display="flex" justifyContent="flex-end" gap={2} sx={{ mb: 2 }}>
               <Button
                 onClick={handleSaveComment}
                 variant="contained"
                 color="primary"
-                disabled={saving || comment.trim() === ''}
+                disabled={saving || (comment.trim() === '' && commentImages.length === 0)}
               >
                 {saving ? <CircularProgress size={24} /> : 'Guardar'}
               </Button>
@@ -350,29 +342,23 @@ export default function StudentDetail({ studentData, cohort }) {
                     ¿Por qué hace este curso?
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 1 }}>
-                    {student?.properties?.['Why do this course?']
-                      ?.rich_text?.[0]?.text?.content || 'Se desconoce'}
+                    {student?.properties?.['Why do this course?']?.rich_text?.[0]
+                      ?.text?.content || 'Se desconoce'}
                   </Typography>
                   <Typography variant="subtitle2" color="text.secondary">
                     Área de estudios*
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 1 }}>
-                    {student?.properties?.['Studies area']?.select?.name ||
-                      'Se desconoce'}
+                    {student?.properties?.['Studies area']?.select?.name || 'Se desconoce'}
                   </Typography>
                   <Typography variant="subtitle2" color="text.secondary">
                     Experiencia o conocimientos en programación*
                   </Typography>
                   <Typography variant="body1">
-                    {student?.properties?.[
-                      'Programming Experience or Knowledge'
-                    ]?.rich_text?.[0]?.text?.content || 'Se desconoce'}
+                    {student?.properties?.['Programming Experience or Knowledge']
+                      ?.rich_text?.[0]?.text?.content || 'Se desconoce'}
                   </Typography>
-                  <Typography
-                    sx={{ marginTop: 2, fontSize: '12px' }}
-                    variant="body1"
-                    color="gray"
-                  >
+                  <Typography sx={{ marginTop: 2, fontSize: '12px' }} variant="body1" color="gray">
                     * Previo al ingreso
                   </Typography>
                 </Box>
@@ -382,87 +368,72 @@ export default function StudentDetail({ studentData, cohort }) {
               value={tabValue}
               index={student?.properties?.['Synced?']?.checkbox ? 1 : 0}
             >
-              {(() => {
-                if (commentsLoading) {
-                  return (
-                    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                      <CircularProgress />
-                    </Box>
-                  )
-                }
-
-                const filteredComments = studentComments.filter(
-                  (comment) =>
-                    authors[comment.created_by.id] === '4Geeks Academy Iberoamérica'
-                )
-
-                if (filteredComments.length > 0) {
-                  return filteredComments.map((comment) => (
-                    <Paper
-                      key={comment.id}
-                      sx={{
-                        p: 2,
-                        mb: 2,
-                      }}
-                      elevation={1}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{ whiteSpace: 'pre-wrap' }}
-                      >
-                        {comment.rich_text.map((t) => t.plain_text).join('')}
-                      </Typography>
-                      {comment.attachments &&
-                        comment.attachments.length > 0 && (
-                          <Box sx={{ mt: 1 }}>
-                            {comment.attachments.map((attachment, index) =>
-                              attachment.file?.url ? (
-                                <img
-                                  key={index}
-                                  src={attachment.file.url}
-                                  alt="Comment attachment"
-                                  style={{
-                                    maxWidth: '100%',
-                                    borderRadius: '4px',
-                                    marginTop: '8px',
-                                  }}
-                                />
-                              ) : null
-                            )}
-                          </Box>
+              {commentsLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                  <CircularProgress />
+                </Box>
+              ) : filteredComments.length > 0 ? (
+                filteredComments.map((commentItem) => (
+                  <Paper
+                    key={commentItem.id}
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                    }}
+                    elevation={1}
+                  >
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {commentItem.rich_text.map((t) => t.plain_text).join('')}
+                    </Typography>
+                    {commentItem.attachments && commentItem.attachments.length > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        {canSeeImages ? (
+                          commentItem.attachments.map((attachment, index) =>
+                            attachment.file?.url ? (
+                              <img
+                                key={`${commentItem.id}-${index}`}
+                                src={attachment.file.url}
+                                alt="Comment attachment"
+                                style={{
+                                  maxWidth: '100%',
+                                  borderRadius: '4px',
+                                  marginTop: '8px',
+                                }}
+                              />
+                            ) : null
+                          )
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Adjunto oculto por permisos.
+                          </Typography>
                         )}
-                      <Typography
-                        variant="caption"
-                        color="textSecondary"
-                        sx={{ display: 'block', textAlign: 'right', mt: 1 }}
-                      >
-                        {authors[comment.created_by.id] ||
-                          'Usuario desconocido'}{' '}
-                        - {new Date(comment.created_time).toLocaleString()}
-                      </Typography>
-                    </Paper>
-                  ))
-                }
-
-                return (
-                  <Typography>
-                    No se han encontrado comentarios de 4Geeks Academy Iberoamérica.
-                  </Typography>
-                )
-              })()}
+                      </Box>
+                    )}
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', textAlign: 'right', mt: 1 }}
+                    >
+                      {authors[commentItem.created_by.id] || 'Usuario desconocido'} -{' '}
+                      {new Date(commentItem.created_time).toLocaleString()}
+                    </Typography>
+                  </Paper>
+                ))
+              ) : (
+                <Typography>
+                  No se han encontrado comentarios de 4Geeks Academy Iberoamérica.
+                </Typography>
+              )}
             </TabPanel>
-            {/* Mensaje si el alumno no ha completado la encuesta */}
             {!student?.properties?.['Synced?']?.checkbox && tabValue === 1 && (
               <Alert severity="info" sx={{ my: 2 }}>
-                El alumno no ha completado aún la encuesta de información
-                personal.
+                El alumno no ha completado aún la encuesta de información personal.
               </Alert>
             )}
           </Box>
         </Box>
       </Paper>
 
-      {/* Componente para mostrar alerta de pagos pendientes */}
       <LatePaymentAlert student={student} isVisible={true} />
     </Box>
   )

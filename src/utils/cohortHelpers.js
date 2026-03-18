@@ -37,40 +37,29 @@ export const getStageLabel = (stage) => {
 }
 
 export const preworkStatusColors = {
-  // Azul
   'Not started': 'info',
-
-  // Gris oscuro
   'Do NOT Follow': 'default',
   Dropped: 'default',
   Limbo: 'default',
   Agreement: 'default',
-
-  // Rojo
   Missing: 'error',
   'CS - Intro & Virtual Box': 'error',
   'DS - Intro to Python': 'error',
   'FS - HTML': 'error',
   'FS - CSS': 'error',
   'FS - Digital Postcard': 'error',
-
-  // Warning (amarillo más claro)
   'CS - Best Practices': 'warning',
   'CS - Cyber Governance': 'warning',
   'DS - Python Lists': 'warning',
   'DS - Python Functions': 'warning',
   'FS - Layouts': 'warning',
   'FS - IG Photo Feed': 'warning',
-
-  // Tertiary (amarillo más oscuro o marrón)
   'CS - Packet Tracer': 'tertiary',
   'DS - Master Python': 'tertiary',
   'DS - Fix Misspell': 'tertiary',
   'DS - Learn in public': 'tertiary',
   'FS - JS Beginner': 'tertiary',
   'FS - Excuse Generator': 'tertiary',
-
-  // Verde
   'CS - Introduction to Python': 'success',
   'DS - Monthly Sales Analyzer': 'success',
   'FS - Master JS': 'success',
@@ -137,8 +126,6 @@ export const getDaysInPreworkColor = (days) => {
   return 'error'
 }
 
-// --- Helpers para CourseCard ---
-
 export const getCourseCardStageColor = (stage) => {
   switch (stage) {
     case 'PREWORK':
@@ -201,7 +188,9 @@ export const getTeamSlackId = (programManager) => {
     Francesc: 'U06FN52SR36',
     Luis: 'U08BGKH117A',
     Adrian: 'U07EX1PE6TC',
-    "Lucía": 'U040Y1LA97E',
+    Lucía: 'U040Y1LA97E',
+    Nataly: 'U08H0DU6W1L',
+    Deimian: 'UE83MBJBY',
   }
 
   return teamSlackIds[programManager]

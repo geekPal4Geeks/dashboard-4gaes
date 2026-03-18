@@ -7,7 +7,6 @@ import {
   Grid,
   CircularProgress,
   Alert,
-  Chip,
   MenuItem,
   FormControl,
   InputLabel,
@@ -19,27 +18,32 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
+  Button,
+  TextField,
 } from '@mui/material'
 import {
-  FilterList,
   Download,
   Refresh,
   Info,
   AccountCircle,
+  VisibilityOff,
 } from '@mui/icons-material'
-import { useTheme } from '@mui/material/styles'
 import useGlobalReducer from '../hooks/useGlobalReducer'
-import { getCurrentMentorNpsData } from '../services/mentorNpsService'
 import {
-  getCurrentMentorMentorshipsData,
-  getCurrentMentorCancelledMentorshipsData,
-} from '../services/mentorMentorshipsService'
+  getCurrentMentorNpsData,
+  getMentorPreviewByEmail,
+} from '../services/mentorNpsService'
+import { getCurrentMentorMentorshipsData } from '../services/mentorMentorshipsService'
 import NpsKpiCards from '../components/nps/NpsKpiCards'
 import NpsProgressionCharts from '../components/nps/NpsProgressionCharts'
 import NpsCohortsTable from '../components/nps/NpsCohortsTable'
 import NpsRecentEvaluationsTable from '../components/nps/NpsRecentEvaluationsTable'
 import MentorshipsList from '../components/mentorships/MentorshipsList'
 import MentorshipsSummaryCards from '../components/mentorships/MentorshipsSummaryCards'
+import {
+  canImpersonateMentor,
+  canSeeOwnProfile,
+} from '../constants/permissions'
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props
@@ -59,33 +63,37 @@ function TabPanel(props) {
 
 export default function Profile() {
   const { store } = useGlobalReducer()
-  const theme = useTheme()
 
-  // Estado del tab activo
+  const canSelfProfile = canSeeOwnProfile(store.userRole)
+  const canUseImpersonation = canImpersonateMentor(store.userRole)
+
   const [tabValue, setTabValue] = useState(0)
-
-  // Estados principales NPS
   const [npsData, setNpsData] = useState(null)
   const [npsLoading, setNpsLoading] = useState(true)
   const [npsError, setNpsError] = useState(null)
-  const [darkMode, setDarkMode] = useState(false)
 
-  // Estados principales Mentorías
   const [mentorshipsData, setMentorshipsData] = useState(null)
   const [mentorshipsLoading, setMentorshipsLoading] = useState(false)
   const [mentorshipsError, setMentorshipsError] = useState(null)
   const [selectedMonth, setSelectedMonth] = useState('current')
-  const [periodType, setPeriodType] = useState('academic') // 'academic' | 'monthly'
+  const [periodType, setPeriodType] = useState('academic')
 
-  // Estados de filtros NPS
   const [selectedCohort, setSelectedCohort] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [timeFilter, setTimeFilter] = useState('1year') // 1year, 6months, all
+  const [timeFilter, setTimeFilter] = useState('1year')
 
-  // Función para obtener el título según el rol del usuario
+  const [impersonationEmail, setImpersonationEmail] = useState('')
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [impersonatedMentor, setImpersonatedMentor] = useState(null)
+
+  const isImpersonating = Boolean(impersonatedMentor?.email)
+  const readOnly = isImpersonating
+  const showMentorshipTab = canSelfProfile && !isImpersonating
+
   const getRoleTitle = () => {
-    const role = store.userRole
-    switch (role) {
+    if (isImpersonating) return 'Profesor'
+
+    switch (store.userRole) {
       case 'assistant':
         return 'Asistente'
       case 'teacher':
@@ -95,182 +103,30 @@ export default function Profile() {
     }
   }
 
-  // Cargar datos NPS del mentor
-  const loadNpsData = async () => {
+  const loadNpsData = async (email = impersonatedMentor?.email || null) => {
     try {
       setNpsLoading(true)
       setNpsError(null)
-
-      // Usar el token del store o el token por defecto
-      const token = store.token || '0cf43584af6d720f3a08347e550cd09a48624445'
-      localStorage.setItem('token', token)
-
-      const data = await getCurrentMentorNpsData()
+      const data = await getCurrentMentorNpsData(email)
       setNpsData(data)
     } catch (err) {
-      console.error('Error al cargar datos NPS:', err)
       setNpsError(err.message || 'Error al cargar los datos NPS')
     } finally {
       setNpsLoading(false)
     }
   }
 
-  // Cargar datos de mentorías
   const loadMentorshipsData = async (signal) => {
+    if (!showMentorshipTab) return
+
     try {
       setMentorshipsLoading(true)
       setMentorshipsError(null)
-
-      const token = store.token || '0cf43584af6d720f3a08347e550cd09a48624445'
-      localStorage.setItem('token', token)
-
-      // Cargar ambos endpoints en paralelo con el mismo periodType
-      const [mentorshipsData, cancelledData] = await Promise.all([
-        getCurrentMentorMentorshipsData(periodType, { signal }).catch((err) => {
-          if (err.name === 'CanceledError' || signal?.aborted) throw err
-          console.warn('Error al cargar mentorías realizadas:', err)
-          return null
-        }),
-        getCurrentMentorCancelledMentorshipsData(periodType, { signal }).catch((err) => {
-          if (err.name === 'CanceledError' || signal?.aborted) throw err
-          return { mentorName: null, cancelledMentorships: [] }
-        }),
-      ])
-
-      // Si no hay datos de mentorías, no podemos continuar
-      if (!mentorshipsData) {
-        throw new Error('No se pudieron cargar los datos de mentorías')
-      }
-
-      // Obtener el nombre del mentor de las mentorías realizadas (fuente confiable)
-      const currentMentorName = mentorshipsData.mentorName
-
-      // Normalizar servicio de canceladas (Mock interview -> Mock Interview)
-      const normalizeService = (service) => {
-        if (!service) return service
-        if (service.toLowerCase() === 'mock interview') {
-          return 'Mock Interview'
-        }
-        return service
-      }
-
-      // VALIDACIÓN PRINCIPAL: Solo incluir canceladas si el mentorName del objeto cancelledData
-      // coincide EXACTAMENTE con el mentor actual. Esto previene mostrar canceladas de otros mentores
-      // cuando el backend no filtra correctamente.
-      const cancelledDataMentorName = cancelledData?.mentorName
-      const isValidCancelledData =
-        currentMentorName &&
-        cancelledDataMentorName &&
-        cancelledDataMentorName.trim().toLowerCase() ===
-          currentMentorName.trim().toLowerCase()
-
-      // Si el mentorName no coincide, no incluir ninguna cancelada (por seguridad)
-      // Esto es especialmente importante cuando un mentor no tiene canceladas propias
-      // pero el backend devuelve canceladas de otros mentores
-      const mappedCancelled = isValidCancelledData
-        ? (cancelledData.cancelledMentorships || []).map((cancelled) => ({
-            id: cancelled.id,
-            student: cancelled.student,
-            service: normalizeService(cancelled.service),
-            startTime: cancelled.mentorshipDate, // Usar mentorshipDate como startTime
-            endTime: null, // Las canceladas no tienen endTime
-            duration: null, // Las canceladas no tienen duration
-            status: cancelled.status,
-            canRequestReview: cancelled.canRequestReview,
-            period: cancelled.period,
-            isCancelled: true, // Flag para identificar canceladas
-            cancellationDate: cancelled.cancellationDate,
-            cancellationReason: cancelled.cancellationReason,
-            notes: cancelled.notes,
-          }))
-        : []
-
-      // Log de advertencia si se detectan canceladas que no pertenecen al mentor
-      if (
-        cancelledData?.cancelledMentorships?.length > 0 &&
-        !isValidCancelledData
-      ) {
-        console.warn(
-          `⚠️ Se detectaron ${cancelledData.cancelledMentorships.length} mentorías canceladas que no pertenecen al mentor actual. No se incluirán en la lista.`,
-          {
-            currentMentor: currentMentorName,
-            cancelledDataMentor: cancelledDataMentorName,
-            motivo:
-              'El mentorName del objeto cancelledData no coincide con el mentor actual',
-          }
-        )
-      }
-
-      // Combinar mentorías realizadas y canceladas, deduplicando por id.
-      // Si un id aparece en ambas listas, la versión cancelada (última) prevalece.
-      const allMentorships = [
-        ...(mentorshipsData.mentorships || []),
-        ...mappedCancelled,
-      ]
-      const uniqueMentorships = [
-        ...new Map(allMentorships.map((m) => [m.id, m])).values(),
-      ]
-
-      if (uniqueMentorships.length < allMentorships.length) {
-        console.warn(
-          `⚠️ Se eliminaron ${allMentorships.length - uniqueMentorships.length} mentorías duplicadas (por id).`
-        )
-      }
-
-      // Recalcular resúmenes mensuales desde uniqueMentorships para evitar
-      // conteos duplicados que pueda traer el API.
-      const updatedSummaries =
-        mentorshipsData.monthlySummaries?.map((summary) => {
-          if (!summary.period?.start || !summary.period?.end) {
-            return summary
-          }
-
-          const periodStart = new Date(summary.period.start)
-          const periodEnd = new Date(summary.period.end)
-          periodEnd.setHours(23, 59, 59, 999)
-
-          const periodMentorships = uniqueMentorships.filter((m) => {
-            const date = new Date(m.startTime)
-            return m.startTime && date >= periodStart && date <= periodEnd
-          })
-
-          const realizadasAPagar = periodMentorships.filter(
-            (m) => !m.isCancelled && m.status === 'A pagar'
-          ).length
-
-          const noRealizadasAPagar = periodMentorships.filter(
-            (m) =>
-              (m.isCancelled && m.status === 'A pagar') ||
-              (!m.isCancelled && m.status === 'No realizada a pagar')
-          ).length
-
-          const noCorresponden = periodMentorships.filter(
-            (m) => m.status === 'No corresponde'
-          ).length
-
-          return {
-            ...summary,
-            realizadasAPagar,
-            noRealizadasAPagar,
-            noCorresponden,
-            total: realizadasAPagar + noRealizadasAPagar,
-          }
-        }) || []
-
-      const combinedData = {
-        // Siempre usar el mentorName de las mentorías realizadas (fuente confiable)
-        mentorName: currentMentorName || 'Mentor',
-        mentorships: uniqueMentorships,
-        monthlySummaries: updatedSummaries,
-      }
-
-      setMentorshipsData(combinedData)
+      const data = await getCurrentMentorMentorshipsData(periodType, { signal })
+      setMentorshipsData(data)
     } catch (err) {
       if (err.name === 'CanceledError' || signal?.aborted) return
-      console.error('Error al cargar datos de mentorías:', err)
-      setMentorshipsError(
-        err.message || 'Error al cargar los datos de mentorías'
-      )
+      setMentorshipsError(err.message || 'Error al cargar los datos de mentorías')
     } finally {
       if (!signal?.aborted) {
         setMentorshipsLoading(false)
@@ -278,28 +134,60 @@ export default function Profile() {
     }
   }
 
-  // Cargar datos al montar el componente
   useEffect(() => {
+    if (!canSelfProfile && !canUseImpersonation) {
+      setNpsLoading(false)
+      setNpsError('No tienes permisos para acceder a esta vista.')
+      return
+    }
     loadNpsData()
   }, [])
 
-  // Cargar datos de mentorías cuando se cambia al tab o al tipo de periodo
   useEffect(() => {
-    if (tabValue !== 1) return
+    if (tabValue !== 1 || !showMentorshipTab) return
 
     const abortController = new AbortController()
     loadMentorshipsData(abortController.signal)
 
     return () => abortController.abort()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabValue, periodType])
+  }, [tabValue, periodType, showMentorshipTab])
 
-  // Manejar cambio de tab
+  useEffect(() => {
+    if (!showMentorshipTab && tabValue === 1) {
+      setTabValue(0)
+    }
+  }, [showMentorshipTab, tabValue])
+
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue)
   }
 
-  // Función para exportar datos
+  const handleStartImpersonation = async () => {
+    if (!impersonationEmail.trim()) return
+
+    try {
+      setPreviewLoading(true)
+      setNpsError(null)
+      const preview = await getMentorPreviewByEmail(impersonationEmail.trim())
+      setImpersonatedMentor(preview)
+      setMentorshipsData(null)
+      setTabValue(0)
+      await loadNpsData(preview.email)
+    } catch (err) {
+      setNpsError(err.message || 'No se pudo cargar el mentor solicitado')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  const handleExitImpersonation = async () => {
+    setImpersonatedMentor(null)
+    setImpersonationEmail('')
+    setMentorshipsData(null)
+    setTabValue(0)
+    await loadNpsData(null)
+  }
+
   const handleExportData = () => {
     if (!npsData) return
 
@@ -310,9 +198,7 @@ export default function Profile() {
     link.setAttribute('href', url)
     link.setAttribute(
       'download',
-      `nps_mentor_${npsData.mentorName}_${
-        new Date().toISOString().split('T')[0]
-      }.csv`
+      `nps_mentor_${npsData.mentorName}_${new Date().toISOString().split('T')[0]}.csv`
     )
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
@@ -320,7 +206,6 @@ export default function Profile() {
     document.body.removeChild(link)
   }
 
-  // Función para generar datos CSV
   const generateCsvData = (data) => {
     const roleTitle = getRoleTitle()
     const headers = [
@@ -343,18 +228,15 @@ export default function Profile() {
     return [headers, ...rows].map((row) => row.join(',')).join('\n')
   }
 
-  // Obtener cohortes filtradas
   const getFilteredCohorts = () => {
     if (!npsData?.visualizationData?.cohorts) return []
 
     let filtered = npsData.visualizationData.cohorts
 
-    // Filtrar por cohorte específica
     if (selectedCohort !== 'all') {
       filtered = filtered.filter((cohort) => cohort.id === selectedCohort)
     }
 
-    // Filtrar por estado
     if (statusFilter !== 'all') {
       filtered = filtered.filter((cohort) => cohort.status === statusFilter)
     }
@@ -362,10 +244,8 @@ export default function Profile() {
     return filtered
   }
 
-  // Filtrar datos por tiempo
   const getTimeFilteredCohorts = () => {
     const filteredCohorts = getFilteredCohorts()
-
     if (timeFilter === 'all') return filteredCohorts
 
     const now = new Date()
@@ -373,33 +253,20 @@ export default function Profile() {
 
     switch (timeFilter) {
       case '3months':
-        cutoffDate = new Date(
-          now.getFullYear(),
-          now.getMonth() - 3,
-          now.getDate()
-        )
+        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
         break
       case '6months':
-        cutoffDate = new Date(
-          now.getFullYear(),
-          now.getMonth() - 6,
-          now.getDate()
-        )
+        cutoffDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
         break
       case '1year':
       default:
-        cutoffDate = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate()
-        )
+        cutoffDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
         break
     }
 
     return filteredCohorts.map((cohort) => {
       const filteredProgression = {}
 
-      // Filtrar datos de progresión por tiempo
       Object.keys(cohort.progression).forEach((type) => {
         filteredProgression[type] = cohort.progression[type].filter((point) => {
           const pointDate = new Date(point.date)
@@ -414,7 +281,6 @@ export default function Profile() {
     })
   }
 
-  // Obtener opciones de cohortes para el selector
   const getCohortOptions = () => {
     if (!npsData?.visualizationData?.cohorts) return []
     return npsData.visualizationData.cohorts.map((cohort) => ({
@@ -423,7 +289,6 @@ export default function Profile() {
     }))
   }
 
-  // Obtener opciones de estados para el filtro
   const getStatusOptions = () => [
     { value: 'all', label: 'Todos los estados' },
     { value: 'Active', label: 'Activas' },
@@ -431,24 +296,21 @@ export default function Profile() {
     { value: 'Finished', label: 'Finalizadas' },
   ]
 
-  // Función para manejar actualizaciones de evaluaciones
   const handleEvaluationUpdate = (evaluationId, newSeenValue) => {
-    // Actualizar el estado local de los datos NPS
+    if (readOnly) return
+
     setNpsData((prevData) => {
       if (!prevData?.visualizationData?.tables?.recentEvaluations) {
         return prevData
       }
 
       const updatedEvaluations =
-        prevData.visualizationData.tables.recentEvaluations.map(
-          (evaluation) => {
-            // Buscar por npsId que es el campo que estás usando
-            if (evaluation.npsId === evaluationId) {
-              return { ...evaluation, visto: newSeenValue }
-            }
-            return evaluation
+        prevData.visualizationData.tables.recentEvaluations.map((evaluation) => {
+          if (evaluation.npsId === evaluationId) {
+            return { ...evaluation, visto: newSeenValue }
           }
-        )
+          return evaluation
+        })
 
       return {
         ...prevData,
@@ -463,35 +325,27 @@ export default function Profile() {
     })
   }
 
-  // Obtener nombre del mentor (de NPS o Mentorías)
   const mentorName =
-    npsData?.mentorName || mentorshipsData?.mentorName || 'Mentor'
+    npsData?.mentorName ||
+    impersonatedMentor?.name ||
+    mentorshipsData?.mentorName ||
+    'Mentor'
 
-  // Obtener mentorías filtradas por mes
   const getFilteredMentorships = () => {
     if (!mentorshipsData?.mentorships) return []
+    if (!mentorshipsData.monthlySummaries?.length) return mentorshipsData.mentorships
 
-    // Si no hay resúmenes mensuales, retornar todas las mentorías
-    if (
-      !mentorshipsData.monthlySummaries ||
-      mentorshipsData.monthlySummaries.length === 0
-    ) {
-      return mentorshipsData.mentorships
-    }
-
-    // Obtener el resumen del mes seleccionado
     const selectedSummary = mentorshipsData.monthlySummaries.find(
       (summary) => summary.month === selectedMonth
     )
 
-    if (!selectedSummary || !selectedSummary.period) {
+    if (!selectedSummary?.period) {
       return mentorshipsData.mentorships
     }
 
-    // Filtrar mentorías que estén dentro del período del mes seleccionado
     const periodStart = new Date(selectedSummary.period.start)
     const periodEnd = new Date(selectedSummary.period.end)
-    periodEnd.setHours(23, 59, 59, 999) // Incluir todo el día final
+    periodEnd.setHours(23, 59, 59, 999)
 
     return mentorshipsData.mentorships.filter((mentorship) => {
       if (!mentorship.startTime) return false
@@ -503,12 +357,7 @@ export default function Profile() {
   if (npsLoading && tabValue === 0) {
     return (
       <Container maxWidth="xl">
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="60vh"
-        >
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
           <CircularProgress size={60} />
         </Box>
       </Container>
@@ -519,14 +368,8 @@ export default function Profile() {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Box display="flex" alignItems="center" gap={1}>
             <Typography
               variant="h4"
@@ -535,14 +378,11 @@ export default function Profile() {
               display="flex"
               alignItems="center"
             >
-              <AccountCircle
-                fontSize="large"
-                sx={{ color: 'primary', mr: 1 }}
-              />
+              <AccountCircle fontSize="large" sx={{ color: 'primary.main', mr: 1 }} />
               {mentorName}
             </Typography>
             <Tooltip
-              title="Aquí encontrarás toda la información de las encuestas de satisfacción realizadas a tus alumnos, scores, reportes y feedback."
+              title="Aquí encontrarás la información de NPS y mentorías del mentor seleccionado."
               placement="right"
               arrow
             >
@@ -553,28 +393,52 @@ export default function Profile() {
           </Box>
         </Box>
 
-        {/* Tabs */}
+        {canUseImpersonation && (
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+              <TextField
+                label="Impersonar por correo"
+                value={impersonationEmail}
+                onChange={(e) => setImpersonationEmail(e.target.value)}
+                placeholder="mentor@correo.com"
+                size="small"
+                sx={{ minWidth: 280 }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleStartImpersonation}
+                disabled={previewLoading || !impersonationEmail.trim()}
+              >
+                {previewLoading ? <CircularProgress size={22} /> : 'Buscar mentor'}
+              </Button>
+              {isImpersonating && (
+                <>
+                  <Alert severity="warning" sx={{ flex: 1, minWidth: 240 }}>
+                    Vista impersonada en modo solo lectura para {impersonatedMentor.email}.
+                  </Alert>
+                  <Button
+                    color="inherit"
+                    startIcon={<VisibilityOff />}
+                    onClick={handleExitImpersonation}
+                  >
+                    Salir de impersonación
+                  </Button>
+                </>
+              )}
+            </Box>
+          </Paper>
+        )}
+
         <Paper sx={{ mb: 3 }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            aria-label="tabs de perfil"
-          >
-            <Tab
-              label="NPS"
-              id="profile-tab-0"
-              aria-controls="profile-tabpanel-0"
-            />
-            <Tab
-              label="Mentorías"
-              id="profile-tab-1"
-              aria-controls="profile-tabpanel-1"
-            />
+          <Tabs value={tabValue} onChange={handleTabChange} aria-label="tabs de perfil">
+            <Tab label="NPS" id="profile-tab-0" aria-controls="profile-tabpanel-0" />
+            {showMentorshipTab && (
+              <Tab label="Mentorías" id="profile-tab-1" aria-controls="profile-tabpanel-1" />
+            )}
           </Tabs>
         </Paper>
       </Box>
 
-      {/* Tab Panel NPS */}
       <TabPanel value={tabValue} index={0}>
         {npsError && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -590,16 +454,10 @@ export default function Profile() {
 
         {npsData && (
           <>
-            {/* Header del tab NPS con iconos */}
-            <Box
-              display="flex"
-              justifyContent="flex-end"
-              alignItems="center"
-              mb={2}
-            >
+            <Box display="flex" justifyContent="flex-end" alignItems="center" mb={2}>
               <Box display="flex" gap={1}>
                 <Tooltip title="Actualizar datos">
-                  <IconButton onClick={loadNpsData} disabled={npsLoading}>
+                  <IconButton onClick={() => loadNpsData()} disabled={npsLoading}>
                     <Refresh />
                   </IconButton>
                 </Tooltip>
@@ -611,7 +469,6 @@ export default function Profile() {
               </Box>
             </Box>
 
-            {/* Filtros */}
             <Paper sx={{ p: 2, mb: 3 }}>
               <Box
                 display="flex"
@@ -620,17 +477,8 @@ export default function Profile() {
                 flexWrap="wrap"
                 justifyContent="space-between"
               >
-                <Box
-                  display="flex"
-                  gap={2}
-                  alignItems="center"
-                  flexWrap="wrap"
-                  flex={1}
-                >
-                  <FormControl
-                    size="small"
-                    sx={{ minWidth: 200, flex: 1, maxWidth: 300 }}
-                  >
+                <Box display="flex" gap={2} alignItems="center" flexWrap="wrap" flex={1}>
+                  <FormControl size="small" sx={{ minWidth: 200, flex: 1, maxWidth: 300 }}>
                     <InputLabel>Cohorte específica</InputLabel>
                     <Select
                       value={selectedCohort}
@@ -646,10 +494,7 @@ export default function Profile() {
                     </Select>
                   </FormControl>
 
-                  <FormControl
-                    size="small"
-                    sx={{ minWidth: 150, flex: 1, maxWidth: 200 }}
-                  >
+                  <FormControl size="small" sx={{ minWidth: 150, flex: 1, maxWidth: 200 }}>
                     <InputLabel>Estado</InputLabel>
                     <Select
                       value={statusFilter}
@@ -664,10 +509,7 @@ export default function Profile() {
                     </Select>
                   </FormControl>
 
-                  <FormControl
-                    size="small"
-                    sx={{ minWidth: 150, flex: 1, maxWidth: 200 }}
-                  >
+                  <FormControl size="small" sx={{ minWidth: 150, flex: 1, maxWidth: 200 }}>
                     <InputLabel>Período</InputLabel>
                     <Select
                       value={timeFilter}
@@ -684,13 +526,8 @@ export default function Profile() {
               </Box>
             </Paper>
 
-            {/* KPIs Cards */}
-            <NpsKpiCards
-              kpis={npsData.visualizationData.kpis}
-              roleTitle={getRoleTitle()}
-            />
+            <NpsKpiCards kpis={npsData.visualizationData.kpis} roleTitle={getRoleTitle()} />
 
-            {/* Gráficos de progresión */}
             <Grid
               container
               spacing={3}
@@ -721,23 +558,17 @@ export default function Profile() {
               </Grid>
             </Grid>
 
-            {/* Tablas */}
-            <Grid
-              container
-              spacing={3}
-              sx={{ display: 'flex', flexDirection: 'column' }}
-            >
+            <Grid container spacing={3} sx={{ display: 'flex', flexDirection: 'column' }}>
               <Grid item xs={12} md={4}>
                 <Paper sx={{ p: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     Evaluaciones Recientes
                   </Typography>
                   <NpsRecentEvaluationsTable
-                    evaluations={
-                      npsData.visualizationData.tables.recentEvaluations
-                    }
+                    evaluations={npsData.visualizationData.tables.recentEvaluations}
                     onEvaluationUpdate={handleEvaluationUpdate}
                     roleTitle={getRoleTitle()}
+                    readOnly={readOnly}
                   />
                 </Paper>
               </Grid>
@@ -746,10 +577,7 @@ export default function Profile() {
                   <Typography variant="h6" gutterBottom>
                     Tabla de Cohortes
                   </Typography>
-                  <NpsCohortsTable
-                    cohorts={filteredCohorts}
-                    roleTitle={getRoleTitle()}
-                  />
+                  <NpsCohortsTable cohorts={filteredCohorts} roleTitle={getRoleTitle()} />
                 </Paper>
               </Grid>
             </Grid>
@@ -757,107 +585,63 @@ export default function Profile() {
         )}
       </TabPanel>
 
-      {/* Tab Panel Mentorías */}
-      <TabPanel value={tabValue} index={1}>
-        {/* Selector de tipo de periodo */}
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="body1" fontWeight="medium">
-              Tipo de período:
-            </Typography>
-            <FormControl size="small">
-              <RadioGroup
-                row
-                value={periodType}
-                onChange={(e) => setPeriodType(e.target.value)}
-              >
-                <FormControlLabel
-                  value="academic"
-                  control={<Radio size="small" />}
-                  label={
-                    <Box display="flex" alignItems="center" gap={0.5}>
-                      Período Académico
-                      <Tooltip
-                        title={
-                          <Box>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
-                              La semana de corte de mes del mes anterior hasta
-                              la semana de corte del mes en curso
-                            </Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{ fontStyle: 'italic' }}
-                            >
-                              Corresponde para quienes cobran por nómina.
-                            </Typography>
-                          </Box>
-                        }
-                        arrow
-                        placement="right"
-                      >
-                        <IconButton
-                          size="small"
-                          sx={{ color: 'primary.main', p: 0.25 }}
-                        >
-                          <Info fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  }
-                />
-                <FormControlLabel
-                  value="monthly"
-                  control={<Radio size="small" />}
-                  label="Mes calendario"
-                />
-              </RadioGroup>
-            </FormControl>
-          </Box>
-        </Paper>
-
-        {mentorshipsLoading && (
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="40vh"
-          >
-            <CircularProgress size={60} />
-          </Box>
-        )}
-
-        {mentorshipsError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {mentorshipsError}
-          </Alert>
-        )}
-
-        {!mentorshipsLoading && !mentorshipsError && mentorshipsData && (
-          <>
-            <MentorshipsSummaryCards
-              summaries={mentorshipsData.monthlySummaries}
-              selectedMonth={selectedMonth}
-              onMonthSelect={setSelectedMonth}
-            />
-
-            <Box sx={{ mt: 3 }}>
-              <MentorshipsList
-                mentorships={getFilteredMentorships()}
-                selectedMonth={selectedMonth}
-              />
+      {showMentorshipTab && (
+        <TabPanel value={tabValue} index={1}>
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Box display="flex" alignItems="center" gap={2}>
+              <Typography variant="body1" fontWeight="medium">
+                Tipo de período:
+              </Typography>
+              <FormControl size="small">
+                <RadioGroup row value={periodType} onChange={(e) => setPeriodType(e.target.value)}>
+                  <FormControlLabel
+                    value="academic"
+                    control={<Radio size="small" />}
+                    label="Período académico"
+                  />
+                  <FormControlLabel
+                    value="monthly"
+                    control={<Radio size="small" />}
+                    label="Mes calendario"
+                  />
+                </RadioGroup>
+              </FormControl>
             </Box>
-          </>
-        )}
+          </Paper>
 
-        {!mentorshipsLoading &&
-          !mentorshipsError &&
-          !mentorshipsData &&
-          tabValue === 1 && (
+          {mentorshipsLoading && (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
+              <CircularProgress size={60} />
+            </Box>
+          )}
+
+          {mentorshipsError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {mentorshipsError}
+            </Alert>
+          )}
+
+          {!mentorshipsLoading && !mentorshipsError && mentorshipsData && (
+            <>
+              <MentorshipsSummaryCards
+                summaries={mentorshipsData.monthlySummaries}
+                selectedMonth={selectedMonth}
+                onMonthSelect={setSelectedMonth}
+              />
+
+              <Box sx={{ mt: 3 }}>
+                <MentorshipsList mentorships={getFilteredMentorships()} selectedMonth={selectedMonth} />
+              </Box>
+            </>
+          )}
+
+          {!mentorshipsLoading && !mentorshipsError && !mentorshipsData && tabValue === 1 && (
             <Alert severity="info">
               No se encontraron datos de mentorías para este mentor.
             </Alert>
           )}
-      </TabPanel>
+        </TabPanel>
+      )}
     </Container>
   )
 }
