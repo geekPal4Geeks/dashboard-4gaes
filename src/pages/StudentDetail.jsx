@@ -11,6 +11,7 @@ import {
   Paper,
   Tabs,
   Tab,
+  IconButton,
 } from '@mui/material'
 import { updateStudentComment } from '../services/studentService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
@@ -21,6 +22,8 @@ import {
   getNotionUser,
 } from '../services/notionService'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { parseCohortData, parseCurrentModuleLabel } from '../utils/studentHelpers'
 import StudentHeaderBox from '../components/StudentHeaderBox'
 import LatePaymentAlert from '../components/LatePaymentAlert'
@@ -70,6 +73,7 @@ export default function StudentDetail({ studentData, cohort }) {
   const [studentComments, setStudentComments] = useState([])
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [authors, setAuthors] = useState({})
+  const [successMessage, setSuccessMessage] = useState(null)
 
   const effectiveStudentId = student?.id || studentId
   const canSeeImages = canViewCommentImages(store.userRole)
@@ -132,7 +136,9 @@ export default function StudentDetail({ studentData, cohort }) {
   useEffect(() => {
     const fetchAuthors = async () => {
       if (studentComments.length === 0) return
-      const authorIds = [...new Set(studentComments.map((c) => c.created_by.id))]
+      const authorIds = [
+        ...new Set(studentComments.map((c) => c.created_by?.id).filter(Boolean)),
+      ]
       const authorPromises = authorIds.map((id) => getNotionUser(id))
       const authorResults = await Promise.all(authorPromises)
       const authorsMap = authorResults.reduce((acc, author) => {
@@ -179,6 +185,7 @@ export default function StudentDetail({ studentData, cohort }) {
     try {
       setSaving(true)
       setError(null)
+      setSuccessMessage(null)
       await updateStudentComment(
         student.id,
         comment,
@@ -190,6 +197,7 @@ export default function StudentDetail({ studentData, cohort }) {
       setCommentImages([])
       const commentsData = await getStudentComments(student.id)
       setStudentComments(commentsData || [])
+      setSuccessMessage('Comentario guardado correctamente.')
     } catch {
       setError('Error al guardar el comentario')
     } finally {
@@ -202,6 +210,21 @@ export default function StudentDetail({ studentData, cohort }) {
       (commentItem) =>
         authors[commentItem.created_by.id] === '4Geeks Academy Iberoamérica'
     )
+  }, [authors, studentComments])
+
+  const handleRemovePendingImage = (indexToRemove) => {
+    setCommentImages((prev) => prev.filter((_, index) => index !== indexToRemove))
+  }
+
+  const visibleComments = useMemo(() => {
+    return studentComments.filter((commentItem) => {
+      const authorName =
+        commentItem.author?.name ||
+        authors[commentItem.created_by?.id] ||
+        ''
+
+      return authorName.startsWith('4Geeks Academy ')
+    })
   }, [authors, studentComments])
 
   if (loading) {
@@ -287,21 +310,66 @@ export default function StudentDetail({ studentData, cohort }) {
                 type="file"
                 accept="image/*"
                 multiple
-                onChange={(e) => setCommentImages(Array.from(e.target.files || []))}
+                onChange={(e) =>
+                  setCommentImages((prev) => [
+                    ...prev,
+                    ...Array.from(e.target.files || []),
+                  ].slice(0, 3))
+                }
               />
             </Button>
             {commentImages.length > 0 && (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {commentImages.map((file) => (
-                  <Typography key={`${file.name}-${file.size}`} variant="body2" color="text.secondary">
-                    {file.name}
-                  </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                {commentImages.map((file, index) => (
+                  <Box
+                    key={`${file.name}-${file.size}-${index}`}
+                    sx={{
+                      width: 140,
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 2,
+                      p: 1,
+                    }}
+                  >
+                    <Box
+                      component="img"
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      sx={{
+                        width: '100%',
+                        height: 90,
+                        objectFit: 'cover',
+                        borderRadius: 1,
+                        mb: 1,
+                      }}
+                    />
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', wordBreak: 'break-word' }}
+                    >
+                      {file.name}
+                    </Typography>
+                    <Box display="flex" justifyContent="flex-end">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleRemovePendingImage(index)}
+                      >
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
                 ))}
               </Box>
             )}
             {error && (
               <Alert severity="error" sx={{ mt: 1 }}>
                 {error}
+              </Alert>
+            )}
+            {successMessage && (
+              <Alert severity="success" sx={{ mt: 1 }}>
+                {successMessage}
               </Alert>
             )}
             <Box display="flex" justifyContent="flex-end" gap={2} sx={{ mb: 2 }}>
@@ -372,8 +440,8 @@ export default function StudentDetail({ studentData, cohort }) {
                 <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                   <CircularProgress />
                 </Box>
-              ) : filteredComments.length > 0 ? (
-                filteredComments.map((commentItem) => (
+              ) : visibleComments.length > 0 ? (
+                visibleComments.map((commentItem) => (
                   <Paper
                     key={commentItem.id}
                     sx={{
@@ -383,25 +451,53 @@ export default function StudentDetail({ studentData, cohort }) {
                     elevation={1}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {commentItem.rich_text.map((t) => t.plain_text).join('')}
+                      {commentItem.rich_text?.map((t) => t.plain_text).join('').trim() ||
+                        (commentItem.attachments?.length > 0 ? 'Adjunto enviado' : 'Sin texto')}
                     </Typography>
                     {commentItem.attachments && commentItem.attachments.length > 0 && (
                       <Box sx={{ mt: 1 }}>
                         {canSeeImages ? (
-                          commentItem.attachments.map((attachment, index) =>
-                            attachment.file?.url ? (
-                              <img
-                                key={`${commentItem.id}-${index}`}
-                                src={attachment.file.url}
-                                alt="Comment attachment"
-                                style={{
-                                  maxWidth: '100%',
-                                  borderRadius: '4px',
-                                  marginTop: '8px',
-                                }}
-                              />
-                            ) : null
-                          )
+                          commentItem.attachments.map((attachment, index) => {
+                            const fileUrl =
+                              attachment.file?.url ||
+                              attachment.external?.url ||
+                              attachment.file_upload?.url ||
+                              attachment.url
+                            const isImage =
+                              attachment.category === 'image' ||
+                              attachment.mime_type?.startsWith?.('image/') ||
+                              /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileUrl || '')
+
+                            if (!fileUrl) return null
+
+                            return (
+                              <Box key={`${commentItem.id}-${index}`} sx={{ mt: 1 }}>
+                                {isImage ? (
+                                  <Box
+                                    component="img"
+                                    src={fileUrl}
+                                    alt="Comment attachment"
+                                    sx={{
+                                      maxWidth: '100%',
+                                      borderRadius: 1,
+                                      display: 'block',
+                                      mb: 1,
+                                    }}
+                                  />
+                                ) : null}
+                                <Button
+                                  size="small"
+                                  variant="text"
+                                  href={fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  endIcon={<OpenInNewIcon fontSize="small" />}
+                                >
+                                  {isImage ? 'Abrir imagen' : 'Abrir adjunto'}
+                                </Button>
+                              </Box>
+                            )
+                          })
                         ) : (
                           <Typography variant="caption" color="text.secondary">
                             Adjunto oculto por permisos.
@@ -414,7 +510,9 @@ export default function StudentDetail({ studentData, cohort }) {
                       color="text.secondary"
                       sx={{ display: 'block', textAlign: 'right', mt: 1 }}
                     >
-                      {authors[commentItem.created_by.id] || 'Usuario desconocido'} -{' '}
+                      {commentItem.author?.name ||
+                        authors[commentItem.created_by?.id] ||
+                        'Usuario desconocido'} -{' '}
                       {new Date(commentItem.created_time).toLocaleString()}
                     </Typography>
                   </Paper>

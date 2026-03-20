@@ -312,7 +312,7 @@ export default function StudentSkillReview() {
 
       <Alert severity="info" sx={{ mb: 3 }}>
         Puedes guardar todos los campos de una vez haciendo clic en el boton de guardar. 
-        Puedes usar la tecla TAB para navegar entre las columnas. Cada valor va del 1 al 5.
+        El botón Guardar aparece cuando detecta cambios pendientes. Puedes usar la tecla TAB para navegar entre las columnas. Cada valor va del 1 al 5 y la columna rank se calcula automáticamente.
       </Alert>
 
       {error && (

@@ -1,6 +1,7 @@
 import axios from 'axios'
 import Swal from 'sweetalert2'
 import { API_URL, getAuthHeaders } from './apiClient'
+import { invalidateStudentCommentsCache } from './notionService'
 
 export const updateStudentComment = async (
   studentId,
@@ -10,7 +11,10 @@ export const updateStudentComment = async (
   attachments = []
 ) => {
   try {
-    const commentWithSignature = `${comment}\n\n- ${userName}`
+    const trimmedComment = typeof comment === 'string' ? comment.trim() : ''
+    const commentWithSignature = trimmedComment
+      ? `${trimmedComment}\n\n- ${userName}`
+      : `- ${userName}`
     const hasAttachments = Array.isArray(attachments) && attachments.length > 0
     const payload = hasAttachments
       ? new FormData()
@@ -32,6 +36,7 @@ export const updateStudentComment = async (
     const response = await axios.post(`${API_URL}/create-student-comment`, payload, {
       headers: getAuthHeaders(),
     })
+    invalidateStudentCommentsCache(studentId)
     return response.data
   } catch (error) {
     if (error.response && error.response.status === 403) {

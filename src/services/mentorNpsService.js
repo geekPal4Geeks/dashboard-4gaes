@@ -1,9 +1,38 @@
 import { API_URL, apiClient } from './apiClient'
 
+const CACHE_TTL_MS = 2 * 60 * 1000
+const responseCache = new Map()
+
+const getCachedResponse = (key) => {
+  const cached = responseCache.get(key)
+  if (!cached) return null
+  if (cached.expiresAt <= Date.now()) {
+    responseCache.delete(key)
+    return null
+  }
+  return cached.data
+}
+
+const setCachedResponse = (key, data) => {
+  responseCache.set(key, {
+    data,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  })
+  return data
+}
+
 export const getCurrentMentorNpsData = async (email = null) => {
   try {
-    const response = await apiClient.post(`${API_URL}/mentor-nps`, email ? { email } : {})
-    return response.data
+    const cacheKey = `current:${email || 'self'}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentor-nps`,
+      email ? { email } : {},
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
   } catch (error) {
     throw new Error(
       error.response?.data?.error ||
@@ -13,12 +42,44 @@ export const getCurrentMentorNpsData = async (email = null) => {
   }
 }
 
+export const getCurrentMentorNpsSummary = async (email = null) => {
+  try {
+    const cacheKey = `summary:${email || 'self'}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentor-nps`,
+      {
+        ...(email ? { email } : {}),
+        summaryOnly: true,
+      },
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.error ||
+        error.message ||
+        'Error al obtener resumen NPS del mentor'
+    )
+  }
+}
+
 export const getMentorNpsData = async (mentorId) => {
   try {
-    const response = await apiClient.post(`${API_URL}/mentor-nps`, {
-      mentorId,
-    })
-    return response.data
+    const cacheKey = `mentor-id:${mentorId}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentor-nps`,
+      {
+        mentorId,
+      },
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
   } catch (error) {
     throw new Error(
       error.response?.data?.error ||
@@ -30,10 +91,18 @@ export const getMentorNpsData = async (mentorId) => {
 
 export const getMentorPreviewByEmail = async (email) => {
   try {
-    const response = await apiClient.post(`${API_URL}/mentors/preview-by-email`, {
-      email,
-    })
-    return response.data
+    const cacheKey = `preview:${email}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentors/preview-by-email`,
+      {
+        email,
+      },
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
   } catch (error) {
     throw new Error(
       error.response?.data?.error ||
@@ -43,10 +112,11 @@ export const getMentorPreviewByEmail = async (email) => {
   }
 }
 
-export const getNpsComments = async (npsId) => {
+export const getNpsComments = async (npsId, email = null) => {
   try {
     const response = await apiClient.post(`${API_URL}/nps-comments`, {
       npsId,
+      ...(email ? { email } : {}),
     })
     return response.data?.comments || response.data || []
   } catch (error) {
@@ -140,6 +210,7 @@ export const updateNpsEvaluationSeen = async (evaluationId, seen) => {
       evaluationId,
       seen,
     })
+    responseCache.clear()
     return response.data
   } catch (error) {
     throw new Error(

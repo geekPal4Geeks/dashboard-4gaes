@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import {
   Container,
   Typography,
@@ -20,6 +20,7 @@ import {
   Radio,
   Button,
   TextField,
+  Skeleton,
 } from '@mui/material'
 import {
   Download,
@@ -31,19 +32,28 @@ import {
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import {
   getCurrentMentorNpsData,
+  getCurrentMentorNpsSummary,
   getMentorPreviewByEmail,
 } from '../services/mentorNpsService'
-import { getCurrentMentorMentorshipsData } from '../services/mentorMentorshipsService'
-import NpsKpiCards from '../components/nps/NpsKpiCards'
-import NpsProgressionCharts from '../components/nps/NpsProgressionCharts'
-import NpsCohortsTable from '../components/nps/NpsCohortsTable'
-import NpsRecentEvaluationsTable from '../components/nps/NpsRecentEvaluationsTable'
-import MentorshipsList from '../components/mentorships/MentorshipsList'
-import MentorshipsSummaryCards from '../components/mentorships/MentorshipsSummaryCards'
+import {
+  getCurrentMentorMentorshipsData,
+  getCurrentMentorMentorshipsSummary,
+} from '../services/mentorMentorshipsService'
 import {
   canImpersonateMentor,
   canSeeOwnProfile,
 } from '../constants/permissions'
+
+const NpsKpiCards = lazy(() => import('../components/nps/NpsKpiCards'))
+const NpsProgressionCharts = lazy(() => import('../components/nps/NpsProgressionCharts'))
+const NpsCohortsTable = lazy(() => import('../components/nps/NpsCohortsTable'))
+const NpsRecentEvaluationsTable = lazy(
+  () => import('../components/nps/NpsRecentEvaluationsTable')
+)
+const MentorshipsList = lazy(() => import('../components/mentorships/MentorshipsList'))
+const MentorshipsSummaryCards = lazy(
+  () => import('../components/mentorships/MentorshipsSummaryCards')
+)
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props
@@ -61,6 +71,115 @@ function TabPanel(props) {
   )
 }
 
+function SectionFallback({ minHeight = '20vh' }) {
+  return (
+    <Box display="flex" justifyContent="center" alignItems="center" minHeight={minHeight}>
+      <CircularProgress size={36} />
+    </Box>
+  )
+}
+
+function KpiSkeletons() {
+  return (
+    <Grid container spacing={1} sx={{ mb: 4 }}>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Grid item xs={12} sm={6} md={3} lg={2.5} key={index}>
+          <Paper sx={{ p: 2 }}>
+            <Skeleton variant="text" width="55%" height={24} />
+            <Skeleton variant="text" width="35%" height={44} />
+            <Skeleton variant="text" width="80%" height={18} />
+          </Paper>
+        </Grid>
+      ))}
+    </Grid>
+  )
+}
+
+function NpsDetailsSkeleton() {
+  return (
+    <>
+      <Grid
+        container
+        spacing={3}
+        sx={{
+          mb: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Grid item xs={12} md={8} sx={{ width: '100%' }}>
+          <Paper sx={{ p: 3, height: 400 }}>
+            <Skeleton variant="text" width="40%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" height={300} />
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={4} sx={{ width: '100%' }}>
+          <Paper sx={{ p: 3, height: 400 }}>
+            <Skeleton variant="text" width="40%" height={32} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" height={300} />
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ display: 'flex', flexDirection: 'column' }}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3 }}>
+            <Skeleton variant="text" width="35%" height={32} sx={{ mb: 2 }} />
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} variant="rectangular" height={44} sx={{ mb: 1 }} />
+            ))}
+          </Paper>
+        </Grid>
+        <Grid item xs={12} md={8} sx={{ width: '100%' }}>
+          <Paper sx={{ p: 3 }}>
+            <Skeleton variant="text" width="28%" height={32} sx={{ mb: 2 }} />
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton key={index} variant="rectangular" height={42} sx={{ mb: 1 }} />
+            ))}
+          </Paper>
+        </Grid>
+      </Grid>
+    </>
+  )
+}
+
+function MentorshipsSummarySkeleton() {
+  return (
+    <Grid container spacing={3}>
+      {Array.from({ length: 2 }).map((_, index) => (
+        <Grid item xs={12} md={6} key={index}>
+          <Paper sx={{ p: 3 }}>
+            <Skeleton variant="text" width="42%" height={34} sx={{ mb: 1 }} />
+            <Skeleton variant="text" width="58%" height={20} sx={{ mb: 2 }} />
+            {Array.from({ length: 4 }).map((__, rowIndex) => (
+              <Box
+                key={rowIndex}
+                sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}
+              >
+                <Skeleton variant="text" width="45%" height={20} />
+                <Skeleton variant="text" width="12%" height={20} />
+              </Box>
+            ))}
+          </Paper>
+        </Grid>
+      ))}
+    </Grid>
+  )
+}
+
+function MentorshipsListSkeleton() {
+  return (
+    <Paper sx={{ p: 3, mt: 3 }}>
+      <Skeleton variant="text" width="35%" height={34} sx={{ mb: 1 }} />
+      <Skeleton variant="text" width="60%" height={20} sx={{ mb: 2 }} />
+      {Array.from({ length: 6 }).map((_, index) => (
+        <Skeleton key={index} variant="rectangular" height={42} sx={{ mb: 1 }} />
+      ))}
+    </Paper>
+  )
+}
+
 export default function Profile() {
   const { store } = useGlobalReducer()
 
@@ -70,10 +189,12 @@ export default function Profile() {
   const [tabValue, setTabValue] = useState(0)
   const [npsData, setNpsData] = useState(null)
   const [npsLoading, setNpsLoading] = useState(true)
+  const [npsDetailsLoading, setNpsDetailsLoading] = useState(false)
   const [npsError, setNpsError] = useState(null)
 
   const [mentorshipsData, setMentorshipsData] = useState(null)
   const [mentorshipsLoading, setMentorshipsLoading] = useState(false)
+  const [mentorshipsDetailsLoading, setMentorshipsDetailsLoading] = useState(false)
   const [mentorshipsError, setMentorshipsError] = useState(null)
   const [selectedMonth, setSelectedMonth] = useState('current')
   const [periodType, setPeriodType] = useState('academic')
@@ -88,10 +209,13 @@ export default function Profile() {
 
   const isImpersonating = Boolean(impersonatedMentor?.email)
   const readOnly = isImpersonating
-  const showMentorshipTab = canSelfProfile && !isImpersonating
+  const showMentorshipTab = canSelfProfile || isImpersonating
 
   const getRoleTitle = () => {
-    if (isImpersonating) return 'Profesor'
+    const effectiveRole = npsData?.effectiveRole || impersonatedMentor?.effectiveRole || null
+
+    if (effectiveRole === 'assistant') return 'Asistente'
+    if (effectiveRole === 'teacher') return 'Mentor'
 
     switch (store.userRole) {
       case 'assistant':
@@ -107,12 +231,25 @@ export default function Profile() {
     try {
       setNpsLoading(true)
       setNpsError(null)
-      const data = await getCurrentMentorNpsData(email)
-      setNpsData(data)
+      const summaryData = await getCurrentMentorNpsSummary(email)
+      setNpsData(summaryData)
     } catch (err) {
       setNpsError(err.message || 'Error al cargar los datos NPS')
     } finally {
       setNpsLoading(false)
+    }
+  }
+
+  const loadNpsDetails = async (email = impersonatedMentor?.email || null) => {
+    try {
+      setNpsDetailsLoading(true)
+      setNpsError(null)
+      const data = await getCurrentMentorNpsData(email)
+      setNpsData(data)
+    } catch (err) {
+      setNpsError(err.message || 'Error al cargar el detalle NPS')
+    } finally {
+      setNpsDetailsLoading(false)
     }
   }
 
@@ -122,7 +259,14 @@ export default function Profile() {
     try {
       setMentorshipsLoading(true)
       setMentorshipsError(null)
-      const data = await getCurrentMentorMentorshipsData(periodType, { signal })
+      const data = await getCurrentMentorMentorshipsSummary(periodType, {
+        signal,
+        email: isImpersonating ? impersonatedMentor?.email : null,
+        memberId: isImpersonating ? impersonatedMentor?.memberId || null : null,
+        impersonationToken: isImpersonating
+          ? impersonatedMentor?.impersonationToken || null
+          : null,
+      })
       setMentorshipsData(data)
     } catch (err) {
       if (err.name === 'CanceledError' || signal?.aborted) return
@@ -134,14 +278,53 @@ export default function Profile() {
     }
   }
 
+  const loadMentorshipsDetails = async (signal) => {
+    if (!showMentorshipTab) return
+
+    try {
+      setMentorshipsDetailsLoading(true)
+      setMentorshipsError(null)
+      const data = await getCurrentMentorMentorshipsData(periodType, {
+        signal,
+        email: isImpersonating ? impersonatedMentor?.email : null,
+        memberId: isImpersonating ? impersonatedMentor?.memberId || null : null,
+        impersonationToken: isImpersonating
+          ? impersonatedMentor?.impersonationToken || null
+          : null,
+      })
+      setMentorshipsData(data)
+    } catch (err) {
+      if (err.name === 'CanceledError' || signal?.aborted) return
+      setMentorshipsError(err.message || 'Error al cargar el detalle de mentorías')
+    } finally {
+      if (!signal?.aborted) {
+        setMentorshipsDetailsLoading(false)
+      }
+    }
+  }
+
   useEffect(() => {
     if (!canSelfProfile && !canUseImpersonation) {
       setNpsLoading(false)
       setNpsError('No tienes permisos para acceder a esta vista.')
       return
     }
-    loadNpsData()
-  }, [])
+
+    if (canSelfProfile) {
+      loadNpsData()
+      return
+    }
+
+    setNpsLoading(false)
+    setNpsData(null)
+    setNpsError(null)
+  }, [canSelfProfile, canUseImpersonation])
+
+  useEffect(() => {
+    if (!npsData?.summaryOnly) return
+
+    loadNpsDetails(impersonatedMentor?.email || null)
+  }, [npsData?.summaryOnly, impersonatedMentor?.email])
 
   useEffect(() => {
     if (tabValue !== 1 || !showMentorshipTab) return
@@ -150,7 +333,23 @@ export default function Profile() {
     loadMentorshipsData(abortController.signal)
 
     return () => abortController.abort()
-  }, [tabValue, periodType, showMentorshipTab])
+  }, [tabValue, periodType, showMentorshipTab, isImpersonating, impersonatedMentor?.email])
+
+  useEffect(() => {
+    if (tabValue !== 1 || !mentorshipsData?.summaryOnly) return
+
+    const abortController = new AbortController()
+    loadMentorshipsDetails(abortController.signal)
+
+    return () => abortController.abort()
+  }, [
+    tabValue,
+    mentorshipsData?.summaryOnly,
+    periodType,
+    showMentorshipTab,
+    isImpersonating,
+    impersonatedMentor?.email,
+  ])
 
   useEffect(() => {
     if (!showMentorshipTab && tabValue === 1) {
@@ -165,14 +364,27 @@ export default function Profile() {
   const handleStartImpersonation = async () => {
     if (!impersonationEmail.trim()) return
 
+    const normalizedEmail = impersonationEmail.trim().toLowerCase()
+
     try {
       setPreviewLoading(true)
       setNpsError(null)
-      const preview = await getMentorPreviewByEmail(impersonationEmail.trim())
-      setImpersonatedMentor(preview)
+      setImpersonatedMentor({
+        id: null,
+        email: normalizedEmail,
+        name: normalizedEmail,
+        effectiveRole: null,
+        memberId: null,
+      })
       setMentorshipsData(null)
-      setTabValue(0)
-      await loadNpsData(preview.email)
+      loadNpsData(normalizedEmail)
+
+      const preview = await getMentorPreviewByEmail(normalizedEmail)
+      setImpersonatedMentor((currentValue) => ({
+        ...(currentValue || {}),
+        ...preview,
+        email: preview?.email || normalizedEmail,
+      }))
     } catch (err) {
       setNpsError(err.message || 'No se pudo cargar el mentor solicitado')
     } finally {
@@ -184,8 +396,18 @@ export default function Profile() {
     setImpersonatedMentor(null)
     setImpersonationEmail('')
     setMentorshipsData(null)
+    setMentorshipsDetailsLoading(false)
     setTabValue(0)
-    await loadNpsData(null)
+    setNpsDetailsLoading(false)
+
+    if (canSelfProfile) {
+      await loadNpsData(null)
+      return
+    }
+
+    setNpsData(null)
+    setNpsError(null)
+    setNpsLoading(false)
   }
 
   const handleExportData = () => {
@@ -219,7 +441,9 @@ export default function Profile() {
     const rows = data.visualizationData.cohorts.map((cohort) => [
       cohort.name,
       cohort.status,
-      cohort.metrics.teacher.average,
+      roleTitle === 'Asistente'
+        ? cohort.metrics.tas.average
+        : cohort.metrics.teacher.average,
       cohort.metrics.cohort.average,
       cohort.metrics.participation.average * 100 + '%',
       cohort.totalEvaluations,
@@ -354,7 +578,7 @@ export default function Profile() {
     })
   }
 
-  if (npsLoading && tabValue === 0) {
+  if (npsLoading && tabValue === 0 && !isImpersonating && !npsData) {
     return (
       <Container maxWidth="xl">
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -440,6 +664,12 @@ export default function Profile() {
       </Box>
 
       <TabPanel value={tabValue} index={0}>
+        {npsLoading && isImpersonating && !npsData && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Cargando resumen del mentor impersonado. La vista básica ya está disponible y el resto llegará por partes.
+          </Alert>
+        )}
+
         {npsError && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {npsError}
@@ -447,8 +677,13 @@ export default function Profile() {
         )}
 
         {!npsData && !npsLoading && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            No se encontraron datos NPS para este mentor.
+          <Alert
+            severity={canSelfProfile || isImpersonating ? 'warning' : 'info'}
+            sx={{ mb: 2 }}
+          >
+            {canSelfProfile || isImpersonating
+              ? 'No se encontraron datos NPS para este mentor.'
+              : 'Ingresa un correo para impersonar a un mentor o asistente.'}
           </Alert>
         )}
 
@@ -457,7 +692,10 @@ export default function Profile() {
             <Box display="flex" justifyContent="flex-end" alignItems="center" mb={2}>
               <Box display="flex" gap={1}>
                 <Tooltip title="Actualizar datos">
-                  <IconButton onClick={() => loadNpsData()} disabled={npsLoading}>
+                  <IconButton
+                    onClick={() => loadNpsData()}
+                    disabled={npsLoading || (!canSelfProfile && !isImpersonating)}
+                  >
                     <Refresh />
                   </IconButton>
                 </Tooltip>
@@ -526,61 +764,74 @@ export default function Profile() {
               </Box>
             </Paper>
 
-            <NpsKpiCards kpis={npsData.visualizationData.kpis} roleTitle={getRoleTitle()} />
+            <Suspense fallback={<SectionFallback minHeight="30vh" />}>
+              {npsData.visualizationData?.kpis ? (
+                <NpsKpiCards kpis={npsData.visualizationData.kpis} roleTitle={getRoleTitle()} />
+              ) : (
+                <KpiSkeletons />
+              )}
 
-            <Grid
-              container
-              spacing={3}
-              sx={{
-                mb: 4,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-              }}
-            >
-              <Grid item xs={12} md={8} sx={{ width: '100%' }}>
-                <Paper sx={{ p: 3, height: 400 }}>
-                  <NpsProgressionCharts
-                    cohorts={filteredCohorts}
-                    type="teacher"
-                    roleTitle={getRoleTitle()}
-                  />
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={4} sx={{ width: '100%' }}>
-                <Paper sx={{ p: 3, height: 400 }}>
-                  <NpsProgressionCharts
-                    cohorts={filteredCohorts}
-                    type="cohort"
-                    roleTitle={getRoleTitle()}
-                  />
-                </Paper>
-              </Grid>
-            </Grid>
+              {!npsData.summaryOnly && (
+                <>
+                  <Grid
+                    container
+                    spacing={3}
+                    sx={{
+                      mb: 4,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Grid item xs={12} md={8} sx={{ width: '100%' }}>
+                      <Paper sx={{ p: 3, height: 400 }}>
+                        <NpsProgressionCharts
+                          cohorts={filteredCohorts}
+                          type="teacher"
+                          roleTitle={getRoleTitle()}
+                        />
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12} md={4} sx={{ width: '100%' }}>
+                      <Paper sx={{ p: 3, height: 400 }}>
+                        <NpsProgressionCharts
+                          cohorts={filteredCohorts}
+                          type="cohort"
+                          roleTitle={getRoleTitle()}
+                        />
+                      </Paper>
+                    </Grid>
+                  </Grid>
 
-            <Grid container spacing={3} sx={{ display: 'flex', flexDirection: 'column' }}>
-              <Grid item xs={12} md={4}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Evaluaciones Recientes
-                  </Typography>
-                  <NpsRecentEvaluationsTable
-                    evaluations={npsData.visualizationData.tables.recentEvaluations}
-                    onEvaluationUpdate={handleEvaluationUpdate}
-                    roleTitle={getRoleTitle()}
-                    readOnly={readOnly}
-                  />
-                </Paper>
-              </Grid>
-              <Grid item xs={12} md={8} sx={{ width: '100%' }}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Tabla de Cohortes
-                  </Typography>
-                  <NpsCohortsTable cohorts={filteredCohorts} roleTitle={getRoleTitle()} />
-                </Paper>
-              </Grid>
-            </Grid>
+                  <Grid container spacing={3} sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Grid item xs={12} md={4}>
+                      <Paper sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom>
+                          Evaluaciones Recientes
+                        </Typography>
+                        <NpsRecentEvaluationsTable
+                          evaluations={npsData.visualizationData.tables.recentEvaluations}
+                          onEvaluationUpdate={handleEvaluationUpdate}
+                          roleTitle={getRoleTitle()}
+                          readOnly={readOnly}
+                          impersonatedEmail={isImpersonating ? impersonatedMentor?.email : null}
+                        />
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12} md={8} sx={{ width: '100%' }}>
+                      <Paper sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom>
+                          Tabla de Cohortes
+                        </Typography>
+                        <NpsCohortsTable cohorts={filteredCohorts} roleTitle={getRoleTitle()} />
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </>
+              )}
+
+              {npsDetailsLoading && npsData.summaryOnly && <NpsDetailsSkeleton />}
+            </Suspense>
           </>
         )}
       </TabPanel>
@@ -592,6 +843,9 @@ export default function Profile() {
               <Typography variant="body1" fontWeight="medium">
                 Tipo de período:
               </Typography>
+              <Tooltip title="Período académico usa las fechas de corte internas de la academia. Mes calendario usa del día 1 al último día del mes.">
+                <Info />
+              </Tooltip>
               <FormControl size="small">
                 <RadioGroup row value={periodType} onChange={(e) => setPeriodType(e.target.value)}>
                   <FormControlLabel
@@ -622,17 +876,32 @@ export default function Profile() {
           )}
 
           {!mentorshipsLoading && !mentorshipsError && mentorshipsData && (
-            <>
-              <MentorshipsSummaryCards
-                summaries={mentorshipsData.monthlySummaries}
-                selectedMonth={selectedMonth}
-                onMonthSelect={setSelectedMonth}
-              />
+            <Suspense fallback={<SectionFallback minHeight="24vh" />}>
+              <>
+                {mentorshipsData.monthlySummaries?.length ? (
+                  <MentorshipsSummaryCards
+                    summaries={mentorshipsData.monthlySummaries}
+                    selectedMonth={selectedMonth}
+                    onMonthSelect={setSelectedMonth}
+                  />
+                ) : (
+                  <MentorshipsSummarySkeleton />
+                )}
 
-              <Box sx={{ mt: 3 }}>
-                <MentorshipsList mentorships={getFilteredMentorships()} selectedMonth={selectedMonth} />
-              </Box>
-            </>
+                {!mentorshipsData.summaryOnly && (
+                  <Box sx={{ mt: 3 }}>
+                    <MentorshipsList
+                      mentorships={getFilteredMentorships()}
+                      selectedMonth={selectedMonth}
+                    />
+                  </Box>
+                )}
+
+                {mentorshipsDetailsLoading && mentorshipsData.summaryOnly && (
+                  <MentorshipsListSkeleton />
+                )}
+              </>
+            </Suspense>
           )}
 
           {!mentorshipsLoading && !mentorshipsError && !mentorshipsData && tabValue === 1 && (

@@ -25,6 +25,10 @@ function setCachedData(key, data) {
   cache.set(key, { data, timestamp: Date.now() })
 }
 
+function deleteCachedData(key) {
+  cache.delete(key)
+}
+
 // Axios con timeout personalizado
 const axiosWithTimeout = axios.create({
   timeout: 30000, // 15 segundos máximo
@@ -175,6 +179,11 @@ export const getStudentComments = async (studentId) => {
     }
     throw error
   }
+}
+
+export const invalidateStudentCommentsCache = (studentId) => {
+  const cacheKey = getCacheKey('student-comments', { studentId })
+  deleteCachedData(cacheKey)
 }
 
 // Nueva función para obtener información de un usuario de Notion por ID

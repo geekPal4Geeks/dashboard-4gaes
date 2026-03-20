@@ -5,13 +5,12 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { Box, Typography, Chip } from '@mui/material'
+import { Box, Typography, Chip, Tooltip as MuiTooltip } from '@mui/material'
+import { InfoOutlined } from '@mui/icons-material'
 import {
   formatEvaluationDate,
-  getScoreColor,
 } from '../../services/mentorNpsService'
 
 export default function NpsProgressionCharts({
@@ -143,27 +142,44 @@ export default function NpsProgressionCharts({
         alignItems="center"
         mb={2}
       >
-        <Typography variant="h6" fontWeight="bold">
-          {type === 'teacher'
-            ? `Progresión del ${roleTitle} (Último Año)`
-            : 'Progresión de la Cohorte (Último Año)'}
-        </Typography>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Typography variant="h6" fontWeight="bold">
+            {type === 'teacher'
+              ? `Progresión del ${roleTitle} (Último Año)`
+              : 'Progresión de la Cohorte (Último Año)'}
+          </Typography>
+          <MuiTooltip
+            title={
+              type === 'teacher'
+                ? `Muestra la evolución cronológica de la puntuación del ${roleTitle.toLowerCase()} en cada evaluación NPS.`
+                : 'Muestra la evolución cronológica de la puntuación general de la cohorte en cada evaluación NPS.'
+            }
+          >
+            <InfoOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
+          </MuiTooltip>
+        </Box>
         <Box display="flex" gap={2}>
-          <Chip
-            label={`${totalEvaluations} evaluaciones`}
-            size="small"
-            color="primary"
-          />
-          <Chip
-            label={`Promedio: ${averageScore.toFixed(1)}`}
-            size="small"
-            color="secondary"
-          />
-          <Chip
-            label={`Tendencia: ${trend > 0 ? '+' : ''}${trend.toFixed(1)}`}
-            size="small"
-            color={trend >= 0 ? 'success' : 'error'}
-          />
+          <MuiTooltip title="Cantidad total de evaluaciones incluidas en esta gráfica.">
+            <Chip
+              label={`${totalEvaluations} evaluaciones`}
+              size="small"
+              color="primary"
+            />
+          </MuiTooltip>
+          <MuiTooltip title="Promedio simple de todos los puntos mostrados en la gráfica.">
+            <Chip
+              label={`Promedio: ${averageScore.toFixed(1)}`}
+              size="small"
+              color="secondary"
+            />
+          </MuiTooltip>
+          <MuiTooltip title="Diferencia entre la primera y la última puntuación visible en el período.">
+            <Chip
+              label={`Tendencia: ${trend > 0 ? '+' : ''}${trend.toFixed(1)}`}
+              size="small"
+              color={trend >= 0 ? 'success' : 'error'}
+            />
+          </MuiTooltip>
         </Box>
       </Box>
 
@@ -229,6 +245,10 @@ export default function NpsProgressionCharts({
           <strong>Interpretación:</strong> La línea azul muestra la evolución
           cronológica de las puntuaciones. La línea naranja punteada representa
           el promedio general ({averageScore.toFixed(1)}).
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          Cada punto corresponde a una evaluación NPS individual y el tooltip
+          del gráfico indica la cohorte y el identificador de esa evaluación.
         </Typography>
       </Box>
     </Box>

@@ -15,7 +15,7 @@ import {
   IconButton,
   Tooltip,
 } from '@mui/material'
-import { Star, Visibility } from '@mui/icons-material'
+import { Star, Visibility, InfoOutlined } from '@mui/icons-material'
 import {
   formatEvaluationDate,
   getNpsComments,
@@ -29,6 +29,7 @@ export default function NpsRecentEvaluationsTable({
   onEvaluationUpdate,
   roleTitle = 'Profesor',
   readOnly = false,
+  impersonatedEmail = null,
 }) {
   const [updatingSeen, setUpdatingSeen] = useState({})
   const [localSeenState, setLocalSeenState] = useState({})
@@ -93,7 +94,7 @@ export default function NpsRecentEvaluationsTable({
 
     try {
       setCommentsLoading(true)
-      const comments = await getNpsComments(evaluation.npsId)
+      const comments = await getNpsComments(evaluation.npsId, impersonatedEmail)
       setCommentsByEvaluation((prev) => ({
         ...prev,
         [evaluation.npsId]: comments,
@@ -151,20 +152,53 @@ export default function NpsRecentEvaluationsTable({
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell colSpan={shouldShowSeenColumn() ? 6 : 5}>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Typography variant="body2" color="text.secondary">
+                    Lista las evaluaciones NPS más recientes y permite abrir su
+                    reporte detallado.
+                  </Typography>
+                  <Tooltip title="La puntuación mostrada corresponde al rol visible en esta vista: mentor o asistente.">
+                    <InfoOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
+              </TableCell>
+            </TableRow>
+            <TableRow>
               <TableCell sx={{ fontWeight: 'bold' }}>Fecha</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>Cohorte</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }} align="center">
-                Puntuación
+                <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                  Puntuación
+                  <Tooltip title="Nota obtenida en esa evaluación NPS para el rol actual mostrado.">
+                    <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
               </TableCell>
               <TableCell sx={{ fontWeight: 'bold' }} align="center">
-                Estado
+                <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                  Estado
+                  <Tooltip title="Clasificación rápida de la puntuación: excelente, bueno o mejorable.">
+                    <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
               </TableCell>
               <TableCell sx={{ fontWeight: 'bold' }} align="center">
-                Reporte
+                <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                  Reporte
+                  <Tooltip title="Abre comentarios y observaciones asociados a esa evaluación.">
+                    <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
               </TableCell>
               {shouldShowSeenColumn() && (
                 <TableCell sx={{ fontWeight: 'bold' }} align="center">
-                  Visto
+                  <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                    Visto
+                    <Tooltip title="Marca si ese reporte ya fue revisado.">
+                      <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    </Tooltip>
+                  </Box>
                 </TableCell>
               )}
             </TableRow>

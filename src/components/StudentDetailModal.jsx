@@ -11,11 +11,13 @@ import {
   Link,
   Alert,
   CircularProgress,
+  IconButton,
 } from '@mui/material'
 import { useState, useEffect } from 'react'
 import { updateStudentComment } from '../services/studentService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { getTeamSlackId } from '../utils/cohortHelpers'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
 export default function StudentDetailModal({
   open,
@@ -61,6 +63,10 @@ export default function StudentDetailModal({
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRemovePendingImage = (indexToRemove) => {
+    setAttachments((prev) => prev.filter((_, index) => index !== indexToRemove))
   }
 
   return (
@@ -139,13 +145,57 @@ export default function StudentDetailModal({
               type="file"
               accept="image/*"
               multiple
-              onChange={(e) => setAttachments(Array.from(e.target.files || []))}
+              onChange={(e) =>
+                setAttachments((prev) => [
+                  ...prev,
+                  ...Array.from(e.target.files || []),
+                ].slice(0, 3))
+              }
             />
           </Button>
           {attachments.length > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              {attachments.length} imagen(es) seleccionada(s)
-            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {attachments.map((file, index) => (
+                <Box
+                  key={`${file.name}-${file.size}-${index}`}
+                  sx={{
+                    width: 140,
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 2,
+                    p: 1,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    sx={{
+                      width: '100%',
+                      height: 90,
+                      objectFit: 'cover',
+                      borderRadius: 1,
+                      mb: 1,
+                    }}
+                  />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', wordBreak: 'break-word' }}
+                  >
+                    {file.name}
+                  </Typography>
+                  <Box display="flex" justifyContent="flex-end">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemovePendingImage(index)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
           )}
           {error && (
             <Alert severity="error" sx={{ mt: 1 }}>
