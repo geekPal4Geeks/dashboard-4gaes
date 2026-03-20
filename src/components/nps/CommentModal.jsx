@@ -7,17 +7,19 @@ import {
   Box,
   Typography,
   Checkbox,
+  CircularProgress,
 } from '@mui/material'
-import { formatEvaluationDate } from '../../services/mentorNpsService'
 
 export default function CommentModal({
   open,
   onClose,
   evaluation,
+  comments = [],
+  loading = false,
+  readOnly = false,
   onSeenChange,
   getCurrentSeenState,
 }) {
-  // Función para formatear el texto del comentario
   const formatCommentText = (comment) => {
     if (comment.rich_text && Array.isArray(comment.rich_text)) {
       return comment.rich_text.map((text) => text.plain_text || '').join('')
@@ -25,7 +27,6 @@ export default function CommentModal({
     return comment.text || 'Sin texto'
   }
 
-  // Función para formatear la fecha del comentario
   const formatCommentDate = (dateString) => {
     if (!dateString) return 'Fecha no disponible'
     const date = new Date(dateString)
@@ -46,13 +47,14 @@ export default function CommentModal({
             Reporte de evaluación - {evaluation?.cohortName || 'Cohorte'}
           </Typography>
           <Box display="flex" alignItems="center" gap={1}>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="text.secondary">
               Estado:
             </Typography>
             <Checkbox
               checked={evaluation ? getCurrentSeenState(evaluation) : false}
+              disabled={readOnly}
               onChange={(e) => {
-                if (evaluation) {
+                if (evaluation && !readOnly) {
                   onSeenChange(evaluation.npsId, e.target.checked)
                 }
               }}
@@ -64,18 +66,20 @@ export default function CommentModal({
               }}
             />
             <Typography variant="body2">
-              {evaluation && getCurrentSeenState(evaluation)
-                ? 'Visto'
-                : 'No visto'}
+              {evaluation && getCurrentSeenState(evaluation) ? 'Visto' : 'No visto'}
             </Typography>
           </Box>
         </Box>
       </DialogTitle>
 
       <DialogContent>
-        {evaluation?.comments && evaluation.comments.length > 0 ? (
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" py={4}>
+            <CircularProgress size={28} />
+          </Box>
+        ) : comments.length > 0 ? (
           <Box>
-            {evaluation.comments.map((comment, index) => (
+            {comments.map((comment, index) => (
               <Box
                 key={comment.id || index}
                 sx={{
@@ -95,12 +99,9 @@ export default function CommentModal({
                   alignItems="center"
                   mb={1}
                 >
-                  {/* <Typography variant="subtitle2" fontWeight="bold">
-                    {comment.author?.name || 'Usuario anónimo'}
-                  </Typography> */}
                   <Typography
                     variant="caption"
-                    color="textSecondary"
+                    color="text.secondary"
                     sx={{ mt: '14px' }}
                   >
                     {formatCommentDate(comment.created_time)}
@@ -110,7 +111,7 @@ export default function CommentModal({
             ))}
           </Box>
         ) : (
-          <Typography color="textSecondary">
+          <Typography color="text.secondary">
             No hay comentarios disponibles para esta evaluación.
           </Typography>
         )}

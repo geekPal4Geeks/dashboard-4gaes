@@ -1,4 +1,5 @@
-import { Paper, Typography, Box, Grid, Chip } from '@mui/material'
+import { Paper, Typography, Box, Grid, Chip, Tooltip } from '@mui/material'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 
 export default function MentorshipsSummaryCards({
   summaries,
@@ -57,9 +58,14 @@ export default function MentorshipsSummaryCards({
             onClick={() => handleCardClick('current')}
           >
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6" fontWeight="bold">
-                Mes en curso
-              </Typography>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography variant="h6" fontWeight="bold">
+                  Mes en curso
+                </Typography>
+                <Tooltip title="Resumen de mentorías del período actualmente abierto. Haz clic para filtrar la tabla inferior.">
+                  <InfoOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
               {selectedMonth === 'current' && (
                 <Chip label="Seleccionado" color="primary" size="small" />
               )}
@@ -70,27 +76,47 @@ export default function MentorshipsSummaryCards({
             </Typography>
             <Box display="flex" flexDirection="column" gap={1}>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2">Realizadas a pagar:</Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2">Realizadas a pagar:</Typography>
+                  <Tooltip title="Mentorías completadas correctamente y que sí cuentan para pago.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {currentMonthSummary.realizadasAPagar || 0}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2">No realizadas a pagar:</Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2">No realizadas a pagar:</Typography>
+                  <Tooltip title="Mentorías no realizadas pero que igualmente deben pagarse según la regla de negocio.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {currentMonthSummary.noRealizadasAPagar || 0}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2" fontWeight="bold">
-                  Total:
-                </Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2" fontWeight="bold">
+                    Total:
+                  </Typography>
+                  <Tooltip title="Suma de las mentorías del período que cuentan para pago.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {currentMonthSummary.total || 0}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2">No corresponden:</Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2">No corresponden:</Typography>
+                  <Tooltip title="Mentorías registradas que no deben pagarse.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {currentMonthSummary.noCorresponden || 0}
                 </Typography>
@@ -117,9 +143,14 @@ export default function MentorshipsSummaryCards({
             onClick={() => handleCardClick('previous')}
           >
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6" fontWeight="bold">
-                Mes anterior
-              </Typography>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography variant="h6" fontWeight="bold">
+                  Mes anterior
+                </Typography>
+                <Tooltip title="Resumen del período inmediatamente anterior. Haz clic para filtrar la tabla inferior.">
+                  <InfoOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
               {selectedMonth === 'previous' && (
                 <Chip label="Seleccionado" color="primary" size="small" />
               )}
@@ -130,27 +161,47 @@ export default function MentorshipsSummaryCards({
             </Typography>
             <Box display="flex" flexDirection="column" gap={1}>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2">Realizadas a pagar:</Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2">Realizadas a pagar:</Typography>
+                  <Tooltip title="Mentorías completadas correctamente y que sí cuentan para pago.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {previousMonthSummary.realizadasAPagar || 0}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2">No realizadas a pagar:</Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2">No realizadas a pagar:</Typography>
+                  <Tooltip title="Mentorías no realizadas pero que igualmente deben pagarse según la regla de negocio.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {previousMonthSummary.noRealizadasAPagar || 0}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2" fontWeight="bold">
-                  Total:
-                </Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2" fontWeight="bold">
+                    Total:
+                  </Typography>
+                  <Tooltip title="Suma de las mentorías del período que cuentan para pago.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {previousMonthSummary.total || 0}
                 </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between">
-                <Typography variant="body2">No corresponden:</Typography>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <Typography variant="body2">No corresponden:</Typography>
+                  <Tooltip title="Mentorías registradas que no deben pagarse.">
+                    <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  </Tooltip>
+                </Box>
                 <Typography variant="body2" fontWeight="bold">
                   {previousMonthSummary.noCorresponden || 0}
                 </Typography>

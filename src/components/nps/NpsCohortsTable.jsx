@@ -10,13 +10,12 @@ import {
   Typography,
   Box,
   Tooltip,
-  IconButton,
 } from '@mui/material'
 import {
   TrendingUp,
   TrendingDown,
   Remove,
-  Visibility,
+  InfoOutlined,
 } from '@mui/icons-material'
 import {
   getScoreColor,
@@ -60,22 +59,67 @@ export default function NpsCohortsTable({ cohorts, roleTitle = 'Profesor' }) {
       <Table stickyHeader>
         <TableHead>
           <TableRow>
+            <TableCell colSpan={7} sx={{ backgroundColor: 'background.paper' }}>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Typography variant="body2" color="text.secondary">
+                  Resume el rendimiento del mentor frente al promedio general de
+                  cada cohorte.
+                </Typography>
+                <Tooltip title="La comparación se calcula entre el promedio del rol visible en esta vista y el promedio general de la cohorte.">
+                  <InfoOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
+            </TableCell>
+          </TableRow>
+          <TableRow>
             <TableCell sx={{ fontWeight: 'bold' }}>Cohorte</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }}>Estado</TableCell>
-            <TableCell sx={{ fontWeight: 'bold' }} align="center">
-              Promedio {roleTitle}
+            <TableCell sx={{ fontWeight: 'bold' }}>
+              <Box display="flex" alignItems="center" gap={0.5}>
+                Estado
+                <Tooltip title="Estado actual de la cohorte: activa, proyecto final o finalizada.">
+                  <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
             </TableCell>
             <TableCell sx={{ fontWeight: 'bold' }} align="center">
-              Promedio Cohorte
+              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                Promedio {roleTitle}
+                <Tooltip title={`Promedio de puntuación NPS del ${roleTitle.toLowerCase()} en esa cohorte.`}>
+                  <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
             </TableCell>
             <TableCell sx={{ fontWeight: 'bold' }} align="center">
-              Participación
+              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                Promedio Cohorte
+                <Tooltip title="Promedio general que obtuvo la cohorte en las mismas evaluaciones consideradas.">
+                  <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
             </TableCell>
             <TableCell sx={{ fontWeight: 'bold' }} align="center">
-              Evaluaciones
+              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                Participación
+                <Tooltip title="Porcentaje promedio de participación del alumnado en las evaluaciones NPS de esa cohorte.">
+                  <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
             </TableCell>
             <TableCell sx={{ fontWeight: 'bold' }} align="center">
-              Comparación
+              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                Evaluaciones
+                <Tooltip title="Cantidad de evaluaciones NPS que aportan datos a esa fila.">
+                  <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
+            </TableCell>
+            <TableCell sx={{ fontWeight: 'bold' }} align="center">
+              <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                Comparación
+                <Tooltip title="Indica si el promedio del mentor está por encima, por debajo o alineado con el promedio de la cohorte.">
+                  <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                </Tooltip>
+              </Box>
             </TableCell>
           </TableRow>
         </TableHead>

@@ -167,29 +167,69 @@ export default function MentorshipsList({ mentorships, selectedMonth }) {
 
   return (
     <Paper sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Listado de Mentorías registradas
+      <Box display="flex" alignItems="center" gap={1} mb={2}>
+        <Typography variant="h6">
+          Listado de Mentorías registradas
+        </Typography>
+        <Tooltip title="Detalle de las mentorías del período seleccionado. Incluye realizadas, no realizadas y canceladas consolidadas.">
+          <HelpOutlineIcon fontSize="small" color="action" />
+        </Tooltip>
+      </Box>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Los estados indican si la mentoría cuenta para pago, no corresponde o si
+        fue cancelada/reprogramada.
       </Typography>
       <TableContainer>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell sx={{ fontWeight: 'bold' }}>Estudiante</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Servicio</TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>
-                <TableSortLabel
-                  active={orderBy === 'startTime'}
-                  direction={orderBy === 'startTime' ? order : 'asc'}
-                  onClick={() => handleRequestSort('startTime')}
-                >
-                  Hora de inicio
-                </TableSortLabel>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  Servicio
+                  <Tooltip title="Tipo de sesión registrada: mentoría o mock interview.">
+                    <HelpOutlineIcon sx={{ fontSize: 16 }} />
+                  </Tooltip>
+                </Box>
               </TableCell>
               <TableCell sx={{ fontWeight: 'bold' }}>
-                Hora de finalización
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  <TableSortLabel
+                    active={orderBy === 'startTime'}
+                    direction={orderBy === 'startTime' ? order : 'asc'}
+                    onClick={() => handleRequestSort('startTime')}
+                  >
+                    Hora de inicio
+                  </TableSortLabel>
+                  <Tooltip title="Fecha y hora efectiva de la sesión. Si fue cancelada, se muestra la fecha de cancelación registrada.">
+                    <HelpOutlineIcon sx={{ fontSize: 16 }} />
+                  </Tooltip>
+                </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Duración total</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Estado</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  Hora de finalización
+                  <Tooltip title="Hora de cierre de la sesión. Las canceladas no muestran finalización.">
+                    <HelpOutlineIcon sx={{ fontSize: 16 }} />
+                  </Tooltip>
+                </Box>
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  Duración total
+                  <Tooltip title="Duración calculada entre inicio y fin. Las canceladas no muestran duración.">
+                    <HelpOutlineIcon sx={{ fontSize: 16 }} />
+                  </Tooltip>
+                </Box>
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>
+                <Box display="flex" alignItems="center" gap={0.5}>
+                  Estado
+                  <Tooltip title="A pagar: cuenta para pago. No corresponde: no debe pagarse. No realizada: no se completó.">
+                    <HelpOutlineIcon sx={{ fontSize: 16 }} />
+                  </Tooltip>
+                </Box>
+              </TableCell>
               {/* <TableCell sx={{ fontWeight: 'bold' }} align="center">
                 Solicitud de revisión
               </TableCell> */}

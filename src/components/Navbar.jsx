@@ -10,6 +10,11 @@ import Select from '@mui/material/Select'
 import FormControl from '@mui/material/FormControl'
 import logo from '../assets/logo-4geeks.ico'
 import AccountCircle from '@mui/icons-material/AccountCircle'
+import {
+  canImpersonateMentor,
+  canManageCourses,
+  canSeeOwnProfile,
+} from '../constants/permissions'
 
 const ACADEMY_LABELS = {
   6: 'Spain',
@@ -22,17 +27,13 @@ export const Navbar = () => {
   const { store, dispatch } = useGlobalReducer()
   const role = store.userRole
 
-  const canSeeManagement =
-    role === 'academy_coordinator' ||
-    role === 'country_manager' ||
-    role === 'admin'
-
-  const canSeeProfile = role === 'teacher' || role === 'assistant'
-
+  const canSeeManagement = canManageCourses(role)
+  const canSeeProfile = canSeeOwnProfile(role)
+  const canSeeImpersonation = canImpersonateMentor(role)
   const hasMultipleAcademies = store.userAcademies?.length > 1
 
   const handleAcademyChange = (e) => {
-    const selected = store.userAcademies.find(a => a.id === e.target.value)
+    const selected = store.userAcademies.find((a) => a.id === e.target.value)
     if (selected) {
       dispatch({ type: 'set_active_academy', payload: selected })
     }
@@ -44,9 +45,7 @@ export const Navbar = () => {
     navigate('/')
   }
 
-  const isActive = (path) => {
-    return location.pathname === path
-  }
+  const isActive = (path) => location.pathname === path
 
   const buttonStyles = (path) => ({
     color: isActive(path) ? 'primary.main' : 'inherit',
@@ -123,7 +122,7 @@ export const Navbar = () => {
               Gestión de cursos
             </Button>
           )}
-          {canSeeProfile && (
+          {(canSeeProfile || canSeeImpersonation) && (
             <Button
               color="inherit"
               startIcon={<AccountCircle />}
@@ -131,7 +130,7 @@ export const Navbar = () => {
               to="/profile"
               sx={buttonStyles('/profile')}
             >
-              Mi perfil
+              {canSeeImpersonation && !canSeeProfile ? 'Impersonar mentor' : 'Mi perfil'}
             </Button>
           )}
           <Button

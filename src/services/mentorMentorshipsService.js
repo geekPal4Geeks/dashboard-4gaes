@@ -1,39 +1,93 @@
-import axios from 'axios'
+import { API_URL, apiClient } from './apiClient'
 
-const API_URL = import.meta.env.VITE_BACKEND_URL
+const CACHE_TTL_MS = 2 * 60 * 1000
+const responseCache = new Map()
 
-// Configuración base de axios SIN baseURL
-const apiClient = axios.create({
-  timeout: 30000, // 30 segundos máximo
-})
-
-// Interceptor para agregar el token de autorización
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    // El backend espera formato "Token <token>" (consistente con otros servicios)
-    config.headers.Authorization = `Token ${token}`
+const getCachedResponse = (key) => {
+  const cached = responseCache.get(key)
+  if (!cached) return null
+  if (cached.expiresAt <= Date.now()) {
+    responseCache.delete(key)
+    return null
   }
-  return config
-})
+  return cached.data
+}
 
-/**
- * Obtiene los datos de mentorías del mentor actual usando solo el token (el backend resuelve el mentor)
- * @param {string} periodType - Tipo de periodo: 'academic' | 'monthly' (por defecto: 'academic')
- * @returns {Promise<Object>} Datos de mentorías del mentor
- */
+const setCachedResponse = (key, data) => {
+  responseCache.set(key, {
+    data,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  })
+  return data
+}
+
+const readStoredImpersonationToken = (email = null) => {
+  const normalizedEmail = email?.trim()?.toLowerCase?.() || null
+
+  const directKeys = [
+    normalizedEmail ? `impersonation_token:${normalizedEmail}` : null,
+    normalizedEmail ? `impersonated_token:${normalizedEmail}` : null,
+    normalizedEmail ? `breathcode_impersonation_token:${normalizedEmail}` : null,
+    'impersonation_token',
+    'impersonated_token',
+    'breathcode_impersonation_token',
+  ].filter(Boolean)
+
+  for (const key of directKeys) {
+    const value = localStorage.getItem(key)
+    if (value) return value
+  }
+
+  const mapKeys = ['impersonation_tokens', 'breathcode_impersonation_tokens']
+  for (const key of mapKeys) {
+    const rawValue = localStorage.getItem(key)
+    if (!rawValue) continue
+
+    try {
+      const parsed = JSON.parse(rawValue)
+      if (normalizedEmail && parsed && typeof parsed === 'object') {
+        const token = parsed[normalizedEmail]
+        if (typeof token === 'string' && token) return token
+      }
+    } catch {
+      continue
+    }
+  }
+
+  return null
+}
+
 export const getCurrentMentorMentorshipsData = async (
   periodType = 'academic',
-  { signal } = {}
+  {
+    signal,
+    email = null,
+    memberId = null,
+    impersonationToken = null,
+    summaryOnly = false,
+  } = {}
 ) => {
   try {
+    const cacheKey = `current:${periodType}:${email || 'self'}:${summaryOnly ? 'summary' : 'full'}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const resolvedImpersonationToken =
+      impersonationToken || readStoredImpersonationToken(email)
+
     const response = await apiClient.get(`${API_URL}/mentor/my-mentorships`, {
       params: {
         periodType,
+        ...(summaryOnly ? { summaryOnly: 'true' } : {}),
+        ...(email ? { email } : {}),
       },
+      headers: resolvedImpersonationToken
+        ? { 'X-Impersonation-Token': resolvedImpersonationToken }
+        : {},
       signal,
+      timeout: 120000,
     })
-    return response.data
+    return setCachedResponse(cacheKey, response.data)
   } catch (error) {
     throw new Error(
       error.response?.data?.error ||
@@ -43,19 +97,19 @@ export const getCurrentMentorMentorshipsData = async (
   }
 }
 
-/**
- * Obtiene los datos de mentorías de un mentor específico
- * @param {string} mentorId - ID del mentor
- * @returns {Promise<Object>} Datos de mentorías del mentor
- */
 export const getMentorMentorshipsData = async (mentorId) => {
   try {
+    const cacheKey = `mentor-id:${mentorId}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
     const response = await apiClient.get(`${API_URL}/mentor/my-mentorships`, {
       params: {
         mentorId,
       },
+      timeout: 120000,
     })
-    return response.data
+    return setCachedResponse(cacheKey, response.data)
   } catch (error) {
     throw new Error(
       error.response?.data?.error ||
@@ -65,76 +119,29 @@ export const getMentorMentorshipsData = async (mentorId) => {
   }
 }
 
-/**
- * Obtiene las mentorías canceladas del mentor actual usando solo el token
- * @param {string} periodType - Tipo de periodo: 'academic' | 'monthly' (por defecto: 'academic')
- * @returns {Promise<Object>} Datos de mentorías canceladas del mentor
- */
-export const getCurrentMentorCancelledMentorshipsData = async (
+export const getCurrentMentorMentorshipsSummary = async (
   periodType = 'academic',
-  { signal } = {}
+  options = {}
 ) => {
-  try {
-    const token = localStorage.getItem('token')
-
-    // El endpoint de canceladas requiere Bearer según la documentación
-    const response = await axios.get(
-      `${API_URL}/mentor/cancelled-mentorships`,
-      {
-        params: {
-          periodType,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        timeout: 30000,
-        signal,
-      }
-    )
-
-    // Si la respuesta es exitosa pero no hay datos, retornar estructura vacía
-    if (!response.data) {
-      return { mentorName: null, cancelledMentorships: [] }
-    }
-
-    return response.data
-  } catch (error) {
-    // Si es un error 404 o similar, retornar estructura vacía en lugar de lanzar error
-    if (error.response?.status === 404 || error.response?.status === 500) {
-      return { mentorName: null, cancelledMentorships: [] }
-    }
-
-    throw new Error(
-      error.response?.data?.error ||
-        error.message ||
-        'Error al obtener mentorías canceladas del mentor'
-    )
-  }
+  return getCurrentMentorMentorshipsData(periodType, {
+    ...options,
+    summaryOnly: true,
+  })
 }
 
-/**
- * Función de utilidad para formatear duración en minutos a formato legible
- * @param {number} minutes - Duración en minutos
- * @returns {string} Duración formateada (ej: "1h 30min")
- */
 export const formatDuration = (minutes) => {
   if (!minutes) return '--'
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
   if (hours > 0 && mins > 0) {
     return `${hours}h ${mins}min`
-  } else if (hours > 0) {
-    return `${hours}h`
-  } else {
-    return `${mins}min`
   }
+  if (hours > 0) {
+    return `${hours}h`
+  }
+  return `${mins}min`
 }
 
-/**
- * Función de utilidad para formatear fecha y hora
- * @param {string} dateTimeString - Fecha y hora en formato ISO
- * @returns {string} Fecha y hora formateada
- */
 export const formatDateTime = (dateTimeString) => {
   if (!dateTimeString) return '--'
   try {
@@ -146,31 +153,21 @@ export const formatDateTime = (dateTimeString) => {
       hour: '2-digit',
       minute: '2-digit',
     })
-  } catch (error) {
+  } catch {
     return '--'
   }
 }
 
-/**
- * Función de utilidad para obtener el color según el estado
- * @param {string} status - Estado de la mentoría
- * @returns {string} Color CSS
- */
 export const getStatusColor = (status) => {
   const colorMap = {
-    'A pagar': '#4caf50', // Verde
-    'No corresponde': '#9e9e9e', // Gris
-    'No realizada': '#f44336', // Rojo
-    'No realizada a pagar': '#ff9800', // Naranja
+    'A pagar': '#4caf50',
+    'No corresponde': '#9e9e9e',
+    'No realizada': '#f44336',
+    'No realizada a pagar': '#ff9800',
   }
   return colorMap[status] || '#9e9e9e'
 }
 
-/**
- * Función de utilidad para obtener la descripción del estado
- * @param {string} status - Estado de la mentoría
- * @returns {string} Descripción del estado
- */
 export const getStatusDescription = (status) => {
   const descriptions = {
     'A pagar': 'Mentoría realizada que está pendiente de pago',
@@ -182,50 +179,23 @@ export const getStatusDescription = (status) => {
   return descriptions[status] || 'Estado no definido'
 }
 
-/**
- * Función de utilidad para obtener el color según el tipo de servicio
- * @param {string} service - Tipo de servicio ("Mock Interview" o "Mentoría")
- * @returns {string} Color CSS
- */
 export const getServiceColor = (service) => {
   const colorMap = {
-    'Mock Interview': '#9e9e9e', // Gris (igual que Mock interview)
-    'Mock interview': '#9e9e9e', // Gris
-    Mentoría: '#2196f3', // Azul
+    'Mock Interview': '#9e9e9e',
+    'Mock interview': '#9e9e9e',
+    Mentoría: '#2196f3',
   }
   return colorMap[service] || '#9e9e9e'
 }
 
-/**
- * Solicita revisión de una mentoría
- * @param {Object} reviewData - Datos de la mentoría para solicitar revisión
- * @param {string} reviewData.cancellationId - ID de Notion de la cancelación (opcional, para mentorías canceladas)
- * @param {string} reviewData.mentorshipId - ID de la mentorship (requerido)
- * @param {string} reviewData.student - Nombre completo del estudiante (requerido)
- * @param {string} reviewData.studentId - ID de Notion del estudiante (opcional)
- * @param {string} reviewData.service - Tipo de servicio: 'Mock interview' | 'Mentoría' (requerido)
- * @param {string} reviewData.startTime - Fecha y hora de inicio en formato ISO (requerido)
- * @param {string} reviewData.endTime - Fecha y hora de finalización en formato ISO (opcional)
- * @param {number} reviewData.duration - Duración en minutos (opcional)
- * @param {string} reviewData.status - Estado de la mentorship (opcional)
- * @returns {Promise<Object>} Resultado de la solicitud de revisión
- */
 export const requestMentorshipReview = async (reviewData) => {
   try {
-    const token = localStorage.getItem('token')
-
-    const response = await axios.post(
+    const response = await apiClient.post(
       `${API_URL}/mentor/request-review`,
-      reviewData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-      }
+      reviewData
     )
 
+    responseCache.clear()
     return response.data
   } catch (error) {
     throw new Error(

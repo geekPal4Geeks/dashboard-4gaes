@@ -11,11 +11,13 @@ import {
   Link,
   Alert,
   CircularProgress,
+  IconButton,
 } from '@mui/material'
 import { useState, useEffect } from 'react'
 import { updateStudentComment } from '../services/studentService'
 import useGlobalReducer from '../hooks/useGlobalReducer'
 import { getTeamSlackId } from '../utils/cohortHelpers'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
 export default function StudentDetailModal({
   open,
@@ -27,16 +29,16 @@ export default function StudentDetailModal({
   const [comment, setComment] = useState(
     student?.properties?.Comments?.rich_text?.[0]?.plain_text || ''
   )
+  const [attachments, setAttachments] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Limpiar el campo de comentario cuando cambie el estudiante o se abra/cierre el modal
   useEffect(() => {
     setComment(student?.properties?.Comments?.rich_text?.[0]?.plain_text || '')
+    setAttachments([])
     setError(null)
   }, [student, open])
 
-  // Obtener el nombre y Slack ID del Asesor de Prework fuera del JSX
   const preworkAdvisorName =
     student?.properties?.['Prework Advisor']?.select?.name
   const advisorSlackId = preworkAdvisorName
@@ -44,23 +46,27 @@ export default function StudentDetailModal({
     : null
 
   const handleSaveComment = async () => {
-    // Validación: No permitir guardar comentarios vacíos o solo con espacios
-    if (comment.trim() === '') {
-      setError('El comentario no puede estar vacío.')
+    if (comment.trim() === '' && attachments.length === 0) {
+      setError('Debes agregar un comentario o al menos una imagen.')
       return
     }
 
     try {
       setLoading(true)
       setError(null)
-      await updateStudentComment(student.id, comment, store.userName)
-      setComment('') // Limpiar el campo tras guardar
+      await updateStudentComment(student.id, comment, store.userName, null, attachments)
+      setComment('')
+      setAttachments([])
       onClose()
-    } catch (err) {
+    } catch {
       setError('Error al guardar el comentario')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRemovePendingImage = (indexToRemove) => {
+    setAttachments((prev) => prev.filter((_, index) => index !== indexToRemove))
   }
 
   return (
@@ -118,8 +124,8 @@ export default function StudentDetailModal({
             Información del alumno
           </Typography>
           <Typography variant="subtitle1">
-            {student?.properties?.['Información para Dashboard']?.rich_textl ||
-              'No hay información disponible'}
+            {student?.properties?.['Información para Dashboard']?.rich_text?.[0]
+              ?.plain_text || 'No hay información disponible'}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
             Deja comentarios
@@ -132,6 +138,65 @@ export default function StudentDetailModal({
             placeholder="Agregar un comentario sobre el estudiante..."
             fullWidth
           />
+          <Button component="label" variant="outlined">
+            Adjuntar imágenes
+            <input
+              hidden
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) =>
+                setAttachments((prev) => [
+                  ...prev,
+                  ...Array.from(e.target.files || []),
+                ].slice(0, 3))
+              }
+            />
+          </Button>
+          {attachments.length > 0 && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+              {attachments.map((file, index) => (
+                <Box
+                  key={`${file.name}-${file.size}-${index}`}
+                  sx={{
+                    width: 140,
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 2,
+                    p: 1,
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    sx={{
+                      width: '100%',
+                      height: 90,
+                      objectFit: 'cover',
+                      borderRadius: 1,
+                      mb: 1,
+                    }}
+                  />
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', wordBreak: 'break-word' }}
+                  >
+                    {file.name}
+                  </Typography>
+                  <Box display="flex" justifyContent="flex-end">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemovePendingImage(index)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
           {error && (
             <Alert severity="error" sx={{ mt: 1 }}>
               {error}
@@ -147,7 +212,7 @@ export default function StudentDetailModal({
           onClick={handleSaveComment}
           variant="contained"
           color="primary"
-          disabled={loading || comment.trim() === ''}
+          disabled={loading || (comment.trim() === '' && attachments.length === 0)}
         >
           {loading ? <CircularProgress size={24} /> : 'Guardar'}
         </Button>

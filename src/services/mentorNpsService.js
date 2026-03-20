@@ -1,70 +1,142 @@
-import axios from 'axios'
+import { API_URL, apiClient } from './apiClient'
 
-const API_URL = import.meta.env.VITE_BACKEND_URL
+const CACHE_TTL_MS = 2 * 60 * 1000
+const responseCache = new Map()
 
-// Configuración base de axios SIN baseURL
-const apiClient = axios.create({
-  timeout: 30000, // 30 segundos máximo
-})
-
-// Interceptor para agregar el token de autorización
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    // El backend espera formato "Token <token>" (consistente con otros servicios)
-    config.headers.Authorization = `Token ${token}`
+const getCachedResponse = (key) => {
+  const cached = responseCache.get(key)
+  if (!cached) return null
+  if (cached.expiresAt <= Date.now()) {
+    responseCache.delete(key)
+    return null
   }
-  return config
-})
+  return cached.data
+}
 
-/**
- * Obtiene los datos NPS del mentor actual usando solo el token (el backend resuelve el mentor)
- * @returns {Promise<Object>} Datos NPS del mentor
- */
-export const getCurrentMentorNpsData = async () => {
+const setCachedResponse = (key, data) => {
+  responseCache.set(key, {
+    data,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  })
+  return data
+}
+
+export const getCurrentMentorNpsData = async (email = null) => {
   try {
-    const response = await apiClient.post(`${API_URL}/mentor-nps`, {})
-    return response.data
+    const cacheKey = `current:${email || 'self'}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentor-nps`,
+      email ? { email } : {},
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
   } catch (error) {
     throw new Error(
-      error.response?.data?.error || error.message || 'Error al obtener datos NPS del mentor'
+      error.response?.data?.error ||
+        error.message ||
+        'Error al obtener datos NPS del mentor'
     )
   }
 }
 
-/**
- * Obtiene los datos NPS de un mentor específico
- * @param {string} mentorId - ID del mentor
- * @returns {Promise<Object>} Datos NPS del mentor
- */
+export const getCurrentMentorNpsSummary = async (email = null) => {
+  try {
+    const cacheKey = `summary:${email || 'self'}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentor-nps`,
+      {
+        ...(email ? { email } : {}),
+        summaryOnly: true,
+      },
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.error ||
+        error.message ||
+        'Error al obtener resumen NPS del mentor'
+    )
+  }
+}
+
 export const getMentorNpsData = async (mentorId) => {
   try {
-    const response = await apiClient.post(`${API_URL}/mentor-nps`, {
-      mentorId,
-    })
-    return response.data
+    const cacheKey = `mentor-id:${mentorId}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentor-nps`,
+      {
+        mentorId,
+      },
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
   } catch (error) {
     throw new Error(
-      error.response?.data?.error || error.message || 'Error al obtener datos NPS del mentor'
+      error.response?.data?.error ||
+        error.message ||
+        'Error al obtener datos NPS del mentor'
     )
   }
 }
 
-/**
- * Función de utilidad para formatear fechas de evaluación
- * @param {string} dateString - Fecha en formato NPS ID
- * @returns {string} Fecha formateada
- */
+export const getMentorPreviewByEmail = async (email) => {
+  try {
+    const cacheKey = `preview:${email}`
+    const cachedData = getCachedResponse(cacheKey)
+    if (cachedData) return cachedData
+
+    const response = await apiClient.post(
+      `${API_URL}/mentors/preview-by-email`,
+      {
+        email,
+      },
+      { timeout: 120000 }
+    )
+    return setCachedResponse(cacheKey, response.data)
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.error ||
+        error.message ||
+        'Error al buscar al mentor'
+    )
+  }
+}
+
+export const getNpsComments = async (npsId, email = null) => {
+  try {
+    const response = await apiClient.post(`${API_URL}/nps-comments`, {
+      npsId,
+      ...(email ? { email } : {}),
+    })
+    return response.data?.comments || response.data || []
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.error ||
+        error.message ||
+        'Error al obtener comentarios NPS'
+    )
+  }
+}
+
 export const formatEvaluationDate = (dateString) => {
   if (!dateString) return 'N/A'
 
-  // Si es un string que contiene caracteres de fecha (como "-" o "T"), tratar como fecha ISO
   if (
     typeof dateString === 'string' &&
     (dateString.includes('-') || dateString.includes('T'))
   ) {
     const date = new Date(dateString)
-    if (!isNaN(date.getTime())) {
+    if (!Number.isNaN(date.getTime())) {
       return date.toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'short',
@@ -73,14 +145,11 @@ export const formatEvaluationDate = (dateString) => {
     }
   }
 
-  // Si es un número, intentar como timestamp
-  const numValue = parseInt(dateString)
-  if (!isNaN(numValue)) {
-    // Si el valor es muy pequeño (menos de 10000), probablemente es un ID de NPS
+  const numValue = parseInt(dateString, 10)
+  if (!Number.isNaN(numValue)) {
     if (numValue < 10000) {
-      // Para datos de prueba, generar una fecha simulada basada en el ID
       const baseDate = new Date('2024-01-01')
-      const daysToAdd = numValue % 365 // Usar el ID para generar días diferentes
+      const daysToAdd = numValue % 365
       baseDate.setDate(baseDate.getDate() + daysToAdd)
       return baseDate.toLocaleDateString('es-ES', {
         year: 'numeric',
@@ -89,11 +158,7 @@ export const formatEvaluationDate = (dateString) => {
       })
     }
 
-    // Intentar diferentes formatos de timestamp
-    let date
-
-    // Primero intentar como timestamp en milisegundos
-    date = new Date(numValue)
+    let date = new Date(numValue)
     if (date.getFullYear() > 1970) {
       return date.toLocaleDateString('es-ES', {
         year: 'numeric',
@@ -102,7 +167,6 @@ export const formatEvaluationDate = (dateString) => {
       })
     }
 
-    // Si no funciona, intentar como timestamp en segundos
     date = new Date(numValue * 1000)
     if (date.getFullYear() > 1970) {
       return date.toLocaleDateString('es-ES', {
@@ -113,26 +177,15 @@ export const formatEvaluationDate = (dateString) => {
     }
   }
 
-  // Si nada funciona, mostrar el valor original
   return `ID: ${dateString}`
 }
 
-/**
- * Función de utilidad para obtener el color según el score
- * @param {number} score - Score de 0-10
- * @returns {string} Color CSS
- */
 export const getScoreColor = (score) => {
-  if (score >= 9) return '#4caf50' // Verde - Excelente
-  if (score >= 7) return '#ff9800' // Naranja - Bueno
-  return '#f44336' // Rojo - Mejorable
+  if (score >= 9) return '#4caf50'
+  if (score >= 7) return '#ff9800'
+  return '#f44336'
 }
 
-/**
- * Función de utilidad para obtener el texto del estado de cohorte
- * @param {string} status - Estado de la cohorte
- * @returns {string} Texto legible del estado
- */
 export const getCohortStatusText = (status) => {
   const statusMap = {
     Active: 'Activa',
@@ -142,11 +195,6 @@ export const getCohortStatusText = (status) => {
   return statusMap[status] || status
 }
 
-/**
- * Función de utilidad para obtener el color del estado de cohorte
- * @param {string} status - Estado de la cohorte
- * @returns {string} Color CSS
- */
 export const getCohortStatusColor = (status) => {
   const colorMap = {
     Active: '#4caf50',
@@ -156,25 +204,19 @@ export const getCohortStatusColor = (status) => {
   return colorMap[status] || '#9e9e9e'
 }
 
-/**
- * Actualiza el estado "visto" de una evaluación NPS
- * @param {string} evaluationId - ID de la evaluación
- * @param {boolean} seen - Estado de visto (true/false)
- * @returns {Promise<Object>} Respuesta del servidor
- */
 export const updateNpsEvaluationSeen = async (evaluationId, seen) => {
   try {
-    const response = await apiClient.put(
-      `${API_URL}/mentor-nps/evaluation-seen`,
-      {
-        evaluationId,
-        seen,
-      }
-    )
+    const response = await apiClient.put(`${API_URL}/mentor-nps/evaluation-seen`, {
+      evaluationId,
+      seen,
+    })
+    responseCache.clear()
     return response.data
   } catch (error) {
     throw new Error(
-      error.response?.data?.error || error.message || 'Error al actualizar el estado de la evaluación'
+      error.response?.data?.error ||
+        error.message ||
+        'Error al actualizar el estado de la evaluación'
     )
   }
 }

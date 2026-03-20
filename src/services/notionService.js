@@ -1,7 +1,6 @@
 import axios from 'axios'
 import Swal from 'sweetalert2'
-
-const API_URL = import.meta.env.VITE_BACKEND_URL
+import { API_URL, getAuthHeaders } from './apiClient'
 
 let cohortInfoErrorShown = false
 
@@ -26,6 +25,10 @@ function setCachedData(key, data) {
   cache.set(key, { data, timestamp: Date.now() })
 }
 
+function deleteCachedData(key) {
+  cache.delete(key)
+}
+
 // Axios con timeout personalizado
 const axiosWithTimeout = axios.create({
   timeout: 30000, // 15 segundos máximo
@@ -41,7 +44,7 @@ export async function getNotionPage(pageId, token) {
   const resp = await fetch(`${API_URL}/notion-page`, {
     method: 'POST',
     headers: {
-      Authorization: `Token ${token}`,
+      ...getAuthHeaders(token ? { Authorization: `Token ${token}` } : {}),
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ pageId }),
@@ -66,14 +69,11 @@ export async function getCohortNotionInfo(cohortId) {
   }
 
   try {
-    const token = localStorage.getItem('token')
     const response = await axiosWithTimeout.post(
       `${API_URL}/cohort-info`,
       { cohortId: cohortId },
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     )
 
@@ -116,14 +116,11 @@ export const getStudentInfo = async (studentId) => {
   }
 
   try {
-    const token = localStorage.getItem('token')
     const response = await axiosWithTimeout.post(
       `${API_URL}/student-info`,
       { studentId: studentId },
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     )
 
@@ -156,14 +153,11 @@ export const getStudentComments = async (studentId) => {
   }
 
   try {
-    const token = localStorage.getItem('token')
     const response = await axiosWithTimeout.post(
       `${API_URL}/student-comments`,
       { studentId: studentId },
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     )
 
@@ -187,6 +181,11 @@ export const getStudentComments = async (studentId) => {
   }
 }
 
+export const invalidateStudentCommentsCache = (studentId) => {
+  const cacheKey = getCacheKey('student-comments', { studentId })
+  deleteCachedData(cacheKey)
+}
+
 // Nueva función para obtener información de un usuario de Notion por ID
 export const getNotionUser = async (userId) => {
   const cacheKey = getCacheKey('notion-user', { userId })
@@ -196,14 +195,11 @@ export const getNotionUser = async (userId) => {
   }
 
   try {
-    const token = localStorage.getItem('token')
     const response = await axiosWithTimeout.post(
       `${API_URL}/notion-user`,
       { userId },
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     )
 
@@ -226,14 +222,11 @@ export async function getCohortPageById(pageId) {
   }
 
   try {
-    const token = localStorage.getItem('token')
     const response = await axiosWithTimeout.post(
       `${API_URL}/cohort-page-by-id`,
       { pageId: pageId },
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       }
     )
 

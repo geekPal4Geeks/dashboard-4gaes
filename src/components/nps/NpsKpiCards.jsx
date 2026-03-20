@@ -1,5 +1,5 @@
 import React from 'react'
-import { Grid, Card, CardContent, Typography, Box } from '@mui/material'
+import { Grid, Card, CardContent, Typography, Box, Tooltip } from '@mui/material'
 import {
   TrendingUp,
   People,
@@ -9,10 +9,11 @@ import {
   Group,
   CheckCircle,
   Schedule,
+  InfoOutlined,
 } from '@mui/icons-material'
 import { getScoreColor } from '../../services/mentorNpsService'
 
-const KpiCard = ({ title, value, subtitle, icon, color, trend }) => {
+const KpiCard = ({ title, value, subtitle, icon, color, trend, tooltip }) => {
   return (
     <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
       <CardContent>
@@ -22,9 +23,16 @@ const KpiCard = ({ title, value, subtitle, icon, color, trend }) => {
           alignItems="flex-start"
         >
           <Box flex={1}>
-            <Typography color="textSecondary" gutterBottom variant="subtitle2">
-              {title}
-            </Typography>
+            <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
+              <Typography color="textSecondary" gutterBottom variant="subtitle2">
+                {title}
+              </Typography>
+              {tooltip && (
+                <Tooltip title={tooltip}>
+                  <InfoOutlined sx={{ fontSize: 16, color: 'text.secondary' }} />
+                </Tooltip>
+              )}
+            </Box>
             <Typography
               variant="h4"
               component="div"
@@ -100,6 +108,7 @@ export default function NpsKpiCards({ kpis, roleTitle = 'Profesor' }) {
       title: `Promedio General ${roleTitle}`,
       value: averageScore?.toFixed(1) || '0.0',
       subtitle: 'Puntuación promedio en todas las evaluaciones',
+      tooltip: `Promedio simple de las puntuaciones NPS recibidas por el ${roleTitle.toLowerCase()} en el período filtrado.`,
       icon: <Star sx={{ color: getScoreColor(averageScore) }} />,
       color: getScoreColor(averageScore),
       trend: null,
@@ -112,6 +121,7 @@ export default function NpsKpiCards({ kpis, roleTitle = 'Profesor' }) {
           : kpis.averageParticipation.toFixed(2)
       }%`,
       subtitle: 'Porcentaje promedio de participación',
+      tooltip: 'Porcentaje promedio de estudiantes que respondieron las evaluaciones NPS.',
       icon: <People sx={{ color: 'success.main' }} />,
       color: 'success.main',
       trend: null,
@@ -120,6 +130,7 @@ export default function NpsKpiCards({ kpis, roleTitle = 'Profesor' }) {
       title: 'Total Evaluaciones',
       value: kpis.totalEvaluations?.toLocaleString() || '0',
       subtitle: 'Número total de evaluaciones recibidas',
+      tooltip: 'Cantidad de evaluaciones NPS incluidas en la vista actual.',
       icon: <Assessment sx={{ color: 'primary.main' }} />,
       color: 'primary.main',
       trend: null,
@@ -130,6 +141,7 @@ export default function NpsKpiCards({ kpis, roleTitle = 'Profesor' }) {
       subtitle: `${kpis.activeCohorts || 0} activas, ${
         kpis.finishedCohorts || 0
       } finalizadas`,
+      tooltip: 'Número de cohortes que tienen al menos una evaluación considerada en esta vista.',
       icon: <Group sx={{ color: 'info.main' }} />,
       color: 'info.main',
       trend: null,
