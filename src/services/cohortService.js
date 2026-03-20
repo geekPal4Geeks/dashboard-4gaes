@@ -5,6 +5,12 @@ const EXCLUDED_COHORTS = [
   902, 939, 101, 1224, 512, 1065, 942, 768, 767, 520, 519,
 ]
 
+// Solo cohortes cuyo slug termina en digito tienen homologo en Notion
+const hasNotionEquivalent = (slug) => {
+  if (!slug) return false
+  return /\d$/.test(slug)
+}
+
 const API_URL = import.meta.env.VITE_4GEEKS_API_URL
 
 const hasEditionDigits = (cohortName) => /\d/.test(String(cohortName || ''))
@@ -38,9 +44,11 @@ export async function getActiveCohorts(token, options = {}) {
       cohort.cohort?.academy?.id === academyId
   )
 
-  // Luego filtramos las cohortes excluidas
+  // Luego filtramos las cohortes excluidas y las que no tienen homologo en Notion
   const filteredCohorts = activeCohorts?.filter(
-    (cohort) => !EXCLUDED_COHORTS.includes(Number(cohort.cohort.id))
+    (cohort) =>
+      !EXCLUDED_COHORTS.includes(Number(cohort.cohort.id)) &&
+      hasNotionEquivalent(cohort.cohort?.slug)
   )
 
   if (!onProgress) {
