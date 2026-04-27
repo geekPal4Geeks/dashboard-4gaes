@@ -36,12 +36,17 @@ export async function getActiveCohorts(token, options = {}) {
   const activeStages = ['PREWORK', 'STARTED', 'FINAL_PROJECT']
   const allowedRoles = ['REVIEWER', 'ASSISTANT', 'TEACHER']
 
+  // Cohortes de programa "con edición" (nombre con dígito) o slugs con homólogo en Notion (p. ej. utec, FS4-24…)
+  const isProgramCohort = (cohort) =>
+    hasEditionDigits(cohort.cohort?.name) ||
+    hasNotionEquivalent(cohort.cohort?.slug)
+
   // Primero filtramos las cohortes activas y con roles permitidos
   const activeCohorts = data.cohorts?.filter(
     (cohort) =>
       activeStages.includes(cohort.cohort.stage) &&
       allowedRoles.includes(cohort.role) &&
-      hasEditionDigits(cohort.cohort?.name) &&
+      isProgramCohort(cohort) &&
       cohort.cohort?.academy?.id === academyId
   )
 

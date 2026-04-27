@@ -162,36 +162,39 @@ export default function EnhancedNotionViewer({ menuItems, token }) {
       <Box
         sx={{
           flex: 1,
+          minWidth: 0,
           height: '100%',
-          overflowY: 'auto',
-          bgcolor: 'background.default',
           display: 'flex',
           flexDirection: 'column',
+          bgcolor: 'background.default',
+          overflow: 'hidden',
         }}
       >
         <Box
+          component="main"
           sx={{
             flex: 1,
-            px: 0,
-            pb: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            maxWidth: '100%',
-            mx: 0,
             minHeight: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            px: 0,
+            py: 1,
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {renderContent()}
         </Box>
 
         <Box
+          role="complementary"
           sx={{
-            mt: 'auto',
+            flexShrink: 0,
             p: 3,
             backgroundColor: 'primary.light',
             borderRadius: 2,
-            mx: 4,
-            mb: 3,
+            mx: { xs: 2, sm: 4 },
+            mb: 2,
+            mt: 0,
           }}
         >
           <Typography

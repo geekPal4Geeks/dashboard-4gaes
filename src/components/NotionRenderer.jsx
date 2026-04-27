@@ -1,6 +1,6 @@
 import { NotionRenderer as ReactNotionRenderer } from 'react-notion-x'
-import { uuidToId } from 'notion-utils'
-import { CircularProgress, Alert, Box, Checkbox } from '@mui/material'
+import { uuidToId, getPageTitle } from 'notion-utils'
+import { CircularProgress, Alert, Box, Checkbox, Typography } from '@mui/material'
 import useNotionPage from '../hooks/useNotionPage'
 import { useMemo, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
@@ -102,6 +102,10 @@ export default function NotionRenderer({ pageId, token }) {
     () => resolveRootBlockId(safeRecordMap, pageId),
     [safeRecordMap, pageId]
   )
+  const pageTitle = useMemo(
+    () => (safeRecordMap ? getPageTitle(safeRecordMap) : null),
+    [safeRecordMap]
+  )
 
   if (loading) {
     return (
@@ -144,6 +148,20 @@ export default function NotionRenderer({ pageId, token }) {
         '& .notion-page': { padding: 0, boxShadow: 'none', maxWidth: '100%' },
       }}
     >
+      {pageTitle ? (
+        <Typography
+          component="h1"
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            mt: 0,
+            mb: 2,
+            color: 'text.primary',
+          }}
+        >
+          {pageTitle}
+        </Typography>
+      ) : null}
       <ReactNotionRenderer
         recordMap={safeRecordMap}
         fullPage={false}
