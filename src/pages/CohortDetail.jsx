@@ -558,7 +558,7 @@ export default function CohortDetail() {
                   }}
                   gutterBottom
                 >
-                  {(
+                  {String(
                     cohort.properties?.Cohort?.title?.[0]?.plain_text ||
                     'Cohorte sin nombre'
                   )
