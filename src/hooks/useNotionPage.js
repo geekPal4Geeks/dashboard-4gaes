@@ -17,7 +17,7 @@ const useNotionPage = (pageId, token) => {
       setError(null)
       try {
         const data = await getNotionPage(pageId, token)
-        setRecordMap(data.recordMap || data)
+        setRecordMap(data.recordMap ?? null)
       } catch (err) {
         console.error('Error fetching Notion page:', err)
         setError(err.message)

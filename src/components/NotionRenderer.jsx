@@ -1,85 +1,107 @@
 import { NotionRenderer as ReactNotionRenderer } from 'react-notion-x'
+import { uuidToId } from 'notion-utils'
 import { CircularProgress, Alert, Box, Checkbox } from '@mui/material'
 import useNotionPage from '../hooks/useNotionPage'
-import { useState } from 'react'
-import { useNavigate, Link as RouterLink } from 'react-router-dom'
-
-// Estilos CSS necesarios para react-notion-x
+import { useMemo, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import 'react-notion-x/src/styles.css'
 
-// Componente Checkbox local interactivo
 function LocalCheckbox({ block, ...props }) {
   const [checked, setChecked] = useState(block?.format?.checked || false)
   return (
     <Checkbox
       checked={checked}
-      onChange={() => setChecked((val) => !val)}
+      onChange={() => setChecked((v) => !v)}
       color="primary"
       sx={{ pointerEvents: 'auto' }}
     />
   )
 }
 
-const getCurrentDomain = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin
-  }
-  return ''
-}
-
 function LocalLink({ href, children, ...props }) {
-  let isInternal = false
-  let isPageIdLink = false
-  let pageId = null
-
-  if (href) {
-    // Detectar si es un pageId directo en la raíz
-    const match = href.match(/^\/([a-f0-9]{32})$/i)
-    if (match) {
-      isPageIdLink = true
-      pageId = match[1]
-      isInternal = true
-    } else if (href.startsWith('/')) {
-      isInternal = true
-    } else {
-      try {
-        const url = new URL(href, window.location.origin)
-        const match2 = url.pathname.match(/^\/([a-f0-9]{32})$/i)
-        if (match2) {
-          isPageIdLink = true
-          pageId = match2[1]
-        }
-        isInternal = url.host === window.location.host
-      } catch {
-        isInternal = false
-      }
-    }
+  if (typeof href !== 'string' || href.trim() === '') {
+    return <span {...props}>{children}</span>
   }
-
-  if (isPageIdLink && pageId) {
+  const match = href.match(/^\/([a-f0-9]{32})$/i)
+  if (match) {
     return (
-      <RouterLink to={`/documentation/${pageId}`} {...props}>
+      <RouterLink to={`/documentation/${match[1]}`} {...props}>
         {children}
       </RouterLink>
     )
-  } else if (isInternal && href && !href.startsWith('#')) {
+  }
+  if (href.startsWith('/') && !href.startsWith('//') && !href.startsWith('#')) {
     return (
       <RouterLink to={href} {...props}>
         {children}
       </RouterLink>
     )
-  } else {
-    // Externo o ancla
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
-        {children}
-      </a>
-    )
   }
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+      {children}
+    </a>
+  )
 }
 
+const normalizeIdKey = (id) => {
+  if (id == null) return ''
+  return String(id).replace(/-/g, '').toLowerCase()
+}
+
+const resolveRootBlockId = (recordMap, pageId) => {
+  if (!recordMap?.block || !pageId) return undefined
+  if (recordMap.block[pageId]) return pageId
+  const target = normalizeIdKey(pageId)
+  for (const key of Object.keys(recordMap.block)) {
+    if (normalizeIdKey(key) === target) return key
+  }
+  for (const key of Object.keys(recordMap.block)) {
+    const bid = recordMap.block[key]?.value?.id
+    if (bid && normalizeIdKey(bid) === target) return key
+  }
+  const asPage = Object.keys(recordMap.block).find(
+    (k) => recordMap.block[k]?.value?.type === 'page'
+  )
+  if (asPage) return asPage
+  return Object.keys(recordMap.block)[0]
+}
+
+const ensureBlockValueIds = (recordMap) => {
+  if (!recordMap?.block) return recordMap
+  const nextBlock = { ...recordMap.block }
+  for (const [key, wrap] of Object.entries(nextBlock)) {
+    if (!wrap?.value) continue
+    if (typeof wrap.value.id === 'string' && wrap.value.id.trim() !== '') continue
+    const safeKey = typeof key === 'string' ? key : String(key)
+    if (!safeKey || safeKey === 'undefined' || safeKey === 'null') continue
+    nextBlock[key] = {
+      ...wrap,
+      value: { ...wrap.value, id: safeKey },
+    }
+  }
+  return { ...recordMap, block: nextBlock }
+}
+
+/**
+ * Muestra Notion vía `recordMap` del backend. `pageId` = id de página Notion (32 hex).
+ */
 export default function NotionRenderer({ pageId, token }) {
+  const mapPageUrl = (notionId) => {
+    if (notionId == null || String(notionId).trim() === '') return '/documentation'
+    return `/documentation/${uuidToId(String(notionId))}`
+  }
   const { recordMap, loading, error } = useNotionPage(pageId, token)
+  const safeRecordMap = useMemo(
+    () => ensureBlockValueIds(recordMap),
+    [recordMap]
+  )
+  const isEmptyMap =
+    !safeRecordMap?.block || Object.keys(safeRecordMap.block).length === 0
+  const rootBlockId = useMemo(
+    () => resolveRootBlockId(safeRecordMap, pageId),
+    [safeRecordMap, pageId]
+  )
 
   if (loading) {
     return (
@@ -93,23 +115,21 @@ export default function NotionRenderer({ pageId, token }) {
       </Box>
     )
   }
-
   if (error) {
     return (
-      <Alert severity="error" sx={{ my: 2 }}>
-        Error al cargar el contenido: {error}
+      <Alert severity="error" sx={{ my: 2, mx: 2 }}>
+        No se pudo cargar la página de Notion: {error}
       </Alert>
     )
   }
-
-  if (!recordMap) {
+  if (!safeRecordMap || isEmptyMap) {
     return (
-      <Alert severity="info" sx={{ my: 2 }}>
-        No hay contenido para mostrar
+      <Alert severity="info" sx={{ my: 2, mx: 2 }}>
+        El servicio no devolvió contenido Notion para este id. Revisa /notion-page y
+        el pageId.
       </Alert>
     )
   }
-
   return (
     <Box
       sx={{
@@ -120,25 +140,20 @@ export default function NotionRenderer({ pageId, token }) {
           fontFamily: 'inherit',
           fontSize: '16px',
           width: '100%',
-          maxWidth: '100%',
         },
-        '& .notion-page': {
-          padding: 0,
-          boxShadow: 'none',
-          maxWidth: '100%',
-          width: '100%',
-        },
+        '& .notion-page': { padding: 0, boxShadow: 'none', maxWidth: '100%' },
       }}
     >
       <ReactNotionRenderer
-        recordMap={recordMap}
+        recordMap={safeRecordMap}
         fullPage={false}
         darkMode={false}
-        disableHeader={true}
-        components={{
-          Checkbox: LocalCheckbox,
-          a: LocalLink,
-        }}
+        disableHeader
+        blockId={rootBlockId}
+        rootPageId={rootBlockId}
+        mapPageUrl={mapPageUrl}
+        mapImageUrl={(url) => url || ''}
+        components={{ Checkbox: LocalCheckbox, a: LocalLink }}
       />
     </Box>
   )
