@@ -130,6 +130,11 @@ export function parseNotionPageResponse(data) {
 }
 
 export async function getNotionPage(pageId, token) {
+  if (!API_URL) {
+    throw new Error(
+      'Falta VITE_BACKEND_URL. Debe ser la base del API (p. ej. https://tudominio.com/api).'
+    )
+  }
   const cacheKey = getCacheKey('notion-page', { pageId })
   const cachedData = getCachedData(cacheKey)
   if (cachedData && hasNotionBlocks(cachedData.recordMap)) {

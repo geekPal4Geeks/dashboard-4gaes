@@ -7,11 +7,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   isLegacyNotionPageIdParam,
   LEGACY_NOTION_ID_TO_SLUG,
-  NOTION_INICIO_PAGE_ID,
+  getNotionPageIdForSlug,
 } from '../config/documentationMenu'
 
 /**
- * Visor de documentación: Inicio (prueba) con Notion; resto en Markdown (src/content/docs).
+ * Documentación: todas las guías con pageId usan Notion; resto, Markdown (DocPageView).
  */
 export default function EnhancedNotionViewer({ menuItems, token }) {
   const [selectedPageId, setSelectedPageId] = useState(null)
@@ -31,7 +31,8 @@ export default function EnhancedNotionViewer({ menuItems, token }) {
       return
     }
     if (isLegacyNotionPageIdParam(routeParam)) {
-      const next = LEGACY_NOTION_ID_TO_SLUG[routeParam]
+      const legacyKey = routeParam.toLowerCase()
+      const next = LEGACY_NOTION_ID_TO_SLUG[legacyKey] ?? LEGACY_NOTION_ID_TO_SLUG[routeParam]
       navigate(next ? `/documentation/${next}` : '/documentation', {
         replace: true,
       })
@@ -57,6 +58,20 @@ export default function EnhancedNotionViewer({ menuItems, token }) {
     return routeParam
   }, [routeParam, homeId])
 
+  const renderNotionOrMarkdown = (slug) => {
+    const notionPageId = getNotionPageIdForSlug(slug)
+    if (notionPageId) {
+      return (
+        <NotionRenderer
+          key={notionPageId}
+          pageId={notionPageId}
+          token={token}
+        />
+      )
+    }
+    return <DocPageView slug={slug} />
+  }
+
   const renderContent = () => {
     if (routeParam && isLegacyNotionPageIdParam(routeParam)) {
       return (
@@ -70,13 +85,8 @@ export default function EnhancedNotionViewer({ menuItems, token }) {
         </Box>
       )
     }
-    if (contentSlug === homeId) {
-      return (
-        <NotionRenderer pageId={NOTION_INICIO_PAGE_ID} token={token} />
-      )
-    }
     if (contentSlug) {
-      return <DocPageView slug={contentSlug} />
+      return renderNotionOrMarkdown(contentSlug)
     }
     if (!selectedPageId) {
       return (
@@ -116,12 +126,7 @@ export default function EnhancedNotionViewer({ menuItems, token }) {
         </Box>
       )
     }
-    if (selectedPageId === homeId) {
-      return (
-        <NotionRenderer pageId={NOTION_INICIO_PAGE_ID} token={token} />
-      )
-    }
-    return <DocPageView slug={selectedPageId} />
+    return renderNotionOrMarkdown(selectedPageId)
   }
 
   return (

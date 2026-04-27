@@ -1,18 +1,25 @@
 /**
- * Inicio: probando react-notion-x con POST /notion-page. Resto de guías en Markdown (src/content/docs).
- */
-export const NOTION_INICIO_PAGE_ID = 'c9e6a7bbd0324cd7a7a29603e635ecfb'
-
-/**
- * `sourceUrl` es referencia a la guía pública (no se carga en runtime salvo en futuras pruebas).
+ * `sourceUrl` es la guía pública en Notion (también fuente del pageId vía 32-hex al final de la ruta).
  */
 export const NOTION_SITE_BASE = 'https://4geeksacademy.notion.site'
 
-/** Enlaces antiguos con ID hex de Notion en la URL → slugs actuales. */
+/** Toma el último id hex de 32 chars en la URL pública de Notion. */
+function extractNotionPageIdFromSourceUrl(url) {
+  if (!url || typeof url !== 'string') return null
+  const matches = url.match(/[a-f0-9]{32}/gi)
+  if (!matches || matches.length === 0) return null
+  return matches[matches.length - 1].toLowerCase()
+}
+
+/**
+ * Incluir aquí y en `DOCUMENTATION_MENU` cualquier enlace con ID de página antiguo, para `…/documentation/<id32>`.
+ */
 export const LEGACY_NOTION_ID_TO_SLUG = {
   c9e6a7bbd0324cd7a7a29603e635ecfb: 'responsabilidades-mentores',
   '1bcc9f261fc680c7bacadeddd35b6807': 'servicio-mentorias-mentores',
+  '4a49d7747d9447eb9181635a6284f7c9': 'servicio-mentorias-mentores',
   '209c9f261fc680a5ab08e29c51bfd0c5': 'calendly-mentor',
+  cfa08abda9b64452a5e06cf363d8b33e: 'calendly-mentor',
   '1b6c9f261fc6804a936ec32675f9f5c4': 'bienvenida-4geeks',
   '1bac9f261fc680c4b22af5060c9499d9': 'evaluar-progreso-estudiantes',
   '7e831db823264e97bd66e172edb8fb6c': 'prework-fullstack',
@@ -110,6 +117,26 @@ export const DOCUMENTATION_MENU = [
     sourceUrl: `${NOTION_SITE_BASE}/1b6c9f261fc6804b93e0c068e383bad7`,
   },
 ]
+
+/**
+ * `slug` del menú → `pageId` (32 hex) para `POST /notion-page`.
+ * Derivado de `sourceUrl` (último id en la ruta pública de Notion).
+ */
+export const NOTION_PAGE_ID_BY_SLUG = Object.fromEntries(
+  DOCUMENTATION_MENU.map((item) => {
+    const pageId = extractNotionPageIdFromSourceUrl(item.sourceUrl)
+    return [item.id, pageId]
+  }).filter(([, pageId]) => pageId)
+)
+
+export const NOTION_INICIO_PAGE_ID =
+  NOTION_PAGE_ID_BY_SLUG['responsabilidades-mentores'] ||
+  'c9e6a7bbd0324cd7a7a29603e635ecfb'
+
+export function getNotionPageIdForSlug(slug) {
+  if (!slug || typeof slug !== 'string') return null
+  return NOTION_PAGE_ID_BY_SLUG[slug] ?? null
+}
 
 export function isLegacyNotionPageIdParam(param) {
   return typeof param === 'string' && /^[a-f0-9]{32}$/i.test(param)

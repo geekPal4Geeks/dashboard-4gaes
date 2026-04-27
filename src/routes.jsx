@@ -49,7 +49,8 @@ function PageIdRedirect() {
   const match = window.location.pathname.match(/^\/([a-f0-9]{32})$/i)
   const pageId = match ? match[1] : null
   if (pageId) {
-    const slug = LEGACY_NOTION_ID_TO_SLUG[pageId]
+    const key = pageId.toLowerCase()
+    const slug = LEGACY_NOTION_ID_TO_SLUG[key] ?? LEGACY_NOTION_ID_TO_SLUG[pageId]
     if (slug) {
       window.location.replace(`/documentation/${slug}`)
     } else {
