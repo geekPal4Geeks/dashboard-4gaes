@@ -5,10 +5,11 @@ const EXCLUDED_COHORTS = [
   902, 939, 101, 1224, 512, 1065, 942, 768, 767, 520, 519,
 ]
 
-// Solo cohortes cuyo slug termina en digito tienen homologo en Notion
+// Cohortes con slug que contiene digitos o "utec" tienen homologo en Notion
 const hasNotionEquivalent = (slug) => {
   if (!slug) return false
-  return /\d$/.test(slug)
+  const normalizedSlug = String(slug).toLowerCase()
+  return /\d/.test(normalizedSlug) || normalizedSlug.includes('utec')
 }
 
 const API_URL = import.meta.env.VITE_4GEEKS_API_URL

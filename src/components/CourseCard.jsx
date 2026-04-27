@@ -228,7 +228,7 @@ export default function CourseCard({ cohort }) {
 
         <Typography variant="h5" color="text.primary">
           <strong>
-            {(cohort.cohort?.name || 'Sin nombre')
+            {String(cohort.cohort?.name || 'Sin nombre')
               .replaceAll('-', ' ')
               .replace(/^./, (str) => str.toUpperCase())}
           </strong>
