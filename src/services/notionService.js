@@ -29,16 +29,119 @@ function deleteCachedData(key) {
   cache.delete(key)
 }
 
-// Axios con timeout personalizado
-const axiosWithTimeout = axios.create({
-  timeout: 30000, // 15 segundos máximo
-})
+/** True si el recordMap sirve para react-notion-x. */
+function hasNotionBlocks(recordMap) {
+  return (
+    recordMap?.block &&
+    typeof recordMap.block === 'object' &&
+    Object.keys(recordMap.block).length > 0
+  )
+}
+
+function pickErrorMessage(body, status) {
+  if (body == null) return `Error al obtener la página de Notion (HTTP ${status})`
+  if (typeof body === 'string' && body.trim()) return `${body.trim()} (HTTP ${status})`
+  if (typeof body !== 'object' || Array.isArray(body)) {
+    return `Error al obtener la página de Notion (HTTP ${status})`
+  }
+  const d = body.detail
+  if (typeof d === 'string' && d.trim()) return `${d.trim()} (HTTP ${status})`
+  if (Array.isArray(d) && d[0] && typeof d[0] === 'string') {
+    return `${d[0]} (HTTP ${status})`
+  }
+  const msg = body.message || body.error
+  if (typeof msg === 'string' && msg.trim()) return `${msg.trim()} (HTTP ${status})`
+  return `Error al obtener la página de Notion (HTTP ${status})`
+}
+
+/**
+ * Unwraps common API shapes for react-notion-x (ExtendedRecordMap con `block`).
+ */
+export function parseNotionPageResponse(data) {
+  if (data == null || typeof data !== 'object' || Array.isArray(data)) {
+    return { recordMap: null, publicUrl: null, raw: data }
+  }
+
+  const pickUrl = (obj) => {
+    if (!obj || typeof obj !== 'object') return null
+    const keys = [
+      'publicUrl',
+      'notionUrl',
+      'notion_page_url',
+      'pageUrl',
+      'url',
+      'fallbackUrl',
+      'embedUrl',
+    ]
+    for (const k of keys) {
+      const v = obj[k]
+      if (typeof v === 'string' && v.trim() !== '' && /^https?:\/\//i.test(v)) {
+        return v.trim()
+      }
+    }
+    if (obj.data && typeof obj.data === 'object' && !Array.isArray(obj.data)) {
+      for (const k of keys) {
+        const v = obj.data[k]
+        if (typeof v === 'string' && v.trim() !== '' && /^https?:\/\//i.test(v)) {
+          return v.trim()
+        }
+      }
+    }
+    return null
+  }
+
+  const publicUrl = pickUrl(data)
+
+  const withBlock = (rm) =>
+    rm && typeof rm === 'object' && !Array.isArray(rm) && rm.block && typeof rm.block === 'object'
+
+  const tryPaths = [
+    data.recordMap,
+    data.record_map,
+    data.data?.recordMap,
+    data.data?.record_map,
+    data.result?.recordMap,
+    data.result?.record_map,
+    data.payload?.recordMap,
+    data.payload?.record_map,
+    data.body?.recordMap,
+    data.body?.record_map,
+  ]
+
+  for (const candidate of tryPaths) {
+    if (withBlock(candidate)) {
+      return { recordMap: candidate, publicUrl, raw: data }
+    }
+  }
+
+  if (withBlock(data)) {
+    return { recordMap: data, publicUrl, raw: data }
+  }
+
+  if (data.data && withBlock(data.data)) {
+    return { recordMap: data.data, publicUrl, raw: data }
+  }
+
+  if (data.result && withBlock(data.result)) {
+    return { recordMap: data.result, publicUrl, raw: data }
+  }
+
+  return { recordMap: null, publicUrl, raw: data }
+}
 
 export async function getNotionPage(pageId, token) {
+  if (!API_URL) {
+    throw new Error(
+      'Falta VITE_BACKEND_URL. Debe ser la base del API (p. ej. https://tudominio.com/api).'
+    )
+  }
   const cacheKey = getCacheKey('notion-page', { pageId })
   const cachedData = getCachedData(cacheKey)
-  if (cachedData) {
+  if (cachedData && hasNotionBlocks(cachedData.recordMap)) {
     return cachedData
+  }
+  if (cachedData) {
+    deleteCachedData(cacheKey)
   }
 
   const resp = await fetch(`${API_URL}/notion-page`, {
@@ -51,14 +154,35 @@ export async function getNotionPage(pageId, token) {
   })
 
   if (!resp.ok) {
-    const errorData = await resp.json()
-    throw new Error(errorData.detail || 'Failed to fetch Notion page')
+    const text = await resp.text()
+    let body = null
+    try {
+      body = text ? JSON.parse(text) : null
+    } catch {
+      body = text || null
+    }
+    throw new Error(pickErrorMessage(body, resp.status))
   }
 
-  const data = await resp.json()
-  setCachedData(cacheKey, data)
-  return data
+  const raw = await resp.json()
+  const parsed = parseNotionPageResponse(raw)
+  if (import.meta.env.DEV && !hasNotionBlocks(parsed.recordMap)) {
+    const keys = raw && typeof raw === 'object' && !Array.isArray(raw) ? Object.keys(raw) : []
+    console.warn(
+      '[getNotionPage] Sin recordMap con blocks; revisa la forma del JSON del backend. Claves:',
+      keys
+    )
+  }
+  if (hasNotionBlocks(parsed.recordMap)) {
+    setCachedData(cacheKey, parsed)
+  }
+  return parsed
 }
+
+// Axios con timeout personalizado
+const axiosWithTimeout = axios.create({
+  timeout: 30000, // 15 segundos máximo
+})
 
 // Lista de cohortes que sabemos que no existen en Notion
 export async function getCohortNotionInfo(cohortId) {

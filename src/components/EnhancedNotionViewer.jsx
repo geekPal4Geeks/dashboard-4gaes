@@ -1,75 +1,92 @@
-import { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Box, 
-  Chip,
-  useTheme,
-} from '@mui/material';
-import HierarchicalNotionMenu from './HierarchicalNotionMenu';
-import NotionRenderer from './NotionRenderer';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react'
+import { Typography, Box, Chip, CircularProgress } from '@mui/material'
+import HierarchicalNotionMenu from './HierarchicalNotionMenu'
+import DocPageView from './DocPageView'
+import NotionRenderer from './NotionRenderer'
+import { useParams, useNavigate } from 'react-router-dom'
+import {
+  isLegacyNotionPageIdParam,
+  LEGACY_NOTION_ID_TO_SLUG,
+  getNotionPageIdForSlug,
+} from '../config/documentationMenu'
 
-// Mapeo de IDs de página a componentes personalizados
+/**
+ * Documentación: todas las guías con pageId usan Notion; resto, Markdown (DocPageView).
+ */
+export default function EnhancedNotionViewer({ menuItems, token }) {
+  const [selectedPageId, setSelectedPageId] = useState(null)
+  const { pageId: routeParam } = useParams()
+  const navigate = useNavigate()
 
-export default function EnhancedNotionViewer({ menuItems, token, title = "Documentación" }) {
-  const theme = useTheme();
-  const [selectedPageId, setSelectedPageId] = useState(null);
-  const [selectedSubPageId, setSelectedSubPageId] = useState(null);
-  const { pageId } = useParams();
-  const navigate = useNavigate();
+  const homePage = useMemo(
+    () => menuItems.find((item) => item.category === 'Inicio'),
+    [menuItems]
+  )
+  const homeId = homePage?.id
 
-  const homePageId = "c9e6a7bbd0324cd7a7a29603e635ecfb";
-
-  // Permitir obtener el pageId desde el path
   useEffect(() => {
-    if (pageId && pageId !== selectedPageId) {
-      setSelectedPageId(pageId);
-      setSelectedSubPageId(null);
+    if (!homeId) return
+    if (!routeParam) {
+      setSelectedPageId(homeId)
+      return
     }
-    if (!pageId) {
-      // Si no hay pageId, selecciona la página de Inicio (category === 'Inicio')
-      const homePage = menuItems.find(item => item.category === 'Inicio');
-      if (homePage && selectedPageId !== homePage.id) {
-        setSelectedPageId(homePage.id);
-        setSelectedSubPageId(null);
-      }
+    if (isLegacyNotionPageIdParam(routeParam)) {
+      const legacyKey = routeParam.toLowerCase()
+      const next = LEGACY_NOTION_ID_TO_SLUG[legacyKey] ?? LEGACY_NOTION_ID_TO_SLUG[routeParam]
+      navigate(next ? `/documentation/${next}` : '/documentation', {
+        replace: true,
+      })
+      return
     }
-  }, [pageId, menuItems]);
+    setSelectedPageId(routeParam)
+  }, [routeParam, homeId, navigate])
 
-  // Sincronizar selección con la URL
-  const handleSelectPage = (pageId) => {
-    const page = menuItems.find(item => item.id === pageId);
-    setSelectedPageId(pageId);
-    setSelectedSubPageId(null);
+  const handleSelectPage = (slug) => {
+    const page = menuItems.find((item) => item.id === slug)
+    setSelectedPageId(slug)
     if (page && page.category === 'Inicio') {
-      navigate('/documentation');
+      navigate('/documentation')
     } else {
-      navigate(`/documentation/${pageId}`);
+      navigate(`/documentation/${slug}`)
     }
-  };
+  }
 
-  const handleSelectSubPage = (subPageId) => {
-    setSelectedSubPageId(subPageId);
-  };
+  const contentSlug = useMemo(() => {
+    if (!homeId) return null
+    if (!routeParam) return homeId
+    if (isLegacyNotionPageIdParam(routeParam)) return null
+    return routeParam
+  }, [routeParam, homeId])
 
-  const selectedItem = menuItems?.find(item => item.id === selectedPageId);
+  const renderNotionOrMarkdown = (slug) => {
+    const notionPageId = getNotionPageIdForSlug(slug)
+    if (notionPageId) {
+      return (
+        <NotionRenderer
+          key={notionPageId}
+          pageId={notionPageId}
+          token={token}
+        />
+      )
+    }
+    return <DocPageView slug={slug} />
+  }
 
   const renderContent = () => {
-    if (selectedItem?.category === "Inicio") {
+    if (routeParam && isLegacyNotionPageIdParam(routeParam)) {
       return (
-        <NotionRenderer
-          pageId={homePageId}
-          token={token}
-        />
-      );
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="320px"
+        >
+          <CircularProgress />
+        </Box>
+      )
     }
-    if (selectedSubPageId) {
-      return (
-        <NotionRenderer
-          pageId={selectedSubPageId}
-          token={token}
-        />
-      );
+    if (contentSlug) {
+      return renderNotionOrMarkdown(contentSlug)
     }
     if (!selectedPageId) {
       return (
@@ -85,30 +102,32 @@ export default function EnhancedNotionViewer({ menuItems, token, title = "Docume
             border: '2px dashed',
             borderColor: 'grey.300',
             textAlign: 'center',
-            p: 4
+            p: 4,
           }}
         >
           <Typography variant="h5" color="text.secondary" gutterBottom>
-            👋 ¡Bienvenido a la documentación!
+            ¡Bienvenido a la documentación!
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-            Selecciona una página del menú lateral para comenzar a explorar nuestras guías y recursos.
+            Selecciona una página del menú lateral.
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Chip label="📚 Proyectos" color="primary" variant="outlined" />
-            <Chip label="👨‍🏫 Mentorías" color="secondary" variant="outlined" />
-            <Chip label="🎯 Guías prácticas" color="default" variant="outlined" />
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+            }}
+          >
+            <Chip label="Proyectos" color="primary" variant="outlined" />
+            <Chip label="Mentorías" color="secondary" variant="outlined" />
+            <Chip label="Guías" color="default" variant="outlined" />
           </Box>
         </Box>
-      );
+      )
     }
-    return (
-      <NotionRenderer
-        pageId={selectedPageId}
-        token={token}
-      />
-    );
-  };
+    return renderNotionOrMarkdown(selectedPageId)
+  }
 
   return (
     <Box
@@ -120,7 +139,6 @@ export default function EnhancedNotionViewer({ menuItems, token, title = "Docume
         bgcolor: 'background.default',
       }}
     >
-      {/* Sidebar */}
       <Box
         sx={{
           width: 320,
@@ -141,7 +159,6 @@ export default function EnhancedNotionViewer({ menuItems, token, title = "Docume
         />
       </Box>
 
-      {/* Main Content */}
       <Box
         sx={{
           flex: 1,
@@ -152,22 +169,6 @@ export default function EnhancedNotionViewer({ menuItems, token, title = "Docume
           flexDirection: 'column',
         }}
       >
-        {/* Header con título dinámico */}
-        {(selectedSubPageId || selectedItem) && (
-          <Box sx={{ mb: 3, pt: 3, px: 4 }}>
-            <Typography
-              variant="h4"
-              gutterBottom
-              sx={{ fontWeight: 'bold', textAlign: 'center' }}
-            >
-              {selectedSubPageId
-                ? menuItems?.find(item => item.id === selectedSubPageId)?.title
-                : selectedItem?.title}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Contenido */}
         <Box
           sx={{
             flex: 1,
@@ -176,19 +177,32 @@ export default function EnhancedNotionViewer({ menuItems, token, title = "Docume
             display: 'flex',
             flexDirection: 'column',
             maxWidth: '100%',
-            mx: 0
+            mx: 0,
+            minHeight: 0,
           }}
         >
           {renderContent()}
         </Box>
 
-        {/* Footer informativo */}
-        <Box sx={{ mt: 'auto', p: 3, backgroundColor: 'primary.light', borderRadius: 2, mx: 4, mb: 3 }}>
-          <Typography variant="body2" color="primary.contrastText" align="center">
-            💡 ¿No encuentras lo que buscas? Contacta con tu coordinador académico o revisa el canal de Slack correspondiente.
+        <Box
+          sx={{
+            mt: 'auto',
+            p: 3,
+            backgroundColor: 'primary.light',
+            borderRadius: 2,
+            mx: 4,
+            mb: 3,
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="primary.contrastText"
+            align="center"
+          >
+            ¿Dudas? Escribe a tu coordinador o al canal de Slack del programa.
           </Typography>
         </Box>
       </Box>
     </Box>
-  );
-} 
+  )
+}

@@ -8,6 +8,7 @@ import { CircularProgress, Box } from '@mui/material'
 import ProtectedRoute from './components/ProtectedRoute'
 import React from 'react'
 import RequireAuth from './components/RequireAuth'
+import { LEGACY_NOTION_ID_TO_SLUG } from './config/documentationMenu'
 
 // Pages
 const Layout = lazy(() => import('./pages/Layout'))
@@ -48,7 +49,13 @@ function PageIdRedirect() {
   const match = window.location.pathname.match(/^\/([a-f0-9]{32})$/i)
   const pageId = match ? match[1] : null
   if (pageId) {
-    window.location.href = `/documentation/${pageId}`
+    const key = pageId.toLowerCase()
+    const slug = LEGACY_NOTION_ID_TO_SLUG[key] ?? LEGACY_NOTION_ID_TO_SLUG[pageId]
+    if (slug) {
+      window.location.replace(`/documentation/${slug}`)
+    } else {
+      window.location.replace('/documentation')
+    }
     return <LazyRoute Component={Documentation} />
   }
   return <LazyRoute Component={NotFound} />

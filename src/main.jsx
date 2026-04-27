@@ -10,8 +10,6 @@ import '@fontsource/roboto/400.css'
 import '@fontsource/roboto/500.css'
 import '@fontsource/roboto/700.css'
 import './index.css'
-import 'react-notion-x/src/styles.css'
-
 const App = () => {
   return (
     <React.StrictMode>
