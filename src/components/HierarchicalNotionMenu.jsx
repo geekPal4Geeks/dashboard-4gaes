@@ -10,7 +10,6 @@ import {
   Typography,
   Divider,
   Collapse,
-  Chip,
   Accordion,
   AccordionSummary,
   AccordionDetails
@@ -23,12 +22,6 @@ import {
   SupervisorAccount,
   ArrowBack
 } from '@mui/icons-material';
-
-const COURSE_TYPES = [
-  { label: 'FS', value: 'FS' },
-  { label: 'DS', value: 'DS' },
-  { label: 'CS', value: 'CS' }
-];
 
 const getCategoryIcon = (category) => {
   switch(category) {
@@ -54,7 +47,6 @@ const getCategoryDisplayName = (category) => {
 
 export default function HierarchicalNotionMenu({ menuItems, onSelectPage, selectedPageId }) {
   const [expandedCategories, setExpandedCategories] = useState(['Mentorías', 'Proyectos']);
-  const [selectedCourses, setSelectedCourses] = useState([]); // FS, DS, CS
   const navigate = useNavigate();
 
   if (!menuItems || menuItems.length === 0) {
@@ -67,21 +59,10 @@ export default function HierarchicalNotionMenu({ menuItems, onSelectPage, select
     );
   }
 
-  // Filtrar items por cursos seleccionados
-  const filterByCourse = (item) => {
-    if (!selectedCourses.length) return true;
-    if (!item.courses) return false;
-    // item.courses puede ser un string o array
-    if (Array.isArray(item.courses)) {
-      return item.courses.some(c => selectedCourses.includes(c));
-    }
-    return selectedCourses.includes(item.courses);
-  };
-
   // Buscar la página de Inicio (Responsabilidades de los Mentores) - SIEMPRE visible
   const homePage = menuItems.find(item => item.category === 'Inicio');
 
-  // Agrupar elementos por categoría y filtrar por curso (excepto Mentorías y Inicio)
+  // Agrupar elementos por categoría (excepto Inicio)
   const groupedItems = menuItems.reduce((acc, item) => {
     const category = item.category || 'General';
     if (category === 'Mentorías') {
@@ -91,7 +72,6 @@ export default function HierarchicalNotionMenu({ menuItems, onSelectPage, select
       return acc;
     }
     if (category === 'Inicio') return acc; // No incluir Inicio en otras categorías
-    if (!filterByCourse(item)) return acc;
     if (!acc[category]) acc[category] = [];
     acc[category].push(item);
     return acc;
@@ -116,14 +96,6 @@ export default function HierarchicalNotionMenu({ menuItems, onSelectPage, select
     );
   };
 
-  const handleChipToggle = (course) => {
-    setSelectedCourses(prev =>
-      prev.includes(course)
-        ? prev.filter(c => c !== course)
-        : [...prev, course]
-    );
-  };
-
   return (
     <Paper sx={{ mb: 2 }}>
       <Box sx={{ p: 0 }}>
@@ -145,19 +117,6 @@ export default function HierarchicalNotionMenu({ menuItems, onSelectPage, select
               Regresar
             </Typography>
           </ListItemButton>
-        </Box>
-        {/* Chips de cursos */}
-        <Box sx={{ display: 'flex', gap: 1, px: 2, pt: 1, pb: 1 }}>
-          {COURSE_TYPES.map(type => (
-            <Chip
-              key={type.value}
-              label={type.label}
-              color={selectedCourses.includes(type.value) ? 'primary' : 'default'}
-              variant={selectedCourses.includes(type.value) ? 'filled' : 'outlined'}
-              clickable
-              onClick={() => handleChipToggle(type.value)}
-            />
-          ))}
         </Box>
         {/* Pestaña Inicio como elemento de lista */}
         {homePage && (
