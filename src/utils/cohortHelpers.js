@@ -42,6 +42,7 @@ export const preworkStatusColors = {
   Dropped: 'default',
   Limbo: 'default',
   Agreement: 'default',
+  'AI - Bienvenid@ a 4Geeks': 'error',
   Missing: 'error',
   'CS - Intro & Virtual Box': 'error',
   'DS - Intro to Python': 'error',
@@ -68,6 +69,51 @@ export const preworkStatusColors = {
 
 export const getPreworkStatusColor = (status) => {
   return preworkStatusColors[status] || 'default'
+}
+
+export const getPreworkStatusChipColor = (preworkStatusSelect) => {
+  const notionColor = preworkStatusSelect?.color
+  if (notionColor && notionToMuiColor[notionColor]) {
+    return notionToMuiColor[notionColor]
+  }
+
+  return getPreworkStatusColor(preworkStatusSelect?.name)
+}
+
+const preworkStatusSortOrder = [
+  'AI - Bienvenid@ a 4Geeks',
+  'Not started',
+  'Missing',
+  'CS - Intro & Virtual Box',
+  'DS - Intro to Python',
+  'FS - HTML',
+  'FS - CSS',
+  'FS - Digital Postcard',
+  'CS - Best Practices',
+  'CS - Cyber Governance',
+  'DS - Python Lists',
+  'DS - Python Functions',
+  'FS - Layouts',
+  'FS - IG Photo Feed',
+  'CS - Packet Tracer',
+  'DS - Master Python',
+  'DS - Fix Misspell',
+  'DS - Learn in public',
+  'FS - JS Beginner',
+  'FS - Excuse Generator',
+  'CS - Introduction to Python',
+  'DS - Monthly Sales Analyzer',
+  'FS - Master JS',
+  'Prework Done',
+  'Agreement',
+  'Limbo',
+  'Dropped',
+  'Do NOT Follow',
+]
+
+export const getPreworkStatusSortPriority = (status) => {
+  const index = preworkStatusSortOrder.indexOf(status)
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index
 }
 
 export const getColorPriority = (color) => {
@@ -116,6 +162,13 @@ export const getNumberColor = (number) => {
   if (number <= 3) return 'success'
   if (number <= 5) return 'tertiary'
   if (number <= 8) return 'warning'
+  return 'error'
+}
+
+export const getAbsencesColor = (number) => {
+  if (number <= 5) return 'success'
+  if (number <= 8) return 'tertiary'
+  if (number <= 12) return 'warning'
   return 'error'
 }
 

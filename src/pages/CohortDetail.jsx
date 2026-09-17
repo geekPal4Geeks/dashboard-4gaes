@@ -29,14 +29,13 @@ import {
 } from '../services/notionService'
 import WarningIcon from '@mui/icons-material/Warning'
 import {
-  notionToMuiColor,
   getStageColor,
   getStageLabel,
-  preworkStatusColors,
-  getPreworkStatusColor,
+  getPreworkStatusChipColor,
+  getPreworkStatusSortPriority,
   getColorPriority,
   formatDate,
-  getNumberColor,
+  getAbsencesColor,
   getDaysInPreworkColor,
   getTeamSlackId,
 } from '../utils/cohortHelpers'
@@ -67,23 +66,34 @@ export default function CohortDetail() {
     if (!isPrework) return students
 
     return [...students].sort((a, b) => {
-      const statusA =
-        a.student?.properties?.['Prework Status']?.select?.name ||
-        a.properties?.['Prework Status']?.select?.name ||
-        ''
-      const statusB =
-        b.student?.properties?.['Prework Status']?.select?.name ||
-        b.properties?.['Prework Status']?.select?.name ||
-        ''
+      const preworkStatusA =
+        a.student?.properties?.['Prework Status']?.select ||
+        a.properties?.['Prework Status']?.select ||
+        null
+      const preworkStatusB =
+        b.student?.properties?.['Prework Status']?.select ||
+        b.properties?.['Prework Status']?.select ||
+        null
+      const statusA = preworkStatusA?.name || ''
+      const statusB = preworkStatusB?.name || ''
 
       // "Prework Done" siempre al final
       if (statusA === 'Prework Done' && statusB !== 'Prework Done') return 1
       if (statusB === 'Prework Done' && statusA !== 'Prework Done') return -1
 
-      const colorA = getPreworkStatusColor(statusA)
-      const colorB = getPreworkStatusColor(statusB)
+      const colorA = getPreworkStatusChipColor(preworkStatusA)
+      const colorB = getPreworkStatusChipColor(preworkStatusB)
+      const colorPriorityDiff = getColorPriority(colorA) - getColorPriority(colorB)
 
-      return getColorPriority(colorA) - getColorPriority(colorB)
+      if (colorPriorityDiff !== 0) return colorPriorityDiff
+
+      const statusPriorityDiff =
+        getPreworkStatusSortPriority(statusA) -
+        getPreworkStatusSortPriority(statusB)
+
+      if (statusPriorityDiff !== 0) return statusPriorityDiff
+
+      return statusA.localeCompare(statusB)
     })
   }
 
@@ -379,34 +389,18 @@ export default function CohortDetail() {
   }, [cohortId])
 
   const renderNumber = (number) => {
-    if (number <= 3)
+    const color = getAbsencesColor(number)
+
+    if (color === 'success')
       return (
         <Typography color="success.main" sx={{ fontWeight: 'thin' }}>
           {number}
         </Typography>
       )
-    if (number <= 5)
-      return (
-        <Chip
-          label={number}
-          color="warning"
-          size="small"
-          sx={{ fontWeight: 'medium' }}
-        />
-      )
-    if (number <= 8)
-      return (
-        <Chip
-          label={number}
-          color="warning"
-          size="small"
-          sx={{ fontWeight: 'medium' }}
-        />
-      )
     return (
       <Chip
         label={number}
-        color="error"
+        color={color}
         size="small"
         sx={{ fontWeight: 'medium' }}
       />
@@ -1124,22 +1118,16 @@ export default function CohortDetail() {
                       },
                       '&:hover': {
                         backgroundColor: 'rgba(0, 0, 0, 0.08)',
-                        cursor: 'pointer',
                       },
-                    }}
-                    onClick={(e) => {
-                      if (e.target.closest('td:last-child')) {
-                        e.stopPropagation()
-                        return
-                      }
-                      handleStudentClick(student)
                     }}
                   >
                     <TableCell>
                       <Box>
                         <Typography
+                          onClick={() => handleStudentClick(student)}
                           sx={{
                             color: 'primary.main',
+                            cursor: 'pointer',
                             '&:hover': {
                               textDecoration: 'underline',
                             },
@@ -1237,17 +1225,20 @@ export default function CohortDetail() {
                     {isPrework && (
                       <>
                         <TableCell align="center">
+                          {(() => {
+                            const preworkStatusSelect =
+                              student.student.properties?.['Prework Status']?.select
+
+                            return (
                           <Chip
                             label={
-                              student.student.properties?.['Prework Status']
-                                ?.select?.name || 'No definido'
+                                  preworkStatusSelect?.name || 'No definido'
                             }
-                            color={getPreworkStatusColor(
-                              student.student.properties?.['Prework Status']
-                                ?.select?.name
-                            )}
+                                color={getPreworkStatusChipColor(preworkStatusSelect)}
                             size="small"
                           />
+                            )
+                          })()}
                         </TableCell>
                         <TableCell align="center">
                           {renderDaysInPrework(
